@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💎 ProfitPal - Smart Stock Analysis Made Simple</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+      color: #ffffff;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 20px;
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.9), rgba(30, 58, 95, 0.8)), 
+                  radial-gradient(circle at 20% 80%, rgba(34, 139, 34, 0.3) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.2) 0%, transparent 50%);
+      position: relative;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      z-index: 1;
+      position: relative;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 900;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #ffd700, #32cd32, #87ceeb);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeInUp 1s ease-out;
+    }
+
+    .hero p {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      margin-bottom: 40px;
+      color: #87ceeb;
+      font-weight: 500;
+      animation: fadeInUp 1s ease-out 0.2s both;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      color: white;
+      border: none;
+      padding: 20px 50px;
+      font-size: 20px;
+      font-weight: 600;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+      animation: fadeInUp 1s ease-out 0.4s both;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(255, 107, 53, 0.6);
+    }
+
+    .cta-button.secondary {
+      background: linear-gradient(135deg, #228b22, #32cd32);
+      box-shadow: 0 8px 25px rgba(34, 139, 34, 0.4);
+      padding: 18px 40px;
+      font-size: 18px;
+    }
+
+    .cta-button.secondary:hover {
+      box-shadow: 0 12px 35px rgba(34, 139, 34, 0.6);
+    }
+
+    .section {
+      padding: 80px 20px;
+      max-width: 1200px;
+      margin: 40px auto;
+      background: rgba(15, 35, 65, 0.6);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(34, 139, 34, 0.2);
+    }
+
+    .section h2 {
+      text-align: center;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      margin-bottom: 50px;
+      color: #ffd700;
+    }
+
+    .demo-section {
+      background: linear-gradient(135deg, rgba(15, 35, 65, 0.8), rgba(30, 58, 95, 0.6));
+      border-radius: 15px;
+      padding: 30px;
+      margin: 40px 0;
+      border: 2px solid rgba(34, 139, 34, 0.4);
+    }
+
+    .demo-input-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .demo-input {
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #228b22;
+      background: rgba(30, 58, 95, 0.6);
+      color: white;
+      font-size: 16px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .demo-input::placeholder {
+      color: #87ceeb;
+    }
+
+    .analysis-result {
+      background: linear-gradient(135deg, rgba(34, 139, 34, 0.1), rgba(255, 215, 0, 0.05));
+      border-radius: 12px;
+      padding: 25px;
+      margin-top: 20px;
+      border: 1px solid rgba(34, 139, 34, 0.3);
+      display: none;
+    }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(30, 58, 95, 0.3);
+      border-radius: 8px;
+      border-left: 4px solid #32cd32;
+    }
+
+    .metric-label {
+      font-weight: 600;
+      color: #87ceeb;
+    }
+
+    .metric-value {
+      font-weight: bold;
+      color: #ffd700;
+      font-size: 18px;
+    }
+
+    .process-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+      margin-top: 50px;
+    }
+
+    .step {
+      text-align: center;
+      padding: 30px 20px;
+      background: linear-gradient(135deg, rgba(30, 58, 95, 0.3), rgba(15, 35, 65, 0.5));
+      border-radius: 15px;
+      border: 1px solid rgba(34, 139, 34, 0.3);
+      backdrop-filter: blur(5px);
+    }
+
+    .step-number {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #228b22, #32cd32);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 auto 20px;
+      color: white;
+      box-shadow: 0 4px 15px rgba(34, 139, 34, 0.4);
+    }
+
+    .step h3 {
+      color: #32cd32;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .step p {
+      color: #bdc3c7;
+      line-height: 1.6;
+    }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .pricing-card {
+      background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+      border-radius: 20px;
+      padding: 40px 30px;
+      text-align: center;
+      border: 2px solid rgba(34, 139, 34, 0.3);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-10px);
+      border-color: rgba(34, 139, 34, 0.6);
+      box-shadow: 0 20px 40px rgba(34, 139, 34, 0.2);
+    }
+
+    .pricing-card.featured {
+      border-color: #ffd700;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(30, 58, 95, 0.6));
+      position: relative;
+    }
+
+    .pricing-card.featured::before {
+      content: "💎 BEST VALUE";
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #ffd700, #ffed4a);
+      color: #0a0e27;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .pricing-tier {
+      font-size: 20px;
+      font-weight: bold;
+      color: #32cd32;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .pricing-price {
+      font-size: 48px;
+      font-weight: 900;
+      color: #ffd700;
+      margin-bottom: 30px;
+    }
+
+    .pricing-price span {
+      font-size: 18px;
+      color: #87ceeb;
+      font-weight: normal;
+    }
+
+    .pricing-features {
+      margin-bottom: 30px;
+    }
+
+    .feature {
+      margin: 12px 0;
+      font-size: 16px;
+      color: #bdc3c7;
+      text-align: left;
+    }
+
+    .pricing-note {
+      background: linear-gradient(135deg, rgba(34, 139, 34, 0.15), rgba(255, 215, 0, 0.1));
+      border-left: 4px solid #228b22;
+      padding: 20px;
+      margin-bottom: 40px;
+      border-radius: 8px;
+      border: 1px solid rgba(34, 139, 34, 0.3);
+    }
+
+    .disclaimer {
+      background: rgba(255, 107, 53, 0.1);
+      border-left: 4px solid #ff6b35;
+      padding: 20px;
+      margin-top: 40px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #bdc3c7;
+      line-height: 1.5;
+    }
+
+    /* QR Code Popup Styles */
+    .qr-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    .qr-popup {
+      background: linear-gradient(135deg, rgba(15, 35, 65, 0.95), rgba(30, 58, 95, 0.95));
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      border: 2px solid #ffd700;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      position: relative;
+      max-width: 400px;
+      width: 90%;
+      animation: popupSlideIn 0.3s ease-out;
+    }
+
+    @keyframes popupSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .qr-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #ff6b35;
+      font-size: 30px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .qr-close:hover {
+      color: #ffd700;
+    }
+
+    .qr-title {
+      color: #ffd700;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .qr-code-container {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      margin: 20px 0;
+      display: inline-block;
+    }
+
+    .qr-code {
+      width: 200px;
+      height: 200px;
+      border-radius: 10px;
+    }
+
+    .qr-instructions {
+      color: #87ceeb;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-top: 20px;
+    }
+
+    .qr-steps {
+      text-align: left;
+      margin-top: 20px;
+      background: rgba(34, 139, 34, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      border-left: 4px solid #32cd32;
+    }
+
+    .qr-step {
+      margin: 8px 0;
+      color: #bdc3c7;
+      font-size: 14px;
+    }
+
+    .bot-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #32cd32, #228b22);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .educational-note {
+      margin-top: 20px;
+      padding: 15px;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(34, 139, 34, 0.1));
+      border-radius: 10px;
+      border: 1px solid #ffd700;
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 40px 20px;
+      }
+
+      .section {
+        padding: 40px 20px;
+        margin: 20px 10px;
+      }
+
+      .demo-input-row {
+        flex-direction: column;
+      }
+
+      .demo-input {
+        min-width: 100%;
+      }
+
+      .pricing-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="hero-content">
+      <h1>💎 ProfitPal - Master Stock Analysis in Minutes</h1>
+      <p>We aggregate the data, calculate the metrics, you make informed decisions. Educational platform combining AI analysis with real market data.</p>
+      <a href="#demo" class="cta-button">Try Free Analysis 🚀</a>
+    </div>
+  </div>
+
+  <!-- QR Code Popup -->
+  <div id="qr-overlay" class="qr-overlay" onclick="closeQR(event)">
+    <div class="qr-popup" onclick="event.stopPropagation()">
+      <button class="qr-close" onclick="closeQR()">&times;</button>
+      <div class="qr-title">💎 Join ProfitPal via Telegram</div>
+      <div class="bot-badge">@AIStockScreenerPro_bot</div>
+
+      <div class="qr-code-container">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://t.me/AIStockScreenerPro_bot?start=landing" 
+             alt="ProfitPal Telegram Bot QR" class="qr-code">
+      </div>
+
+      <div class="qr-instructions">
+        <strong>Scan with your phone camera or Telegram:</strong>
+      </div>
+
+      <div class="qr-steps">
+        <div class="qr-step">📱 1. Open camera or Telegram scanner</div>
+        <div class="qr-step">🤖 2. Scan QR → Opens @AIStockScreenerPro_bot</div>
+        <div class="qr-step">💳 3. Type /buy → Pay $24.99 lifetime</div>
+        <div class="qr-step">🔑 4. Get license key → Enter in ProfitPal</div>
+        <div class="qr-step">💎 5. Unlimited access forever!</div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <a href="https://t.me/AIStockScreenerPro_bot?start=landing" target="_blank" class="cta-button" style="font-size: 16px; padding: 12px 30px;">
+          Open Bot Directly 🤖
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="section" id="demo">
+      <h2>Live Demo - See ProfitPal in Action</h2>
+      <div class="demo-section">
+        <div class="demo-input-row">
+          <input type="text" id="ticker-input" class="demo-input" placeholder="Enter ticker (e.g., AAPL)" value="AAPL">
+          <button onclick="analyzeStock()" class="cta-button">Analyze Stock 💎</button>
+        </div>
+        <div id="analysis-result" class="analysis-result">
+          <h3 style="color: #32cd32; margin-bottom: 20px;">📊 ProfitPal Analysis Results</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <span class="metric-label">Current Price:</span>
+              <span class="metric-value" id="price">$0.00</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">P/E Ratio:</span>
+              <span class="metric-value" id="pe-ratio">0.0x</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Market Cap:</span>
+              <span class="metric-value" id="market-cap">$0.00B</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Intrinsic Value:</span>
+              <span class="metric-value" id="intrinsic-value">$0.00</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">ProfitPal Verdict:</span>
+              <span class="metric-value" id="verdict" style="font-size: 20px;">💎 ANALYZING...</span>
+            </div>
+          </div>
+          <div class="educational-note">
+            <p style="margin: 0; font-style: italic; color: #87ceeb;">
+              📚 <strong>Educational Note:</strong> This analysis is for learning purposes only. ProfitPal aggregates public data and performs mathematical calculations. Always consult a financial advisor before investing.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="how-it-works">
+      <h2>How ProfitPal Works</h2>
+      <div class="process-steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Try Free</h3>
+          <p>Get 1 free analysis per IP address. See the power of ProfitPal in action.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Join for $24.99</h3>
+          <p>One-time payment for lifetime ProfitPal membership. No exceptions, no free rides.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Monthly Updates $4.99</h3>
+          <p>Auto-billed on 1st of each month for real-time data & new ProfitPal features.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <h3>Refer & Save</h3>
+          <p>Each friend who pays $24.99 = 1 month free updates. 12 friends = free year!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="pricing">
+      <h2>Simple ProfitPal Pricing</h2>
+      <div class="pricing-note">
+        <p><strong>💡 How ProfitPal works:</strong> Everyone pays $24.99 to join (no exceptions). Monthly $4.99 covers real-time data & servers. Bring friends via your unique referral link - each friend who joins gives you 1 free month!</p>
+      </div>
+      <div class="pricing-cards">
+        <div class="pricing-card featured">
+          <div class="pricing-tier">PROFITPAL LIFETIME</div>
+          <div class="pricing-price">$24.99<span>/one-time</span></div>
+          <div class="pricing-features">
+            <div class="feature">✅ Unlimited Stock Analysis</div>
+            <div class="feature">✅ Diamond/Trash Classification</div>
+            <div class="feature">✅ Intrinsic Value Calculations</div>
+            <div class="feature">✅ All Premium Metrics</div>
+            <div class="feature">✅ Educational Resources</div>
+          </div>
+          <button onclick="showQR()" class="cta-button">Get ProfitPal Access 💎</button>
+        </div>
+
+        <div class="pricing-card">
+          <div class="pricing-tier">DATA UPDATES</div>
+          <div class="pricing-price">$4.99<span>/month</span></div>
+          <div class="pricing-features">
+            <div class="feature">🔄 Real-time Market Data</div>
+            <div class="feature">🔄 Server Maintenance</div>
+            <div class="feature">🔄 New Features Access</div>
+            <div class="feature">🎁 FREE with Referrals!</div>
+            <div class="feature">💰 12 friends = Free year</div>
+          </div>
+          <button onclick="showQR()" class="cta-button secondary">Get ProfitPal Access 🚀</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <h3>📋 Important ProfitPal Disclaimers</h3>
+      <p>
+        <strong>Educational Platform:</strong> ProfitPal is an educational tool that aggregates publicly available financial data and performs mathematical calculations. We are data aggregators, calculators, information providers, and an educational platform.<br><br>
+        <strong>Not Financial Advice:</strong> All ProfitPal analysis is for educational purposes only. This is not investment advice, financial planning, or recommendations to buy or sell securities. Always consult with a qualified financial advisor before making investment decisions.<br><br>
+        <strong>Risk Warning:</strong> All investments carry risk of loss. Past performance does not guarantee future results. You are responsible for your own investment decisions and their consequences.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // ProfitPal Demo functionality
+    async function analyzeStock() {
+      const ticker = document.getElementById('ticker-input').value.toUpperCase();
+      const resultDiv = document.getElementById('analysis-result');
+
+      if (!ticker) {
+        alert('Please enter a ticker symbol for ProfitPal analysis');
+        return;
+      }
+
+      resultDiv.style.display = 'block';
+
+      // Show loading state
+      document.getElementById('price').textContent = 'Loading...';
+      document.getElementById('pe-ratio').textContent = 'Loading...';
+      document.getElementById('market-cap').textContent = 'Loading...';
+      document.getElementById('intrinsic-value').textContent = 'Loading...';
+      document.getElementById('verdict').textContent = '⏳ PROFITPAL ANALYZING...';
+
+      // Simulate ProfitPal analysis
+      setTimeout(() => {
+        const mockData = {
+          'AAPL': { price: 185.64, pe: 28.7, mcap: 2847.2, intrinsic: 195.32, verdict: '💎 QUALITY STOCK' },
+          'TSLA': { price: 248.50, pe: 75.2, mcap: 789.1, intrinsic: 180.25, verdict: '⚠️ OVERVALUED' },
+          'MSFT': { price: 374.58, pe: 32.1, mcap: 2781.5, intrinsic: 385.20, verdict: '💎 DIAMOND FOUND' },
+          'NVDA': { price: 875.28, pe: 65.4, mcap: 2156.7, intrinsic: 692.15, verdict: '⚠️ RISKY BUY' },
+          'GOOGL': { price: 138.21, pe: 24.8, mcap: 1745.3, intrinsic: 165.50, verdict: '💎 UNDERVALUED' },
+          'AMZN': { price: 178.25, pe: 45.2, mcap: 1876.4, intrinsic: 195.80, verdict: '📊 MIXED SIGNALS' },
+          'META': { price: 425.65, pe: 22.3, mcap: 1098.7, intrinsic: 450.15, verdict: '💎 QUALITY STOCK' }
+        };
+
+        const data = mockData[ticker] || { 
+          price: 'N/A', 
+          pe: 'N/A', 
+          mcap: 'N/A', 
+          intrinsic: 'N/A', 
+          verdict: '❌ TICKER NOT FOUND' 
+        };
+
+        document.getElementById('price').textContent = data.price !== 'N/A' ? `${data.price}` : 'N/A';
+        document.getElementById('pe-ratio').textContent = data.pe !== 'N/A' ? `${data.pe}x` : 'N/A';
+        document.getElementById('market-cap').textContent = data.mcap !== 'N/A' ? `${data.mcap}B` : 'N/A';
+        document.getElementById('intrinsic-value').textContent = data.intrinsic !== 'N/A' ? `${data.intrinsic}` : 'N/A';
+        document.getElementById('verdict').textContent = data.verdict;
+      }, 2000);
+    }
+
+    // QR Code Popup Functions
+    function showQR() {
+      document.getElementById('qr-overlay').style.display = 'flex';
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    function closeQR(event) {
+      if (event && event.target !== event.currentTarget) return; // Only close if clicking overlay
+      document.getElementById('qr-overlay').style.display = 'none';
+      document.body.style.overflow = 'auto'; // Restore scrolling
+    }
+
+    // Close QR with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeQR();
+      }
+    });
+
+    // Auto-demo on page load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        analyzeStock();
+      }, 1000);
+    });
+
+    // Smooth scrolling for ProfitPal navigation
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
