@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfitPal - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background stars */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: twinkle 2s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .login-container {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.8));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 450px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            position: relative;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .welcome-text {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .subtitle {
+            color: #bdc3c7;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .google-btn {
+            width: 100%;
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .google-btn:hover {
+            background: #357ae8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(66, 133, 244, 0.3);
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #4285f4;
+            font-size: 14px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+            color: #7f8c8d;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(34, 139, 34, 0.3), transparent);
+        }
+
+        .divider span {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.8), rgba(15, 35, 65, 0.9));
+            padding: 0 20px;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ecf0f1;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(44, 62, 80, 0.3);
+            border: 2px solid rgba(34, 139, 34, 0.2);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #32cd32;
+            box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
+            background: rgba(44, 62, 80, 0.5);
+        }
+
+        .form-input::placeholder {
+            color: #95a5a6;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 25px;
+        }
+
+        .forgot-password a {
+            color: #32cd32;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: #ffd700;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            border: none;
+            padding: 18px 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(50, 205, 50, 0.3);
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .signup-section {
+            text-align: center;
+            color: #bdc3c7;
+        }
+
+        .signup-section a {
+            color: #32cd32;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .signup-section a:hover {
+            color: #ffd700;
+        }
+
+        .consent-section {
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(15, 35, 65, 0.4), rgba(30, 58, 95, 0.2));
+            border-radius: 12px;
+            border: 1px solid rgba(34, 139, 34, 0.2);
+        }
+
+        .consent-item {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .consent-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .consent-item input[type="checkbox"] {
+            display: none;
+        }
+
+        .consent-item label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #ecf0f1;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            background: rgba(44, 62, 80, 0.5);
+            border: 2px solid rgba(34, 139, 34, 0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .consent-item input[type="checkbox"]:checked + label .checkmark {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            border-color: #32cd32;
+            transform: scale(1.05);
+        }
+
+        .consent-item input[type="checkbox"]:checked + label .checkmark::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .consent-item a {
+            color: #32cd32;
+            text-decoration: underline;
+            transition: color 0.3s ease;
+        }
+
+        .license-key-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(34, 139, 34, 0.2);
+            text-align: center;
+        }
+
+        .license-key-text {
+            color: #bdc3c7;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .license-key-btn {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.2));
+            color: #ffd700;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .license-key-btn:hover {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.3));
+            transform: translateY(-1px);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .login-container {
+                margin: 20px;
+                padding: 40px 30px;
+            }
+
+            .welcome-text {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated stars background -->
+    <div class="stars">
+        <div class="star" style="top: 20%; left: 10%; animation-delay: 0s;"></div>
+        <div class="star" style="top: 80%; left: 90%; animation-delay: 1s;"></div>
+        <div class="star" style="top: 40%; left: 70%; animation-delay: 2s;"></div>
+        <div class="star" style="top: 60%; left: 20%; animation-delay: 0.5s;"></div>
+        <div class="star" style="top: 30%; left: 50%; animation-delay: 1.5s;"></div>
+        <div class="star" style="top: 70%; left: 30%; animation-delay: 0.8s;"></div>
+        <div class="star" style="top: 10%; left: 80%; animation-delay: 1.2s;"></div>
+        <div class="star" style="top: 90%; left: 60%; animation-delay: 0.3s;"></div>
+    </div>
+
+    <div class="login-container">
+        <!-- Logo and welcome -->
+        <div class="logo-section">
+            <div class="logo">💎 ProfitPal</div>
+            <h1 class="welcome-text">WELCOME BACK</h1>
+            <p class="subtitle">Access your stock analysis dashboard</p>
+        </div>
+
+        <!-- Google OAuth -->
+        <button class="google-btn" onclick="signInWithGoogle()">
+            <div class="google-icon">G</div>
+            Sign in with Google
+        </button>
+
+        <!-- Divider -->
+        <div class="divider">
+            <span>OR</span>
+        </div>
+
+        <!-- Email/Password Form -->
+        <form onsubmit="signInWithEmail(event)">
+            <div class="form-group">
+                <label class="form-label">E-mail address</label>
+                <input type="email" class="form-input" placeholder="E-mail address" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" placeholder="Password" required>
+            </div>
+
+            <div class="forgot-password">
+                <a href="#" onclick="forgotPassword()">Forgot password?</a>
+            </div>
+
+            <!-- GDPR Consent Section -->
+            <div class="consent-section">
+                <div class="consent-item">
+                    <input type="checkbox" id="data-processing" required>
+                    <label for="data-processing">
+                        <span class="checkmark"></span>
+                        I agree to <a href="#" onclick="showDataPolicy()">data processing</a> for account management and service delivery
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <input type="checkbox" id="marketing-emails">
+                    <label for="marketing-emails">
+                        <span class="checkmark"></span>
+                        I want to receive platform updates, new features, and investment insights via email
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <input type="checkbox" id="terms-conditions" required>
+                    <label for="terms-conditions">
+                        <span class="checkmark"></span>
+                        I accept the <a href="#" onclick="showTerms()">Terms & Conditions</a> and <a href="#" onclick="showPrivacy()">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <input type="checkbox" id="age-verification" required>
+                    <label for="age-verification">
+                        <span class="checkmark"></span>
+                        I confirm that I am 18+ years old and understand this is educational content, not financial advice
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">
+                Create ProfitPal Account →
+            </button>
+        </form>
+
+        <!-- Sign Up -->
+        <div class="signup-section">
+            Already have an account? <a href="#" onclick="switchToLogin()">Sign In</a>
+        </div>
+
+        <!-- License Key Alternative -->
+        <div class="license-key-section">
+            <div class="license-key-text">Already purchased via Telegram?</div>
+            <a href="#" class="license-key-btn" onclick="loginWithLicenseKey()">Enter License Key</a>
+        </div>
+    </div>
+
+    <script>
+        // Google OAuth sign-in
+        function signInWithGoogle() {
+            alert('🚀 Google OAuth integration coming soon!\n\nFor now, redirecting to dashboard...');
+            window.location.href = '/app/dashboard';
+        }
+
+        // Email/Password sign-in
+        function signInWithEmail(event) {
+            event.preventDefault();
+
+            // Check required consents
+            const dataProcessing = document.getElementById('data-processing').checked;
+            const termsConditions = document.getElementById('terms-conditions').checked;
+            const ageVerification = document.getElementById('age-verification').checked;
+
+            if (!dataProcessing || !termsConditions || !ageVerification) {
+                alert('⚠️ Please accept all required terms to continue.');
+                return;
+            }
+
+            // Get form data
+            const email = document.querySelector('input[type="email"]').value;
+            const marketingConsent = document.getElementById('marketing-emails').checked;
+
+            // Show success message
+            alert(`✅ Account created successfully!\n\nEmail: ${email}\nMarketing emails: ${marketingConsent ? 'Yes' : 'No'}\n\nRedirecting to dashboard...`);
+
+            // In production: send data to backend
+            window.location.href = '/app/dashboard';
+        }
+
+        // Show Terms & Conditions
+        function showTerms() {
+            alert('📋 Terms & Conditions\n\n• Educational platform only\n• No financial advice provided\n• Use at your own risk\n• Data processed securely\n• Age 18+ required\n\nFull terms: profitpal.com/terms');
+        }
+
+        // Show Privacy Policy
+        function showPrivacy() {
+            alert('🔒 Privacy Policy\n\n• We collect email & usage data\n• Data used for service delivery\n• Optional marketing communications\n• GDPR compliant\n• Data never sold to third parties\n\nFull policy: profitpal.com/privacy');
+        }
+
+        // Show Data Processing Policy
+        function showDataPolicy() {
+            alert('📊 Data Processing Agreement\n\n• Email & profile data collection\n• Usage analytics for improvements\n• Secure storage & encryption\n• Right to delete anytime\n• EU GDPR compliant\n\nContact: privacy@profitpal.com');
+        }
+
+        // Switch to login mode
+        function switchToLogin() {
+            // Toggle between sign up and sign in
+            const button = document.querySelector('.login-btn');
+            const consentSection = document.querySelector('.consent-section');
+            const signupText = document.querySelector('.signup-section');
+
+            if (button.textContent.includes('Create')) {
+                // Switch to login mode
+                button.textContent = 'Sign in with email →';
+                consentSection.style.display = 'none';
+                signupText.innerHTML = 'Not a member? <a href="#" onclick="switchToSignUp()">Sign Up</a>';
+            }
+        }
+
+        // Switch to sign up mode
+        function switchToSignUp() {
+            const button = document.querySelector('.login-btn');
+            const consentSection = document.querySelector('.consent-section');
+            const signupText = document.querySelector('.signup-section');
+
+            button.textContent = 'Create ProfitPal Account →';
+            consentSection.style.display = 'block';
+            signupText.innerHTML = 'Already have an account? <a href="#" onclick="switchToLogin()">Sign In</a>';
+        }
+
+        // License key login
+        function loginWithLicenseKey() {
+            const licenseKey = prompt('🔑 Enter your ProfitPal license key:');
+            if (licenseKey) {
+                // Simple validation (in production, verify against database)
+                if (licenseKey.startsWith('PP-') && licenseKey.length > 10) {
+                    alert('✅ License key verified! Welcome to ProfitPal!');
+                    window.location.href = '/app/dashboard';
+                } else {
+                    alert('❌ Invalid license key format. Please try again or contact support.');
+                }
+            }
+        }
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add more stars dynamically
+        function createRandomStars() {
+            const starsContainer = document.querySelector('.stars');
+            for (let i = 0; i < 20; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                star.style.animationDuration = (Math.random() * 3 + 1) + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Initialize random stars
+        createRandomStars();
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Enter key submits form if focused on input
+            if (e.key === 'Enter' && document.activeElement.type !== 'submit') {
+                const form = document.querySelector('form');
+                if (form) {
+                    form.requestSubmit();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
