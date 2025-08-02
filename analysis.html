@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://js.stripe.com/v3/"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProfitPal Stock Analysis</title>
@@ -833,6 +834,8 @@
     </div>
 
                     <script>
+                        // Stripe initialization
+                        const stripe = Stripe('pk_test_51RqAupL8Gx8kkO0xuGwxlKkIR9yfZvVuU7NBroRCHNTEw2dlAAEb9aydcXHEa1UhJbWQgHXTM2Y1cju7nT6rABXF00IvavpJWB');
                         // Global variables
                         let userCardSetup = false;
                         let userEmail = '';
