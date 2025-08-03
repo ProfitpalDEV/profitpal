@@ -364,7 +364,7 @@ async def create_checkout_session(email: str = Form(...)):
         raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
 @app.get('/setup-success')
-async def setup_success(session_id: str):
+async def setup_success(session_id: str = ""):
     """Handle successful setup payment and create subscription"""
     try:
         print(f"Processing setup success for session: {session_id}")
