@@ -1,4 +1,5 @@
 import requests
+import os
 import json
 import stripe
 import secrets
@@ -13,7 +14,7 @@ from pydantic import BaseModel
 import re
 
 # Stripe Configuration
-stripe.api_key = 'sk_test_51RqAupL8Gx8kkO0xVr2i4GQjlrrzkGKVh0mH5WvUtFfqgokrD8J4RZmsOxFOu0HRBuhsze4u5wW5sLcJmfdspO1s00nnwUVsJW'
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_fallback')
 STRIPE_WEBHOOK_SECRET = 'whsec_12345'  # Get from Stripe Dashboard later
 YOUR_DOMAIN = 'https://profitpal.org'  # Updated Replit domain
 
