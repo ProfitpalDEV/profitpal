@@ -1,29 +1,21 @@
 import requests
 import json
+import stripe
 import secrets
 import hashlib
 import sqlite3
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from fastapi import FastAPI, HTTPException, Request, Form
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
-import uvicorn
-import os
 
-# Environment Variables for Production Security
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'demo_mode')
-STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_demo')
-STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_demo')
-FMP_API_KEY = os.environ.get('FMP_API_KEY', 're6q6DqcjkmRuiXE0fNiDHIYwVH3DcfC')
-YOUR_DOMAIN = os.environ.get('YOUR_DOMAIN', 'https://profitpal.org')
-
-# Stripe Configuration (only if not in demo mode)
-if STRIPE_SECRET_KEY != 'demo_mode':
-    import stripe
-    stripe.api_key = STRIPE_SECRET_KEY
+# Stripe Configuration
+stripe.api_key = 'sk_test_51RqAupL8Gx8kkO0xVr2i4GQjlrrzkGKVh0mH5WvUtFfqgokrD8J4RZmsOxFOu0HRBuhsze4u5wW5sLcJmfdspO1s00nnwUVsJW'
+STRIPE_WEBHOOK_SECRET = 'whsec_12345'  # Get from Stripe Dashboard later
+YOUR_DOMAIN = 'https://profitpal.org'  # Updated Replit domain
 
 # Product Price IDs
 SETUP_FEE_PRICE_ID = 'price_1RqBUyL8Gx8kkO0xGjLG0DVh'  # $24.99 one-time
@@ -50,15 +42,15 @@ class AnalysisResponse(BaseModel):
 
 # FastAPI app
 app = FastAPI(
-    title="ProfitPal - AI Stock Analysis",
-    description="Professional stock analysis with Diamond Rating system",
-    version="3.0.0"
+    title="AI StockScreener Pro API",
+    description="Educational stock analysis platform - aggregating data, calculating metrics, empowering decisions",
+    version="1.0.0"
 )
 
-# Add CORS middleware
+# Add CORS middleware - CRITICAL FIX for "Method Not Allowed"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, restrict this
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -121,7 +113,7 @@ def get_db_connection():
 
 def validate_license_key(license_key: str) -> dict:
     """Validate license key and return user info"""
-    if license_key == "FREE" or license_key == "" or license_key == "PP-DEMO-12345678":
+    if license_key == "FREE" or license_key == "":
         return {"email": "free_user", "status": "free"}
 
     try:
@@ -142,6 +134,7 @@ def validate_license_key(license_key: str) -> dict:
         return None
 
 # FMP API Configuration
+FMP_API_KEY = "re6q6DqcjkmRuiXE0fNiDHIYwVH3DcfC"
 FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
 
 class FMPStockAnalyzer:
@@ -184,6 +177,106 @@ class FMPStockAnalyzer:
         except (ValueError, TypeError):
             return None
 
+    def get_debt_from_balance_sheet(self, ticker: str) -> Optional[float]:
+        """Get debt ratio from balance sheet"""
+        balance_sheet = self.call_fmp_api(f"balance-sheet-statement/{ticker}")
+        if not balance_sheet:
+            return None
+
+        total_debt = self.extract_fmp_value(balance_sheet, 'totalDebt')
+        total_assets = self.extract_fmp_value(balance_sheet, 'totalAssets')
+
+        if total_debt is not None and total_assets is not None and total_assets > 0:
+            return (total_debt / total_assets) * 100
+        return None
+
+    def get_debt_from_ratios(self, ticker: str) -> Optional[float]:
+        """Get debt ratio from financial ratios API"""
+        ratios = self.call_fmp_api(f"ratios/{ticker}")
+        if not ratios:
+            return None
+
+        debt_ratio = self.extract_fmp_value(ratios, 'debtRatio')
+        if debt_ratio is not None:
+            return debt_ratio * 100
+        return None
+
+    def calculate_intrinsic_value(self, ticker: str, current_price: float) -> Tuple[Optional[float], Dict[str, Any]]:
+        """Calculate intrinsic value using 4 methods with weighted average"""
+        details = {
+            "dcf_method": None,
+            "book_value_method": None,
+            "earnings_method": None,
+            "revenue_method": None,
+            "weighted_average": None
+        }
+
+        # Method 1: DCF approximation
+        cash_flow = self.call_fmp_api(f"cash-flow-statement/{ticker}")
+        if cash_flow:
+            free_cash_flow = self.extract_fmp_value(cash_flow, 'freeCashFlow')
+            if free_cash_flow and free_cash_flow > 0:
+                # Simple DCF: FCF * 10 (assuming 10% discount rate)
+                details["dcf_method"] = free_cash_flow * 10 / 1000000  # Convert to per share approximation
+
+        # Method 2: Book Value
+        balance_sheet = self.call_fmp_api(f"balance-sheet-statement/{ticker}")
+        if balance_sheet:
+            book_value = self.extract_fmp_value(balance_sheet, 'totalStockholdersEquity')
+            shares = self.extract_fmp_value(balance_sheet, 'commonStock')
+            if book_value and shares and shares > 0:
+                details["book_value_method"] = book_value / shares
+
+        # Method 3: Earnings multiple
+        income_statement = self.call_fmp_api(f"income-statement/{ticker}")
+        if income_statement:
+            eps = self.extract_fmp_value(income_statement, 'eps')
+            if eps and eps > 0:
+                # Conservative P/E of 15
+                details["earnings_method"] = eps * 15
+
+        # Method 4: Revenue multiple
+        if income_statement:
+            revenue = self.extract_fmp_value(income_statement, 'revenue')
+            shares_outstanding = self.extract_fmp_value(income_statement, 'weightedAverageShsOut')
+            if revenue and shares_outstanding and shares_outstanding > 0:
+                revenue_per_share = revenue / shares_outstanding
+                # Conservative P/S of 3
+                details["revenue_method"] = revenue_per_share * 3
+
+        # Calculate weighted average
+        values = []
+        weights = []
+
+        if details["dcf_method"]:
+            values.append(details["dcf_method"])
+            weights.append(0.4)  # 40% weight for DCF
+
+        if details["earnings_method"]:
+            values.append(details["earnings_method"])
+            weights.append(0.3)  # 30% weight for earnings
+
+        if details["book_value_method"]:
+            values.append(details["book_value_method"])
+            weights.append(0.2)  # 20% weight for book value
+
+        if details["revenue_method"]:
+            values.append(details["revenue_method"])
+            weights.append(0.1)  # 10% weight for revenue
+
+        if values:
+            # Normalize weights
+            total_weight = sum(weights)
+            normalized_weights = [w/total_weight for w in weights]
+
+            # Calculate weighted average
+            weighted_sum = sum(v * w for v, w in zip(values, normalized_weights))
+            details["weighted_average"] = weighted_sum
+
+            return weighted_sum, details
+
+        return None, details
+
     def get_complete_stock_data(self, ticker: str) -> Dict[str, Any]:
         """Get comprehensive stock data from multiple FMP endpoints"""
         result = {
@@ -206,28 +299,21 @@ class FMPStockAnalyzer:
             else:
                 result["errors"].append("Failed to get stock quote")
 
-            # Get debt ratio
-            balance_sheet = self.call_fmp_api(f"balance-sheet-statement/{ticker}")
-            if balance_sheet:
-                total_debt = self.extract_fmp_value(balance_sheet, 'totalDebt')
-                total_assets = self.extract_fmp_value(balance_sheet, 'totalAssets')
-                if total_debt is not None and total_assets is not None and total_assets > 0:
-                    result["debt_ratio"] = (total_debt / total_assets) * 100
-                else:
-                    result["debt_ratio"] = 25.0  # Default
-                    result["errors"].append("Using default debt ratio")
-            else:
-                result["debt_ratio"] = 25.0
+            # Get debt ratio (try multiple methods)
+            debt_ratio = self.get_debt_from_balance_sheet(ticker)
+            if debt_ratio is None:
+                debt_ratio = self.get_debt_from_ratios(ticker)
+            if debt_ratio is None:
+                debt_ratio = 25.0  # Default assumption
                 result["errors"].append("Using default debt ratio")
 
-            # Calculate intrinsic value (simplified)
-            if result["current_price"] and result["pe_ratio"]:
-                # Simple intrinsic value: current_price * (fair_pe / actual_pe)
-                fair_pe = 15  # Conservative fair P/E
-                if result["pe_ratio"] > 0:
-                    result["intrinsic_value"] = result["current_price"] * (fair_pe / result["pe_ratio"])
-                else:
-                    result["intrinsic_value"] = result["current_price"] * 1.15  # 15% premium for no P/E
+            result["debt_ratio"] = debt_ratio
+
+            # Calculate intrinsic value
+            if result["current_price"]:
+                intrinsic_value, iv_details = self.calculate_intrinsic_value(ticker, result["current_price"])
+                result["intrinsic_value"] = intrinsic_value
+                result["intrinsic_value_details"] = iv_details
 
         except Exception as e:
             result["errors"].append(f"Analysis error: {str(e)}")
@@ -237,35 +323,18 @@ class FMPStockAnalyzer:
 # Initialize analyzer
 analyzer = FMPStockAnalyzer(FMP_API_KEY)
 
-# ROUTES
-@app.get("/")
-def read_root():
-    """Serve the main analysis page"""
-    return FileResponse("analysis.html")
-
-@app.get("/analysis")
-def get_analysis():
-    """Serve analysis page"""
-    return FileResponse("analysis.html")
-
-@app.post("/create-checkout-session")
+# STRIPE PAYMENT ENDPOINTS
+@app.post('/create-checkout-session')
 async def create_checkout_session(email: str = Form(...)):
-    """Create Stripe checkout session"""
+    """Create Stripe Checkout Session for ProfitPal subscription"""
     try:
         print(f"Creating checkout session for email: {email}")
-        
-        # Demo mode - redirect to success with demo license
-        if STRIPE_SECRET_KEY == 'demo_mode':
-            return RedirectResponse(
-                url=f"/setup-success?email={email}&demo=true", 
-                status_code=303
-            )
-        
-        # Production mode - real Stripe
+
+        # Create Stripe Checkout Session for setup fee
         setup_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
-                'price': SETUP_FEE_PRICE_ID,
+                'price': SETUP_FEE_PRICE_ID,  # $24.99 setup fee
                 'quantity': 1,
             }],
             mode='payment',
@@ -280,171 +349,218 @@ async def create_checkout_session(email: str = Form(...)):
 
         print(f"✅ Checkout session created: {setup_session.id}")
         return RedirectResponse(url=setup_session.url, status_code=303)
-        
+
     except Exception as e:
-        print(f"Error creating checkout session: {e}")
-        # Fallback to demo mode on error
-        return RedirectResponse(
-            url=f"/setup-success?email={email}&demo=true", 
-            status_code=303
+        print(f"❌ Error creating checkout session: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
+
+@app.get('/setup-success')
+async def setup_success(session_id: str):
+    """Handle successful setup payment and create subscription"""
+    try:
+        print(f"Processing setup success for session: {session_id}")
+
+        # Retrieve the checkout session
+        session = stripe.checkout.Session.retrieve(session_id)
+        customer_email = session.customer_email
+        customer_id = session.customer
+
+        # Create customer record in database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Generate license key
+        license_key = generate_license_key(customer_id)
+        print(f"Generated license key: {license_key}")
+
+        # Insert or update user
+        cursor.execute('''
+            INSERT OR REPLACE INTO users 
+            (email, stripe_customer_id, license_key, subscription_status) 
+            VALUES (?, ?, ?, ?)
+        ''', (customer_email, customer_id, license_key, 'setup_complete'))
+
+        user_id = cursor.lastrowid
+
+        # Record setup payment
+        cursor.execute('''
+            INSERT INTO payments 
+            (user_id, stripe_payment_id, amount, type, status) 
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, session.payment_intent, 2499, 'setup', 'completed'))
+
+        conn.commit()
+        conn.close()
+
+        # Now create the monthly subscription
+        subscription = stripe.Subscription.create(
+            customer=customer_id,
+            items=[{
+                'price': MONTHLY_SUBSCRIPTION_PRICE_ID,  # $4.99/month
+            }],
         )
 
-@app.get("/setup-success")
-async def setup_success(email: str = "", session_id: str = "", demo: str = ""):
-    """Handle successful payment setup"""
-    
-    # Demo mode
-    if demo == "true" or STRIPE_SECRET_KEY == 'demo_mode':
-        license_key = "PP-DEMO-12345678"
-    else:
-        # Production mode - process real Stripe session
-        try:
-            session = stripe.checkout.Session.retrieve(session_id)
-            customer_email = session.customer_email
-            customer_id = session.customer
-            
-            # Generate real license key
-            license_key = generate_license_key(customer_id)
-            
-            # Store in database
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO users 
-                (email, stripe_customer_id, license_key, subscription_status) 
-                VALUES (?, ?, ?, ?)
-            ''', (customer_email, customer_id, license_key, 'active'))
-            conn.commit()
-            conn.close()
-            
-        except Exception as e:
-            print(f"Error processing real payment: {e}")
-            license_key = "PP-DEMO-12345678"  # Fallback
-    
-    return HTMLResponse(f"""
-    <html>
-    <head>
-        <title>Welcome to ProfitPal Pro!</title>
-        <style>
-            body {{
-                font-family: 'Inter', Arial, sans-serif;
-                background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
-                color: white;
-                text-align: center;
-                padding: 50px;
-                min-height: 100vh;
-                margin: 0;
-            }}
-            .container {{
-                max-width: 600px;
-                margin: 0 auto;
-                background: rgba(30, 58, 95, 0.6);
-                padding: 40px;
-                border-radius: 20px;
-                border: 2px solid #32cd32;
-            }}
-            h1 {{ color: #32cd32; margin-bottom: 20px; }}
-            h2 {{ color: #ffd700; margin-bottom: 30px; }}
-            .license-key {{
-                background: #1e3a5f;
-                padding: 20px;
-                margin: 20px 0;
-                font-size: 24px;
-                font-weight: bold;
-                border-radius: 10px;
-                border: 2px solid #32cd32;
-                letter-spacing: 2px;
-            }}
-            .btn {{
-                background: linear-gradient(135deg, #32cd32, #228b22);
-                color: white;
-                padding: 15px 30px;
-                text-decoration: none;
-                border-radius: 10px;
-                font-weight: bold;
-                margin-top: 20px;
-                display: inline-block;
-                transition: transform 0.3s ease;
-            }}
-            .btn:hover {{ transform: translateY(-2px); }}
-            .note {{ color: #95a5a6; font-size: 14px; margin-top: 20px; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>✅ Welcome to ProfitPal Pro!</h1>
-            <h2>🎉 Payment Setup Complete!</h2>
-            
+        print(f"✅ Subscription created: {subscription.id}")
+
+        # Update user with subscription info
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users 
+            SET subscription_id = ?, subscription_status = ? 
+            WHERE stripe_customer_id = ?
+        ''', (subscription.id, 'active', customer_id))
+        conn.commit()
+        conn.close()
+
+        # Return success page with license key
+        return f"""
+        <html>
+        <head><title>Welcome to ProfitPal Pro!</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px; background: #0a0e27; color: white;">
+            <h1 style="color: #32cd32;">✅ Payment Successful!</h1>
+            <h2 style="color: #ffd700;">Welcome to ProfitPal Pro!</h2>
             <p><strong>Your License Key:</strong></p>
-            <div class="license-key">
+            <div style="background: #1e3a5f; padding: 20px; margin: 20px; font-size: 24px; font-weight: bold; border-radius: 10px; border: 2px solid #32cd32;">
                 {license_key}
             </div>
-            
-            <p>📧 Account: {email}</p>
-            <p class="note">💡 Save this license key! Use it in the analysis form to unlock full features.</p>
-            <p class="note">💳 Subscription: $4.99/month {'(demo mode)' if license_key == 'PP-DEMO-12345678' else ''}</p>
-            
-            <a href="/analysis" class="btn">🚀 Start Analyzing Stocks</a>
-            
-            {'<div class="note" style="margin-top: 40px;"><p><strong>Demo Mode Active</strong></p><p>This is a demonstration. In production, real Stripe payments and license keys would be generated.</p></div>' if license_key == 'PP-DEMO-12345678' else ''}
-        </div>
-    </body>
-    </html>
-    """)
+            <p style="color: #95a5a6;">Save this license key! Use it in the analysis form.</p>
+            <p style="color: #95a5a6;">Your subscription: $4.99/month (started automatically)</p>
+            <a href="/analysis" style="background: #32cd32; color: white; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: bold; margin-top: 20px; display: inline-block;">Start Analyzing Stocks</a>
+        </body>
+        </html>
+        """
 
-@app.get("/cancel")
+    except Exception as e:
+        print(f"❌ Error in setup success: {e}")
+        return f"""
+        <html>
+        <head><title>Error</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px; background: #0a0e27; color: white;">
+            <h1 style="color: #e74c3c;">❌ Something went wrong</h1>
+            <p>Error: {str(e)}</p>
+            <p>Please contact support.</p>
+            <a href="/analysis" style="background: #32cd32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Try Again</a>
+        </body>
+        </html>
+        """
+
+@app.get('/cancel')
 async def payment_cancelled():
     """Handle cancelled payment"""
-    return HTMLResponse("""
+    return """
     <html>
-    <head>
-        <title>Payment Cancelled</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
-                color: white;
-                text-align: center;
-                padding: 50px;
-                min-height: 100vh;
-                margin: 0;
-            }
-            .container {
-                max-width: 400px;
-                margin: 0 auto;
-                background: rgba(30, 58, 95, 0.6);
-                padding: 40px;
-                border-radius: 20px;
-                border: 2px solid #e74c3c;
-            }
-            h1 { color: #e74c3c; }
-            .btn {
-                background: #32cd32;
-                color: white;
-                padding: 15px 30px;
-                text-decoration: none;
-                border-radius: 10px;
-                font-weight: bold;
-                display: inline-block;
-                margin-top: 20px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>❌ Payment Cancelled</h1>
-            <p>No worries! You can try again anytime.</p>
-            <a href="/analysis" class="btn">Back to Analysis</a>
-        </div>
+    <head><title>Payment Cancelled</title></head>
+    <body style="font-family: Arial; text-align: center; padding: 50px; background: #0a0e27; color: white;">
+        <h1 style="color: #e74c3c;">❌ Payment Cancelled</h1>
+        <p>No worries! You can try again anytime.</p>
+        <a href="/analysis" style="background: #32cd32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Back to Analysis</a>
     </body>
     </html>
-    """)
+    """
 
+@app.post('/webhook')
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhooks"""
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+        print(f"Webhook received: {event['type']}")
+    except ValueError:
+        print("❌ Invalid webhook payload")
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        print("❌ Invalid webhook signature")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    # Handle different event types
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        print(f"✅ Setup payment successful for {session.get('customer_email')}")
+
+    elif event['type'] == 'invoice.payment_succeeded':
+        invoice = event['data']['object']
+        customer_id = invoice['customer']
+
+        # Update user status to active
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users 
+            SET subscription_status = ? 
+            WHERE stripe_customer_id = ?
+        ''', ('active', customer_id))
+        conn.commit()
+        conn.close()
+
+        print(f"✅ Monthly payment successful for customer {customer_id}")
+
+    elif event['type'] == 'invoice.payment_failed':
+        invoice = event['data']['object']
+        customer_id = invoice['customer']
+
+        # Suspend user access
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users 
+            SET subscription_status = ? 
+            WHERE stripe_customer_id = ?
+        ''', ('payment_failed', customer_id))
+        conn.commit()
+        conn.close()
+
+        print(f"❌ Monthly payment failed for customer {customer_id}")
+
+    return JSONResponse({'status': 'success'})
+
+# EXISTING ROUTES
+@app.get("/")
+def serve_homepage():
+    """Serve the main landing page"""
+    return FileResponse('index.html')
+
+@app.get("/app")
+def serve_login():
+    """Serve the login page for user dashboard"""
+    return FileResponse('app.html')
+
+@app.get("/app/dashboard")
+def serve_dashboard():
+    return FileResponse('dashboard.html') 
+
+@app.get("/app/analysis")
+def serve_analysis():
+    return FileResponse('analysis.html')
+
+# CRITICAL FIX: Direct analysis access
+@app.get("/analysis")
+def serve_analysis_direct():
+    """Serve analysis page directly - fixes 404 Not Found error"""
+    return FileResponse('analysis.html')
+
+@app.get("/health")
+def health_check():
+    """API health check"""
+    return {
+        "status": "healthy",
+        "api": "FMP",
+        "endpoints": ["/analyze", "/health", "/docs", "/app/", "/analysis", "/create-checkout-session"],
+        "stripe": "integrated",
+        "domain": YOUR_DOMAIN,
+        "database": "initialized"
+    }
+
+# CRITICAL FIX: Analysis endpoint with better error handling
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_stock(request: AnalysisRequest):
     """
     Analyze a stock using educational financial metrics with license validation
-    
+
     This endpoint aggregates public financial data and performs mathematical
     calculations for educational purposes only. Not financial advice.
     """
@@ -454,38 +570,20 @@ async def analyze_stock(request: AnalysisRequest):
         # Validate license key
         if request.license_key == "FREE" or not request.license_key:
             print("🆓 Free user analysis")
+            # Free users get limited access
+            pass
         else:
-            # Validate PRO license key (allow demo key)
+            # Validate PRO license key
             user = validate_license_key(request.license_key)
-            if not user and request.license_key != "PP-DEMO-12345678":
+            if not user:
                 print(f"❌ Invalid license key: {request.license_key}")
                 raise HTTPException(
                     status_code=403, 
                     detail="Invalid or expired license key. Please subscribe to ProfitPal Pro."
                 )
-            print(f"✅ Valid license for user: {user.get('email', 'demo_user') if user else 'demo_user'}")
+            print(f"✅ Valid license for user: {user.get('email', 'unknown')}")
 
-        # Demo data for testing
-        if request.ticker.upper() in ["DEMO", "TEST", "OSCR"]:
-            return AnalysisResponse(
-                ticker=request.ticker.upper(),
-                current_price=42.50,
-                pe_ratio=18.5,
-                market_cap=125000000,
-                debt_ratio=25.3,
-                intrinsic_value=48.20,
-                valuation_gap=13.4,
-                final_verdict="💎 DIAMOND FOUND - Demo Analysis",
-                analysis_details={
-                    "verdict_factors": ["✅ P/E PASS", "✅ DEBT PASS", "💎 UNDERVALUED"],
-                    "filters_passed": "3/3",
-                    "errors": [],
-                    "license_used": request.license_key,
-                    "educational_note": "This is demo data. Real analysis requires live financial data."
-                }
-            )
-
-        # Get real stock data
+        # Get stock data
         print(f"📊 Fetching data for {request.ticker.upper()}")
         stock_data = analyzer.get_complete_stock_data(request.ticker.upper())
 
@@ -572,46 +670,7 @@ async def analyze_stock(request: AnalysisRequest):
         print(f"❌ Analysis failed for {request.ticker}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-@app.get("/health")
-def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "ProfitPal",
-        "version": "3.0.0",
-        "endpoints": ["/", "/analysis", "/health", "/analyze", "/create-checkout-session"],
-        "stripe": "production" if STRIPE_SECRET_KEY != 'demo_mode' else "demo_mode",
-        "fmp_api": "integrated",
-        "database": "initialized"
-    }
-
-# Webhook endpoint for production
-@app.post('/webhook')
-async def stripe_webhook(request: Request):
-    """Handle Stripe webhooks"""
-    if STRIPE_SECRET_KEY == 'demo_mode':
-        return JSONResponse({'status': 'demo_mode'})
-    
-    payload = await request.body()
-    sig_header = request.headers.get('stripe-signature')
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
-        print(f"Webhook received: {event['type']}")
-        
-        # Handle webhook events here
-        return JSONResponse({'status': 'success'})
-        
-    except Exception as e:
-        print(f"❌ Webhook error: {e}")
-        raise HTTPException(status_code=400, detail="Webhook error")
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
+    import uvicorn
     print("🚀 Starting ProfitPal API server...")
-    print(f"💎 Server running on port {port}")
-    print(f"🔐 Stripe mode: {'Production' if STRIPE_SECRET_KEY != 'demo_mode' else 'Demo'}")
-    print(f"📊 FMP API: {'Connected' if FMP_API_KEY else 'Demo mode'}")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
