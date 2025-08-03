@@ -543,8 +543,11 @@ def serve_dashboard():
     return FileResponse('dashboard.html') 
 
 @app.get("/app/analysis")
-def serve_analysis():
-    return FileResponse('analysis.html')
+async def serve_analysis(request: Request):
+    return templates.TemplateResponse("analysis.html", {
+    "request": request,
+    "stripe_publishable_key": os.getenv('STRIPE_PUBLISHABLE_KEY')
+})
 
 # CRITICAL FIX: Direct analysis access
 @app.get("/analysis")
