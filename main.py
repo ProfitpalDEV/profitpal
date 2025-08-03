@@ -331,13 +331,78 @@ async def create_checkout_session(email: str = Form(...)):
     try:
         print(f"Demo checkout for email: {email}")
         return RedirectResponse(
-            url=f"/setup-success?email={email}&demo=true", 
+            url=f"/demo-success?email={email}", 
             status_code=303
         )
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail="Demo payment unavailable")
 
+@app.get("/demo-success")
+async def demo_success(email: str = ""):
+    """Demo success page"""
+    return HTMLResponse(f"""
+    <html>
+    <head>
+        <title>Welcome to ProfitPal Pro!</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+                color: white;
+                text-align: center;
+                padding: 50px;
+                min-height: 100vh;
+                margin: 0;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background: rgba(30, 58, 95, 0.6);
+                padding: 40px;
+                border-radius: 20px;
+                border: 2px solid #32cd32;
+            }}
+            h1 {{ color: #32cd32; }}
+            .license-key {{
+                background: #1e3a5f;
+                padding: 20px;
+                margin: 20px 0;
+                font-size: 24px;
+                font-weight: bold;
+                border-radius: 10px;
+                border: 2px solid #32cd32;
+            }}
+            .btn {{
+                background: #32cd32;
+                color: white;
+                padding: 15px 30px;
+                text-decoration: none;
+                border-radius: 10px;
+                font-weight: bold;
+                display: inline-block;
+                margin-top: 20px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>✅ Demo Success!</h1>
+            <h2>🎉 Welcome to ProfitPal!</h2>
+            
+            <p><strong>Your Demo License Key:</strong></p>
+            <div class="license-key">
+                PP-DEMO-12345678
+            </div>
+            
+            <p>📧 Account: {email}</p>
+            <p>💡 Use this license key in the analysis form!</p>
+            
+            <a href="/analysis" class="btn">🚀 Start Analyzing Stocks</a>
+        </div>
+    </body>
+    </html>
+    """)
 @app.get('/setup-success')
 async def setup_success(session_id: str):
     """Handle successful setup payment and create subscription"""
