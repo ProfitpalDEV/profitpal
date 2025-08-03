@@ -327,33 +327,16 @@ analyzer = FMPStockAnalyzer(FMP_API_KEY)
 # STRIPE PAYMENT ENDPOINTS
 @app.post('/create-checkout-session')
 async def create_checkout_session(email: str = Form(...)):
-    """Create Stripe Checkout Session for ProfitPal subscription"""
+    """Create demo checkout session"""
     try:
-        print(f"Creating checkout session for email: {email}")
-
-        # Create Stripe Checkout Session for setup fee
-        setup_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price': SETUP_FEE_PRICE_ID,  # $24.99 setup fee
-                'quantity': 1,
-            }],
-            mode='payment',
-            customer_email=email,
-            success_url=f'{YOUR_DOMAIN}/setup-success?session_id={{CHECKOUT_SESSION_ID}}',
-            cancel_url=f'{YOUR_DOMAIN}/cancel',
-            metadata={
-                'type': 'setup_payment',
-                'email': email
-            }
+        print(f"Demo checkout for email: {email}")
+        return RedirectResponse(
+            url=f"/setup-success?email={email}&demo=true", 
+            status_code=303
         )
-
-        print(f"✅ Checkout session created: {setup_session.id}")
-        return RedirectResponse(url=setup_session.url, status_code=303)
-
     except Exception as e:
-        print(f"❌ Error creating checkout session: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail="Demo payment unavailable")
 
 @app.get('/setup-success')
 async def setup_success(session_id: str):
