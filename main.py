@@ -15,7 +15,7 @@ import re
 
 # Stripe Configuration
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_fallback')
-STRIPE_WEBHOOK_SECRET = 'whsec_12345'  # Get from Stripe Dashboard later
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_demo')
 YOUR_DOMAIN = 'https://profitpal.org'  # Updated Replit domain
 
 # Product Price IDs
