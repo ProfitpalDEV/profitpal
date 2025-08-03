@@ -18,6 +18,14 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_51RqAup...')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_demo')
 YOUR_DOMAIN = 'https://profitpal.org'  # Updated Replit domain
 
+# Debug: Check environment variables
+print(f"🔍 STRIPE_SECRET_KEY: {os.environ.get('STRIPE_SECRET_KEY', 'NOT_FOUND')}")
+print(f"🔍 STRIPE_WEBHOOK_SECRET: {os.environ.get('STRIPE_WEBHOOK_SECRET', 'NOT_FOUND')}")
+
+# Set Stripe API key with debug
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'fallback_key')
+print(f"🔍 Final stripe.api_key set to: {stripe.api_key[:15]}...")
+
 # Product Price IDs
 SETUP_FEE_PRICE_ID = 'price_1RqBUyL8Gx8kkO0xGjLG0DVh'  # $24.99 one-time
 MONTHLY_SUBSCRIPTION_PRICE_ID = 'price_1RqBAGL8Gx8kkO0x42tjEGaA'  # $4.99/month
