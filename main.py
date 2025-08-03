@@ -348,7 +348,7 @@ async def create_checkout_session(email: str = Form(...)):
             }],
             mode='payment',
             customer_email=email,
-            success_url='https://profitpal.org/setup-success?session_id={CHECKOUT_SESSION_ID}',
+            success_url='https://profitpal.org/setup-success',
             cancel_url='https://profitpal.org/cancel',
             metadata={
                 'type': 'setup_payment',
