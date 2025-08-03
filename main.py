@@ -364,95 +364,9 @@ async def create_checkout_session(email: str = Form(...)):
         raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
 @app.get('/setup-success')
-async def setup_success(session_id: str = ""):
-    """Handle successful setup payment and create subscription"""
-    try:
-        print(f"Processing setup success for session: {session_id}")
-
-        # Retrieve the checkout session
-        session = stripe.checkout.Session.retrieve(session_id)
-        customer_email = session.customer_email
-        customer_id = session.customer
-
-        # Create customer record in database
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Generate license key
-        license_key = generate_license_key(customer_id)
-        print(f"Generated license key: {license_key}")
-
-        # Insert or update user
-        cursor.execute('''
-            INSERT OR REPLACE INTO users 
-            (email, stripe_customer_id, license_key, subscription_status) 
-            VALUES (?, ?, ?, ?)
-        ''', (customer_email, customer_id, license_key, 'setup_complete'))
-
-        user_id = cursor.lastrowid
-
-        # Record setup payment
-        cursor.execute('''
-            INSERT INTO payments 
-            (user_id, stripe_payment_id, amount, type, status) 
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, session.payment_intent, 2499, 'setup', 'completed'))
-
-        conn.commit()
-        conn.close()
-
-        # Now create the monthly subscription
-        subscription = stripe.Subscription.create(
-            customer=customer_id,
-            items=[{
-                'price': MONTHLY_SUBSCRIPTION_PRICE_ID,  # $4.99/month
-            }],
-        )
-
-        print(f"✅ Subscription created: {subscription.id}")
-
-        # Update user with subscription info
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users 
-            SET subscription_id = ?, subscription_status = ? 
-            WHERE stripe_customer_id = ?
-        ''', (subscription.id, 'active', customer_id))
-        conn.commit()
-        conn.close()
-
-        # Return success page with license key
-        return f"""
-        <html>
-        <head><title>Welcome to ProfitPal Pro!</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px; background: #0a0e27; color: white;">
-            <h1 style="color: #32cd32;">✅ Payment Successful!</h1>
-            <h2 style="color: #ffd700;">Welcome to ProfitPal Pro!</h2>
-            <p><strong>Your License Key:</strong></p>
-            <div style="background: #1e3a5f; padding: 20px; margin: 20px; font-size: 24px; font-weight: bold; border-radius: 10px; border: 2px solid #32cd32;">
-                {license_key}
-            </div>
-            <p style="color: #95a5a6;">Save this license key! Use it in the analysis form.</p>
-            <p style="color: #95a5a6;">Your subscription: $4.99/month (started automatically)</p>
-            <a href="/analysis" style="background: #32cd32; color: white; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: bold; margin-top: 20px; display: inline-block;">Start Analyzing Stocks</a>
-        </body>
-        </html>
-        """
-
-    except Exception as e:
-        print(f"❌ Error in setup success: {e}")
-        return f"""
-        <html>
-        <head><title>Error</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px; background: #0a0e27; color: white;">
-            <h1 style="color: #e74c3c;">❌ Something went wrong</h1>
-            <p>Error: {str(e)}</p>
-            <p>Please contact support.</p>
-            <a href="/analysis" style="background: #32cd32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Try Again</a>
-        </body>
-        </html>
-        """
+async def setup_success():
+    """Handle successful setup payment"""
+    return FileResponse('setup-success.html')
 
 @app.get('/cancel')
 async def payment_cancelled():
@@ -543,11 +457,8 @@ def serve_dashboard():
     return FileResponse('dashboard.html') 
 
 @app.get("/app/analysis")
-async def serve_analysis(request: Request):
-    return templates.TemplateResponse("analysis.html", {
-    "request": request,
-    "stripe_publishable_key": os.getenv('STRIPE_PUBLISHABLE_KEY')
-})
+async def serve_analysis():
+    return FileResponse('analysis.html')
 
 # CRITICAL FIX: Direct analysis access
 @app.get("/analysis")
