@@ -27,8 +27,8 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'fallback_key')
 print(f"🔍 Final stripe.api_key set to: {stripe.api_key[:15]}...")
 
 # Product Price IDs
-SETUP_FEE_PRICE_ID = 'price_1RqBUyL8Gx8kkO0xGjLG0DVh'  # $24.99 one-time
-MONTHLY_SUBSCRIPTION_PRICE_ID = 'price_1RqBAGL8Gx8kkO0x42tjEGaA'  # $4.99/month
+SETUP_FEE_PRICE_ID = os.getenv('SETUP_FEE_PRICE_ID')  # $24.99 one-time
+MONTHLY_SUBSCRIPTION_PRICE_ID = os.getenv('MONTHLY_SUBSCRIPTION_PRICE_ID')  # $4.99/month  
 
 # API Models
 class AnalysisRequest(BaseModel):
