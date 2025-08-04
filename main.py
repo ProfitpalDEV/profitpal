@@ -459,8 +459,12 @@ def serve_dashboard():
     return FileResponse('dashboard.html') 
 
 @app.get("/app/analysis")
-async def serve_analysis():
-    return FileResponse('analysis.html')
+async def serve_analysis(request: Request):
+    """Serve analysis page with Stripe publishable key"""
+    return templates.TemplateResponse("analysis.html", {
+        "request": request,
+        "stripe_publishable_key": os.getenv('STRIPE_PUBLISHABLE_KEY')
+    })
 
 # CRITICAL FIX: Direct analysis access
 @app.get("/analysis")
