@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from fastapi import FastAPI, HTTPException, Request, Form
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
