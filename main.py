@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
@@ -17,6 +18,7 @@ import re
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_51RqAup...')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_demo')
 YOUR_DOMAIN = 'https://profitpal.org'  # Updated Replit domain
+templates = Jinja2Templates(directory=".")
 
 # Debug: Check environment variables
 print(f"🔍 STRIPE_SECRET_KEY: {os.environ.get('STRIPE_SECRET_KEY', 'NOT_FOUND')}")
