@@ -6,264 +6,301 @@
     <title>Refund Policy - ProfitPal</title>
     <link rel="icon" type="image/x-icon" href="/generated-icon.png">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
             min-height: 100vh;
+            color: #ffffff;
+            margin: 0;
             padding: 20px;
         }
-
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
         }
-
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
             text-align: center;
+            margin-bottom: 40px;
         }
-
-        .header h1 {
-            font-size: 2.5rem;
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 10px;
-            font-weight: 700;
         }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        h1 {
+            color: #ffd700;
+            font-size: 32px;
+            margin-bottom: 10px;
         }
-
-        .content {
-            padding: 40px 30px;
+        .last-updated {
+            color: #95a5a6;
+            font-size: 14px;
         }
-
-        .policy-section {
-            margin-bottom: 30px;
-        }
-
-        .policy-section h2 {
-            color: #2c3e50;
-            font-size: 1.5rem;
+        h2 {
+            color: #32cd32;
+            font-size: 24px;
+            margin-top: 30px;
             margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
         }
-
-        .policy-section h3 {
-            color: #34495e;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+        h3 {
+            color: #ffd700;
+            font-size: 18px;
             margin-top: 20px;
+            margin-bottom: 10px;
         }
-
-        .policy-section p {
+        p, li {
+            line-height: 1.6;
             margin-bottom: 15px;
-            text-align: justify;
+            color: #ffffff;
         }
-
-        .policy-section ul {
-            margin-left: 20px;
-            margin-bottom: 15px;
+        ul, ol {
+            padding-left: 20px;
         }
-
-        .policy-section li {
-            margin-bottom: 8px;
-        }
-
-        .highlight-box {
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
-            border: 1px solid #667eea;
-            border-radius: 10px;
+        .highlight {
+            background: rgba(50, 205, 50, 0.1);
             padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #32cd32;
             margin: 20px 0;
-            border-left: 4px solid #667eea;
         }
-
         .price-highlight {
-            background: linear-gradient(135deg, #fff8f0 0%, #ffe8d1 100%);
-            border-left: 4px solid #ff6b35;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #ffd700;
+            margin: 20px 0;
+        }
+        .non-refundable {
+            background: rgba(220, 53, 69, 0.1);
             padding: 15px;
             border-radius: 8px;
+            border-left: 4px solid #dc3545;
             margin: 15px 0;
         }
-
-        .contact-info {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 30px;
-            text-align: center;
+        .refundable {
+            background: rgba(40, 167, 69, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
         }
-
-        .back-link {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .contact-info {
+            background: rgba(44, 62, 80, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(30, 58, 95, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .table th {
+            background: rgba(50, 205, 50, 0.2);
+            color: #32cd32;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+        .status-non-refundable {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .status-refundable {
+            color: #28a745;
+            font-weight: bold;
+        }
+        a {
+            color: #32cd32;
             text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .back-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
             padding: 12px 24px;
             border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
             margin-top: 20px;
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
         }
-
-        .back-link:hover {
+        .back-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(50, 205, 50, 0.3);
         }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .content {
-                padding: 30px 20px;
-            }
+        strong {
+            color: #ffd700;
+        }
+        em {
+            color: #95a5a6;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
+            <div class="logo">💎 ProfitPal</div>
             <h1>Refund Policy</h1>
-            <p>ProfitPal Stock Analysis Platform</p>
+            <div class="last-updated">Last updated: August 4, 2025</div>
         </div>
+
+        <div class="highlight">
+            <strong>ProfitPal is operated by Denava OÜ</strong> (registry code: 14443729), a company registered in Estonia. 
+            This refund policy outlines the terms and conditions for refunds on our services.
+        </div>
+
+        <h2>1. Refund Policy Overview</h2>
+        <p>We strive to provide excellent service and customer satisfaction. However, due to the nature of our digital services and instant access to premium features, refunds are limited and subject to specific conditions outlined below.</p>
+
+        <h2>2. Refund Eligibility by Service Type</h2>
         
-        <div class="content">
-            <div class="policy-section">
-                <h2>1. Overview</h2>
-                <p>This Refund Policy outlines the terms and conditions for refunds related to ProfitPal services provided by Denava OÜ (Registry Code: 14443729), located at Paljandi tn 2/2-1, Haabersti linnaosa, 13516 Tallinn, Harju maakond, Estonia.</p>
-                <p>By purchasing our services, you agree to the refund terms specified in this policy.</p>
-            </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Service Type</th>
+                    <th>Price</th>
+                    <th>Refund Status</th>
+                    <th>Conditions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Setup Fee (Lifetime Access)</td>
+                    <td>$24.99</td>
+                    <td class="status-non-refundable">NON-REFUNDABLE</td>
+                    <td>After account activation and license key generation</td>
+                </tr>
+                <tr>
+                    <td>Monthly Subscription</td>
+                    <td>$4.99/month</td>
+                    <td class="status-refundable">REFUNDABLE</td>
+                    <td>Pro-rated refund within 14 days of billing</td>
+                </tr>
+                <tr>
+                    <td>Unused Monthly Billing</td>
+                    <td>$4.99</td>
+                    <td class="status-refundable">REFUNDABLE</td>
+                    <td>If service not accessed during billing period</td>
+                </tr>
+            </tbody>
+        </table>
 
-            <div class="policy-section">
-                <h2>2. Service Pricing Structure</h2>
-                <div class="price-highlight">
-                    <h3>ProfitPal Pro Subscription:</h3>
-                    <ul>
-                        <li><strong>Setup Fee: $24.99</strong> - One-time activation fee</li>
-                        <li><strong>Monthly Subscription: $4.99</strong> - Recurring monthly fee</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="policy-section">
-                <h2>3. Refund Terms</h2>
-                
-                <h3>3.1 Setup Fee ($24.99)</h3>
-                <div class="highlight-box">
-                    <p><strong>NON-REFUNDABLE</strong> - The setup fee is non-refundable once your account has been activated and you have gained access to the ProfitPal platform features.</p>
-                    <p>This fee covers account setup, initial configuration, and platform access activation.</p>
-                </div>
-
-                <h3>3.2 Monthly Subscription ($4.99)</h3>
-                <div class="highlight-box">
-                    <p><strong>REFUNDABLE within 14 days</strong> - Monthly subscription fees may be refunded if requested within 14 days of the billing date.</p>
-                    <p>Refunds are prorated based on unused service time remaining in the billing period.</p>
-                </div>
-            </div>
-
-            <div class="policy-section">
-                <h2>4. Refund Scenarios</h2>
-                
-                <h3>4.1 Standard Refund Eligibility</h3>
-                <ul>
-                    <li>Monthly subscription refund requests submitted within 14 days of billing</li>
-                    <li>Service not meeting advertised functionality (documented cases)</li>
-                    <li>Technical issues preventing platform access for extended periods</li>
-                </ul>
-
-                <h3>4.2 Refund Review Scenarios</h3>
-                <div class="highlight-box">
-                    <p><strong>We will review and consider refunds for monthly subscriptions in these cases:</strong></p>
-                    <ul>
-                        <li>Service downtime exceeding 72 hours in a billing period (upon customer request with documentation)</li>
-                        <li>Duplicate billing due to technical errors (verified through our payment records)</li>
-                        <li>Billing after successful cancellation (with proof of cancellation confirmation)</li>
-                    </ul>
-                    <p><em>All refund requests are reviewed manually within 5-7 business days. Refunds are processed at our discretion based on the specific circumstances.</em></p>
-                </div>
-
-                <h3>4.3 Non-Refundable Situations</h3>
-                <ul>
-                    <li>Setup fees after account activation</li>
-                    <li>Monthly fees for services already consumed</li>
-                    <li>Refund requests submitted after 30 days of billing</li>
-                    <li>Account suspension due to terms of service violations</li>
-                    <li>Change of mind after successful service delivery</li>
-                </ul>
-            </div>
-
-            <div class="policy-section">
-                <h2>5. Refund Process</h2>
-                
-                <h3>5.1 How to Request a Refund</h3>
-                <ol>
-                    <li>Send an email to denava.business@gmail.com</li>
-                    <li>Include your account email and order/transaction ID</li>
-                    <li>Specify the reason for the refund request</li>
-                    <li>Provide any supporting documentation if applicable</li>
-                </ol>
-
-                <h3>5.2 Processing Timeline</h3>
-                <ul>
-                    <li><strong>Review Period:</strong> 5-7 business days</li>
-                    <li><strong>Processing Time:</strong> 3-10 business days after approval</li>
-                    <li><strong>Refund Method:</strong> Original payment method used for purchase</li>
-                </ul>
-            </div>
-
-            <div class="policy-section">
-                <h2>6. Cancellation Policy</h2>
-                <p>You may cancel your monthly subscription at any time through your account settings or by contacting our support team. Cancellations take effect at the end of the current billing period.</p>
-                <p>No partial refunds are provided for early cancellations unless specifically covered under our refund scenarios above.</p>
-            </div>
-
-            <div class="policy-section">
-                <h2>7. Payment Processor</h2>
-                <p>Payments are processed through Paddle.com. Refunds will be processed through the same payment system and may be subject to payment processor policies and timelines.</p>
-            </div>
-
-            <div class="policy-section">
-                <h2>8. Modifications to This Policy</h2>
-                <p>Denava OÜ reserves the right to modify this refund policy at any time. Changes will be effective immediately upon posting on our website. Your continued use of our services after any changes constitutes acceptance of the new policy.</p>
-            </div>
-
-            <div class="policy-section">
-                <h2>9. Applicable Law</h2>
-                <p>This refund policy is governed by Estonian law and European Union consumer protection regulations. Any disputes will be resolved in accordance with Estonian jurisdiction.</p>
-            </div>
-
-            <div class="contact-info">
-                <h3>Contact Information</h3>
-                <p><strong>Company:</strong> Denava OÜ</p>
-                <p><strong>Registry Code:</strong> 14443729</p>
-                <p><strong>Address:</strong> Paljandi tn 2/2-1, Haabersti linnaosa, 13516 Tallinn, Harju maakond, Estonia</p>
-                <p><strong>Email:</strong> denava.business@gmail.com</p>
-                <p><strong>Website:</strong> profitpal.org</p>
-                
-                <p style="margin-top: 20px;"><em>Last updated: August 2025</em></p>
-            </div>
-
-            <div style="text-align: center;">
-                <a href="/" class="back-link">← Back to ProfitPal</a>
-            </div>
+        <h2>3. Setup Fee Policy</h2>
+        <div class="non-refundable">
+            <h3>⚠️ Important: Setup Fee is Non-Refundable</h3>
+            <p>The <strong>$24.99 setup fee</strong> is non-refundable once your account has been activated and you have received your license key. This fee covers:</p>
+            <ul>
+                <li>Account setup and configuration</li>
+                <li>License key generation and activation</li>
+                <li>Lifetime access to basic platform features</li>
+                <li>Initial onboarding and support</li>
+            </ul>
         </div>
+
+        <h2>4. Monthly Subscription Policy</h2>
+        <div class="refundable">
+            <h3>✅ Monthly Subscription Refunds</h3>
+            <p>Monthly subscription fees of <strong>$4.99</strong> may be refunded under the following conditions:</p>
+            <ul>
+                <li><strong>14-day window:</strong> Refund requests must be submitted within 14 days of billing</li>
+                <li><strong>Pro-rated refunds:</strong> Based on unused service time in the billing period</li>
+                <li><strong>Service issues:</strong> Technical problems preventing access for more than 72 hours</li>
+                <li><strong>Billing errors:</strong> Duplicate charges or billing after cancellation</li>
+            </ul>
+        </div>
+
+        <h2>5. Refund Request Process</h2>
+        <h3>5.1 How to Request a Refund</h3>
+        <ol>
+            <li>Send an email to <strong>denava.business@gmail.com</strong></li>
+            <li>Include your account email and transaction ID</li>
+            <li>Specify the reason for the refund request</li>
+            <li>Provide supporting documentation if applicable</li>
+        </ol>
+
+        <h3>5.2 Processing Timeline</h3>
+        <div class="highlight">
+            <ul>
+                <li><strong>Review Period:</strong> 5-7 business days</li>
+                <li><strong>Processing Time:</strong> 3-10 business days after approval</li>
+                <li><strong>Refund Method:</strong> Original payment method via Paddle</li>
+            </ul>
+            <p><em>All refund requests are reviewed manually and processed at our discretion based on the specific circumstances.</em></p>
+        </div>
+
+        <h2>6. Non-Refundable Situations</h2>
+        <ul>
+            <li>Setup fees after account activation and license key delivery</li>
+            <li>Monthly fees for services already accessed and used</li>
+            <li>Refund requests submitted more than 30 days after billing</li>
+            <li>Account suspension due to terms of service violations</li>
+            <li>Change of mind after successful service delivery and usage</li>
+            <li>Failure to cancel subscription before renewal</li>
+        </ul>
+
+        <h2>7. Cancellation Policy</h2>
+        <p>You may cancel your monthly subscription at any time through your account settings or by contacting support. Cancellations take effect at the end of the current billing period. Your lifetime access (from the setup fee) remains valid after subscription cancellation.</p>
+
+        <h2>8. Service Downtime Refunds</h2>
+        <div class="highlight">
+            <p><strong>We will review and consider refunds for monthly subscriptions in these cases:</strong></p>
+            <ul>
+                <li>Service downtime exceeding 72 hours in a billing period (with documentation)</li>
+                <li>Duplicate billing due to technical errors (verified through payment records)</li>
+                <li>Billing after successful cancellation (with proof of cancellation)</li>
+            </ul>
+        </div>
+
+        <h2>9. Payment Processor</h2>
+        <p>All payments are processed through <strong>Paddle.com</strong>. Refunds will be processed through the same system and may be subject to Paddle's policies and processing times.</p>
+
+        <h2>10. Modifications to This Policy</h2>
+        <p>Denava OÜ reserves the right to modify this refund policy at any time. Changes will be effective immediately upon posting. Continued use of our services constitutes acceptance of any modifications.</p>
+
+        <h2>11. Applicable Law</h2>
+        <p>This refund policy is governed by Estonian law and European Union consumer protection regulations. Disputes will be resolved in accordance with Estonian jurisdiction.</p>
+
+        <h2>12. Contact Information</h2>
+        <div class="contact-info">
+            <p><strong>Service Provider:</strong> Denava OÜ</p>
+            <p><strong>Registry Code:</strong> 14443729</p>
+            <p><strong>Address:</strong> Paljandi tn 2/2-1, Haabersti linnaosa, 13516 Tallinn, Harju maakond, Estonia</p>
+            <p><strong>Email:</strong> denava.business@gmail.com</p>
+            <p><strong>Website:</strong> <a href="https://profitpal.org">https://profitpal.org</a></p>
+            <p><strong>EMTAK Code:</strong> 62010 (Computer programming activities)</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/" class="back-button">← Back to ProfitPal</a>
+        </div>
+
+        <p style="text-align: center; margin-top: 40px; color: #95a5a6; font-size: 14px;">
+            © 2025 ProfitPal. A product of Denava OÜ. All rights reserved.
+        </p>
     </div>
 </body>
 </html>
