@@ -4,3 +4,4 @@ requests
 pydantic
 stripe
 python-multipart
+jinja2
