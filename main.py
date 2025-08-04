@@ -483,6 +483,20 @@ def health_check():
         "domain": YOUR_DOMAIN,
         "database": "initialized"
     }
+@app.get("/terms-of-service", response_class=HTMLResponse)
+async def serve_terms():
+    """Serve Terms of Service page"""
+    return FileResponse('terms-of-service.html')
+
+@app.get("/privacy-policy", response_class=HTMLResponse)
+async def serve_privacy():
+    """Serve Privacy Policy page"""
+    return FileResponse('privacy-policy.html')
+
+@app.get("/refund-policy", response_class=HTMLResponse)
+async def serve_refund():
+    """Serve Refund Policy page"""
+    return FileResponse('refund-policy.html')
 
 # CRITICAL FIX: Analysis endpoint with better error handling
 @app.post("/analyze", response_model=AnalysisResponse)
