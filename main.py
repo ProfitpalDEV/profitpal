@@ -336,8 +336,6 @@ analyzer = FMPStockAnalyzer(FMP_API_KEY)
 
 # STRIPE PAYMENT ENDPOINTS
 @app.post('/create-checkout-session')
-
-# СТАНЕТ:
 async def create_checkout_session(request: Request):
     try:
         body = await request.json()
@@ -348,7 +346,6 @@ async def create_checkout_session(request: Request):
         
         print(f"Creating checkout session for email: {email}")
         
-        # Остальной код остается как есть...
     """Create Stripe Checkout Session for ProfitPal subscription"""
     try:
         print(f"Creating checkout session for email: {email}")
