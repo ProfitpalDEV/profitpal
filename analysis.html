@@ -1203,9 +1203,22 @@
                             if (payWithStarsBtn) {
                             payWithStarsBtn.disabled = false; 
                             payWithStarsBtn.style.opacity = '1';
-                        }
-                        }
-                        }, 500);
+                        } 
+                    }  else {
+                        // ✅ ДОБАВИТЬ ЭТОТ БЛОК:
+                            const payWithCardBtn = document.getElementById('payWithCard');
+                            const payWithStarsBtn = document.getElementById('payWithStars');
+        
+                            if (payWithCardBtn) {
+                            payWithCardBtn.disabled = true;
+                            payWithCardBtn.style.opacity = '0.6';
+                            }
+                            if (payWithStarsBtn) {
+                            payWithStarsBtn.disabled = true;
+                            payWithStarsBtn.style.opacity = '0.6';
+                            }
+                        } 
+                    }, 500);
 
 
 
