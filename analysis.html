@@ -1101,12 +1101,26 @@
 
                     <script>
                         // Stripe initialization
-                        let stripe; // Объявляем переменную
-                        fetch('/api/stripe-key')
-                        .then(response => response.json())  
-                        .then(data => {
-                        stripe = Stripe(data.publishable_key);
-                     });
+                       let stripePromise;
+
+                    function initializeStripe() {
+                    if (!stripePromise) {
+                    stripePromise = fetch('/api/stripe-key')
+                    .then(response => response.json())
+                    .then(data => {
+                    console.log('✅ Stripe key loaded:', data.publishable_key.substring(0, 15) + '...');
+                    return Stripe(data.publishable_key);
+                })
+                    .catch(error => {
+                    console.error('❌ Failed to load Stripe key:', error);
+                    throw error;
+                });
+    }
+    return stripePromise;
+}
+
+                        // Initialize Stripe on page load
+                        initializeStripe();
                         // Global variables
                         let userCardSetup = false;
                         let userEmail = '';
@@ -1227,31 +1241,44 @@
 
 
 
-                        // ✅ ОБНОВЛЕННЫЕ PAYMENT ФУНКЦИИ:
                         async function payWithCard() {
-                            if (!userCardSetup) {
-                                alert('Please setup your card first!');
-                                return;
-                            }
+                        if (!userCardSetup) {
+                        alert('Please setup your card first!');
+                        return;
+                    }
 
-                            try {
-                                const formData = new FormData();
-                                formData.append('email', userEmail);
+                        try {
+                        // Wait for Stripe to be initialized
+                        const stripe = await initializeStripe();
+        
+                        // Create checkout session
+                        const response = await fetch('/create-checkout-session', {
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                        email: userEmail
+                    })
+                });
 
-                                const response = await fetch('/create-checkout-session', {
-                                    method: 'POST',
-                                    body: formData
-                                });
+        if (!response.ok) {
+            throw new Error('Failed to create checkout session');
+        }
 
-                                if (response.ok) {
-                                    window.location.href = response.url;
-                                } else {
-                                    throw new Error('Payment failed');
-                                }
-                            } catch (error) {
-                                alert('Payment failed. Please try again.');
-                            }
-                        }
+        const { checkout_url } = await response.json();
+        
+        if (checkout_url) {
+            window.location.href = checkout_url;
+        } else {
+            throw new Error('No checkout URL received');
+        }
+
+    } catch (error) {
+        console.error('Payment error:', error);
+        alert('Payment failed. Please try again.');
+    }
+}
 
                         function payWithTelegram() {
                             if (!userCardSetup) {
