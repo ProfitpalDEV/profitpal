@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Cancelled - ProfitPal</title>
+    <link rel="stylesheet" href="/profitpal-styles.css">
+</head>
+<body class="profitpal-bg-animate">
+    <div class="profitpal-container">
+        <div class="profitpal-card">
+            <div class="profitpal-icon error">😔</div>
+            <h1 class="profitpal-title">Payment Cancelled</h1>
+            <p class="profitpal-description">No worries! Your payment was cancelled and no charges were made.</p>
+            <p class="profitpal-subtitle">You can try again anytime when you're ready.</p>
+            
+            <div class="profitpal-info-box success">
+                <h3>✅ No Charges Applied</h3>
+                <p>Your card was not charged. You can safely try again or contact us if you have any questions.</p>
+            </div>
+
+            <div class="profitpal-features">
+                <h3>🚀 Still Interested? Here's What You Get:</h3>
+                <ul>
+                    <li>Unlimited AI-powered stock analysis</li>
+                    <li>Real-time market insights</li>
+                    <li>Advanced portfolio tools</li>
+                    <li>Professional reports</li>
+                    <li>Lifetime access - one payment</li>
+                    <li>Priority support</li>
+                </ul>
+            </div>
+
+            <div class="profitpal-info-box warning">
+                <strong>💎 Limited Time Offer</strong><br>
+                Get lifetime access for just $24.99 - no monthly fees!
+            </div>
+
+            <div style="margin-top: 40px;">
+                <a href="/analysis" class="profitpal-btn success">💳 Try Payment Again</a>
+                <a href="/" class="profitpal-btn primary">🏠 Back to Home</a>
+                <a href="mailto:support@profitpal.org" class="profitpal-btn danger">📧 Contact Support</a>
+            </div>
+
+            <div class="profitpal-info-box">
+                <strong>Need Help?</strong><br>
+                Email us at <a href="mailto:support@profitpal.org" style="color: #32cd32;">support@profitpal.org</a> or try the payment again when you're ready.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Subtle background animation for cancelled state
+        setTimeout(() => {
+            document.body.style.background = 
+                'linear-gradient(135deg, #0a0e27 0%, #e74c3c 5%, #0a0e27 100%)';
+        }, 1000);
+        
+        // Reset to normal
+        setTimeout(() => {
+            document.body.style.background = 
+                'linear-gradient(135deg, #0a0e27 0%, #1a1e3a 100%)';
+        }, 3000);
+    </script>
+</body>
+</html>
