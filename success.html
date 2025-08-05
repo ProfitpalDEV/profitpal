@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - ProfitPal</title>
+    <link rel="stylesheet" href="/profitpal-styles.css">
+</head>
+<body class="profitpal-bg-animate">
+    <div class="profitpal-container">
+        <div class="profitpal-card">
+            <div class="profitpal-icon success">🎉</div>
+            <h1 class="profitpal-title">Payment Successful!</h1>
+            <p class="profitpal-description">Thank you for purchasing ProfitPal Pro Lifetime Access!</p>
+            <p class="profitpal-subtitle">Welcome to the future of AI-powered stock analysis.</p>
+            
+            <div class="profitpal-features">
+                <h3>🚀 You Now Have Access To:</h3>
+                <ul>
+                    <li>Unlimited AI-powered stock analysis</li>
+                    <li>Real-time market insights and recommendations</li>
+                    <li>Advanced portfolio optimization tools</li>
+                    <li>Professional financial reports</li>
+                    <li>Priority customer support</li>
+                    <li>Lifetime updates and new features</li>
+                </ul>
+            </div>
+
+            <div class="profitpal-info-box success">
+                <strong>🎯 Ready to Start?</strong><br>
+                Your ProfitPal Pro account is now active and ready to use!
+            </div>
+
+            <div style="margin-top: 40px;">
+                <a href="/analysis" class="profitpal-btn success">🔍 Start Analyzing Stocks</a>
+                <a href="/" class="profitpal-btn primary">🏠 Back to Home</a>
+            </div>
+
+            <div class="profitpal-session" id="sessionInfo">
+                <!-- Session ID will be displayed here if available -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get session ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+        
+        if (sessionId) {
+            document.getElementById('sessionInfo').innerHTML = 
+                `<strong>Transaction ID:</strong> ${sessionId}`;
+        } else {
+            document.getElementById('sessionInfo').style.display = 'none';
+        }
+
+        // Add celebration effect
+        setTimeout(() => {
+            document.body.style.background = 
+                'linear-gradient(135deg, #0a0e27 0%, #32cd32 10%, #0a0e27 100%)';
+        }, 2000);
+        
+        // Reset background
+        setTimeout(() => {
+            document.body.style.background = 
+                'linear-gradient(135deg, #0a0e27 0%, #1a1e3a 100%)';
+        }, 4000);
+    </script>
+</body>
+</html>
