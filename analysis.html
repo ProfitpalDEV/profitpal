@@ -1165,27 +1165,47 @@
                         }
 
                         function checkAgreements() {
-    // Принудительно вызывать каждый раз
-    setTimeout(() => {
-        const termsAgree = document.getElementById('termsAgree').checked;
-        const monthlyAgree = document.getElementById('monthlyAgree').checked;
-        const disclaimerAgree = document.getElementById('disclaimerAgree').checked;
+                        // Принудительно вызывать каждый раз
+                            setTimeout(() => {
+                            const termsAgree = document.getElementById('termsAgree').checked;
+                            const monthlyAgree = document.getElementById('monthlyAgree').checked;
+                            const disclaimerAgree = document.getElementById('disclaimerAgree').checked;
         
-        const allAgreed = termsAgree && monthlyAgree && disclaimerAgree;
+                            const allAgreed = termsAgree && monthlyAgree && disclaimerAgree;
         
-        const payWithCardBtn = document.getElementById('payWithCard');
-        const payWithStarsBtn = document.getElementById('payWithStars');
+                            const payWithCardBtn = document.getElementById('payWithCard');
+                            const payWithStarsBtn = document.getElementById('payWithStars');
         
-        if (payWithCardBtn) {
-            payWithCardBtn.disabled = !allAgreed;
-            payWithCardBtn.style.opacity = allAgreed ? '1' : '0.6';
-        }
-        if (payWithStarsBtn) {
-            payWithStarsBtn.disabled = !allAgreed;
-            payWithStarsBtn.style.opacity = allAgreed ? '1' : '0.6';
-        }
-    }, 100);
-}
+                            if (payWithCardBtn) {
+                            payWithCardBtn.disabled = !allAgreed;
+                            payWithCardBtn.style.opacity = allAgreed ? '1' : '0.6';
+                         }
+                            if (payWithStarsBtn) {
+                            payWithStarsBtn.disabled = !allAgreed;
+                            payWithStarsBtn.style.opacity = allAgreed ? '1' : '0.6';
+                        }
+                        }, 100);
+                        }
+                        // Принудительная проверка каждые 500ms  
+                            setInterval(function() {
+                            const termsAgree = document.getElementById('termsAgree')?.checked;
+                            const monthlyAgree = document.getElementById('monthlyAgree')?.checked;
+                            const disclaimerAgree = document.getElementById('disclaimerAgree')?.checked;
+    
+                            if (termsAgree && monthlyAgree && disclaimerAgree) {
+                            const payWithCardBtn = document.getElementById('payWithCard');
+                            const payWithStarsBtn = document.getElementById('payWithStars');
+        
+                            if (payWithCardBtn) {
+                            payWithCardBtn.disabled = false;
+                            payWithCardBtn.style.opacity = '1';
+                        }
+                            if (payWithStarsBtn) {
+                            payWithStarsBtn.disabled = false; 
+                            payWithStarsBtn.style.opacity = '1';
+                        }
+                        }
+                        }, 500);
 
 
                             // Enable/disable payment buttons
