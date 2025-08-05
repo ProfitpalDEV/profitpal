@@ -336,7 +336,19 @@ analyzer = FMPStockAnalyzer(FMP_API_KEY)
 
 # STRIPE PAYMENT ENDPOINTS
 @app.post('/create-checkout-session')
-async def create_checkout_session(email: str = Form(...)):
+
+# СТАНЕТ:
+async def create_checkout_session(request: Request):
+    try:
+        body = await request.json()
+        email = body.get('email')
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email is required")
+        
+        print(f"Creating checkout session for email: {email}")
+        
+        # Остальной код остается как есть...
     """Create Stripe Checkout Session for ProfitPal subscription"""
     try:
         print(f"Creating checkout session for email: {email}")
