@@ -345,12 +345,12 @@ async def create_checkout_session(email: str = Form(...)):
         setup_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
-                'price': SETUP_FEE_PRICE_ID,  # $24.99 setup fee
+               'price': os.getenv('MONTHLY_PRICE_ID'),  # Используем переменную
                 'quantity': 1,
             }],
             mode='payment',
             customer_email=email,
-            success_url='https://profitpal.org/setup-success',
+            success_url='https://profitpal.org/success?session_id={CHECKOUT_SESSION_ID}',
             cancel_url='https://profitpal.org/cancel',
             metadata={
                 'type': 'setup_payment',
@@ -365,24 +365,27 @@ async def create_checkout_session(email: str = Form(...)):
         print(f"❌ Error creating checkout session: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
+# ДОБАВЬ ЭТИ ROUTES ПОСЛЕ СТРОКИ 366:
+
+@app.get("/profitpal-styles.css")
+async def serve_css():
+    """Serve ProfitPal CSS styles"""
+    return FileResponse('profitpal-styles.css', media_type='text/css')
+
+@app.get("/success")
+async def payment_success():
+    """Serve success page with ProfitPal styling"""
+    return FileResponse('success.html')
+
+@app.get("/cancel") 
+async def payment_cancel():
+    """Serve cancel page with ProfitPal styling"""
+    return FileResponse('cancel.html')
+
 @app.get('/setup-success')
 async def setup_success():
     """Handle successful setup payment"""
     return FileResponse('setup-success.html')
-
-@app.get('/cancel')
-async def payment_cancelled():
-    """Handle cancelled payment"""
-    return """
-    <html>
-    <head><title>Payment Cancelled</title></head>
-    <body style="font-family: Arial; text-align: center; padding: 50px; background: #0a0e27; color: white;">
-        <h1 style="color: #e74c3c;">❌ Payment Cancelled</h1>
-        <p>No worries! You can try again anytime.</p>
-        <a href="/analysis" style="background: #32cd32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Back to Analysis</a>
-    </body>
-    </html>
-    """
 
 @app.post('/webhook')
 async def stripe_webhook(request: Request):
