@@ -387,6 +387,11 @@ async def setup_success():
     """Handle successful setup payment"""
     return FileResponse('setup-success.html')
 
+@app.get("/api/stripe-key")
+async def get_stripe_key():
+    """API endpoint для получения Stripe publishable key"""
+    return {"publishable_key": os.getenv('STRIPE_PUBLISHABLE_KEY')}
+
 @app.post('/webhook')
 async def stripe_webhook(request: Request):
     """Handle Stripe webhooks"""
