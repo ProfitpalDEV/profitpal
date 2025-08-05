@@ -1208,12 +1208,6 @@
                         }, 500);
 
 
-                            // Enable/disable payment buttons
-                            const payWithCardBtn = document.getElementById('payWithCard');
-                            const payWithStarsBtn = document.getElementById('payWithStars');
-                            if (payWithCardBtn) payWithCardBtn.disabled = !allAgreed;
-                            if (payWithStarsBtn) payWithStarsBtn.disabled = !allAgreed;
-                        }
 
                         // ✅ ОБНОВЛЕННЫЕ PAYMENT ФУНКЦИИ:
                         async function payWithCard() {
