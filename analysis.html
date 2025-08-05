@@ -1101,7 +1101,12 @@
 
                     <script>
                         // Stripe initialization
-                        const stripe = Stripe('{{ stripe_publishable_key }}');
+                        let stripe; // Объявляем переменную
+                        fetch('/api/stripe-key')
+                        .then(response => response.json())  
+                        .then(data => {
+                        stripe = Stripe(data.publishable_key);
+                     });
                         // Global variables
                         let userCardSetup = false;
                         let userEmail = '';
