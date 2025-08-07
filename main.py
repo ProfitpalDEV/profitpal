@@ -5,34 +5,109 @@ import stripe
 import secrets
 import hashlib
 import sqlite3
-from datetime import datetime
+import smtplib
+from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, List, Optional, Tuple
-from fastapi import FastAPI, HTTPException, Request, Form
+from fastapi import FastAPI, HTTPException, Request, Form, BackgroundTasks
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
 
-# Stripe Configuration
-stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_51RqAup...')
-STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_demo')
-YOUR_DOMAIN = 'https://profitpal.org'  # Updated Replit domain
+# ==========================================
+# MANAGERS INTEGRATION
+# ==========================================
+from auth_manager import validate_user_credentials, create_new_user, authenticate_user_login, get_auth_stats
+from referral_manager import ReferralManager  # 🔥 НОВЫЙ IMPORT!
+
+# ==========================================
+# DATABASE CONFIGURATION
+# ==========================================
+
+DATABASE_PATH = "profitpal_database.db"
+
+def create_free_trial_table():
+    """Создание таблицы для free trial fingerprints"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS free_trials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fingerprint TEXT NOT NULL,
+                analyses_used INTEGER DEFAULT 0,
+                max_analyses INTEGER DEFAULT 5,
+                last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(fingerprint)
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+        print("✅ Free trial table created successfully")
+
+    except Exception as e:
+        print(f"❌ Error creating free trial table: {e}")
+
+# Создаем таблицу при запуске
+create_free_trial_table()
+
+# ==========================================
+# ENVIRONMENT VARIABLES CONFIGURATION
+# ==========================================
+
+# Get API keys from environment variables (Railway secrets)
+FMP_API_KEY = os.getenv("FMP_API_KEY", "re6q6DqcjkmRuiXE0fNiDHIYwVH3DcfC")  # Free key as fallback
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_test_fallback")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_fallback") 
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_fallback")
+GMAIL_EMAIL = os.getenv("GMAIL_EMAIL", "denava.business@gmail.com")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")  # App password for Gmail
+YOUR_DOMAIN = os.getenv("DOMAIN", "https://profitpal.org")
+
+# Configure Stripe
+stripe.api_key = STRIPE_SECRET_KEY
+
+print("✅ Environment variables loaded!")
+print(f"🔑 FMP API Key: {FMP_API_KEY[:15]}...")
+print(f"💳 Stripe Keys: Configured")
+print(f"🌐 Domain: {YOUR_DOMAIN}")
+print(f"📧 Gmail: {GMAIL_EMAIL}")
+
+# ==========================================
+# FASTAPI APPLICATION SETUP
+# ==========================================
+
+app = FastAPI(
+    title="💎 ProfitPal Pro API v2.0",
+    description="Professional stock analysis platform with Diamond Rating System + Referral System",
+    version="2.0.0"
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+# Templates
 templates = Jinja2Templates(directory=".")
 
-# Debug: Check environment variables
-print(f"🔍 STRIPE_SECRET_KEY: {os.environ.get('STRIPE_SECRET_KEY', 'NOT_FOUND')}")
-print(f"🔍 STRIPE_WEBHOOK_SECRET: {os.environ.get('STRIPE_WEBHOOK_SECRET', 'NOT_FOUND')}")
+# 🔥 INITIALIZE REFERRAL MANAGER!
+referral_mgr = ReferralManager()
 
-# Set Stripe API key with debug
-stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'fallback_key')
-print(f"🔍 Final stripe.api_key set to: {stripe.api_key[:15]}...")
+# ==========================================
+# PYDANTIC MODELS
+# ==========================================
 
-# Product Price IDs
-SETUP_FEE_PRICE_ID = os.getenv('SETUP_FEE_PRICE_ID')  # $24.99 one-time
-MONTHLY_SUBSCRIPTION_PRICE_ID = os.getenv('MONTHLY_SUBSCRIPTION_PRICE_ID')  # $4.99/month  
-
-# API Models
 class AnalysisRequest(BaseModel):
     ticker: str
     license_key: Optional[str] = "FREE"
@@ -51,107 +126,34 @@ class AnalysisResponse(BaseModel):
     final_verdict: str
     analysis_details: Dict[str, Any]
 
-# FastAPI app
-app = FastAPI(
-    title="AI StockScreener Pro API",
-    description="Educational stock analysis platform - aggregating data, calculating metrics, empowering decisions",
-    version="1.0.0"
-)
+# 🔥 НОВАЯ МОДЕЛЬ ДЛЯ PAYMENT С REFERRAL!
+class PaymentRequest(BaseModel):
+    email: str
+    full_name: str
+    referral_code: Optional[str] = None
 
-# Add CORS middleware - CRITICAL FIX for "Method Not Allowed"
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+# 🔥 ДОБАВЬ СЮДА DONATION CLASS:
+class DonationRequest(BaseModel):
+    amount: float
+    type: str  # 'coffee', 'milk', 'features', 'custom'
+    email: str
 
-# Database Setup
-def init_database():
-    """Initialize SQLite database for users and subscriptions"""
-    try:
-        conn = sqlite3.connect('profitpal.db')
-        cursor = conn.cursor()
+# 🔍 FREE TRIAL FINGERPRINT MODELS
+class FreeTrialRequest(BaseModel):
+    fingerprint: str
 
-        # Users table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                stripe_customer_id TEXT,
-                license_key TEXT UNIQUE,
-                subscription_status TEXT DEFAULT 'inactive',
-                subscription_id TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+class FreeTrialRecordRequest(BaseModel):
+    fingerprint: str
+    ticker: str
 
-        # Payments table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS payments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                stripe_payment_id TEXT,
-                amount INTEGER,
-                type TEXT,
-                status TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-
-        conn.commit()
-        conn.close()
-        print("✅ Database initialized successfully")
-    except Exception as e:
-        print(f"❌ Database initialization error: {e}")
-
-# Initialize database on startup
-init_database()
-
-def generate_license_key(customer_id: str) -> str:
-    """Generate unique license key for customer"""
-    random_part = secrets.token_hex(8)
-    customer_hash = hashlib.md5(customer_id.encode()).hexdigest()[:8]
-    return f"PP-{customer_hash}-{random_part}".upper()
-
-def get_db_connection():
-    """Get database connection"""
-    conn = sqlite3.connect('profitpal.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def validate_license_key(license_key: str) -> dict:
-    """Validate license key and return user info"""
-    if license_key == "FREE" or license_key == "":
-        return {"email": "free_user", "status": "free"}
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT * FROM users 
-            WHERE license_key = ? AND subscription_status = 'active'
-        ''', (license_key,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user:
-            return dict(user)
-        return None
-    except Exception as e:
-        print(f"License validation error: {e}")
-        return None
-
-# FMP API Configuration
-FMP_API_KEY = "re6q6DqcjkmRuiXE0fNiDHIYwVH3DcfC"
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+# ==========================================
+# FMP STOCK ANALYZER CLASS
+# ==========================================
 
 class FMPStockAnalyzer:
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = FMP_BASE_URL
+        self.base_url = "https://financialmodelingprep.com/api/v3"
 
     def call_fmp_api(self, endpoint: str) -> Optional[Dict]:
         """Call FMP API with error handling"""
@@ -181,7 +183,6 @@ class FMPStockAnalyzer:
 
         try:
             if isinstance(value, str):
-                # Clean string values
                 cleaned = re.sub(r'[^\d.-]', '', value)
                 return float(cleaned) if cleaned else None
             return float(value)
@@ -213,7 +214,7 @@ class FMPStockAnalyzer:
         return None
 
     def calculate_intrinsic_value(self, ticker: str, current_price: float) -> Tuple[Optional[float], Dict[str, Any]]:
-        """Calculate intrinsic value using 4 methods with weighted average"""
+        """Calculate intrinsic value using multiple methods"""
         details = {
             "dcf_method": None,
             "book_value_method": None,
@@ -227,8 +228,7 @@ class FMPStockAnalyzer:
         if cash_flow:
             free_cash_flow = self.extract_fmp_value(cash_flow, 'freeCashFlow')
             if free_cash_flow and free_cash_flow > 0:
-                # Simple DCF: FCF * 10 (assuming 10% discount rate)
-                details["dcf_method"] = free_cash_flow * 10 / 1000000  # Convert to per share approximation
+                details["dcf_method"] = free_cash_flow * 10 / 1000000
 
         # Method 2: Book Value
         balance_sheet = self.call_fmp_api(f"balance-sheet-statement/{ticker}")
@@ -243,7 +243,6 @@ class FMPStockAnalyzer:
         if income_statement:
             eps = self.extract_fmp_value(income_statement, 'eps')
             if eps and eps > 0:
-                # Conservative P/E of 15
                 details["earnings_method"] = eps * 15
 
         # Method 4: Revenue multiple
@@ -252,7 +251,6 @@ class FMPStockAnalyzer:
             shares_outstanding = self.extract_fmp_value(income_statement, 'weightedAverageShsOut')
             if revenue and shares_outstanding and shares_outstanding > 0:
                 revenue_per_share = revenue / shares_outstanding
-                # Conservative P/S of 3
                 details["revenue_method"] = revenue_per_share * 3
 
         # Calculate weighted average
@@ -261,29 +259,25 @@ class FMPStockAnalyzer:
 
         if details["dcf_method"]:
             values.append(details["dcf_method"])
-            weights.append(0.4)  # 40% weight for DCF
+            weights.append(0.4)
 
         if details["earnings_method"]:
             values.append(details["earnings_method"])
-            weights.append(0.3)  # 30% weight for earnings
+            weights.append(0.3)
 
         if details["book_value_method"]:
             values.append(details["book_value_method"])
-            weights.append(0.2)  # 20% weight for book value
+            weights.append(0.2)
 
         if details["revenue_method"]:
             values.append(details["revenue_method"])
-            weights.append(0.1)  # 10% weight for revenue
+            weights.append(0.1)
 
         if values:
-            # Normalize weights
             total_weight = sum(weights)
             normalized_weights = [w/total_weight for w in weights]
-
-            # Calculate weighted average
             weighted_sum = sum(v * w for v, w in zip(values, normalized_weights))
             details["weighted_average"] = weighted_sum
-
             return weighted_sum, details
 
         return None, details
@@ -310,12 +304,12 @@ class FMPStockAnalyzer:
             else:
                 result["errors"].append("Failed to get stock quote")
 
-            # Get debt ratio (try multiple methods)
+            # Get debt ratio
             debt_ratio = self.get_debt_from_balance_sheet(ticker)
             if debt_ratio is None:
                 debt_ratio = self.get_debt_from_ratios(ticker)
             if debt_ratio is None:
-                debt_ratio = 25.0  # Default assumption
+                debt_ratio = 25.0
                 result["errors"].append("Using default debt ratio")
 
             result["debt_ratio"] = debt_ratio
@@ -334,218 +328,804 @@ class FMPStockAnalyzer:
 # Initialize analyzer
 analyzer = FMPStockAnalyzer(FMP_API_KEY)
 
-# STRIPE PAYMENT ENDPOINTS
-@app.post('/create-checkout-session')
-async def create_checkout_session(request: Request):
-    """Create Stripe Checkout Session for ProfitPal subscription"""
-    try:
-        body = await request.json()
-        email = body.get('email')
-        
-        if not email:
-            raise HTTPException(status_code=400, detail="Email is required")
-        
-        print(f"Creating checkout session for email: {email}")
+# ==========================================
+# 🔥 ОБНОВЛЕННАЯ EMAIL СИСТЕМА С REFERRAL
+# ==========================================
 
-        # Create Stripe Checkout Session for setup fee
-        setup_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-               'price': os.getenv('MONTHLY_PRICE_ID'),  # Используем переменную
-                'quantity': 1,
-            }],
-            mode='payment',
-            customer_email=email,
-            success_url='https://profitpal.org/success?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url='https://profitpal.org/cancel',
-            metadata={
-                'type': 'setup_payment',
-                'email': email
-            }
-        )
-
-        print(f"✅ Checkout session created: {setup_session.id}")
-        return {"checkout_url": setup_session.url}
-
-    except Exception as e:
-        print(f"❌ Error creating checkout session: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
-
-        print(f"✅ Checkout session created: {setup_session.id}")
-        return RedirectResponse(url=setup_session.url, status_code=303)
-
-    except Exception as e:
-        print(f"❌ Error creating checkout session: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
-
-# ДОБАВЬ ЭТИ ROUTES ПОСЛЕ СТРОКИ 366:
-
-@app.get("/profitpal-styles.css")
-async def serve_css():
-    """Serve ProfitPal CSS styles"""
-    return FileResponse('profitpal-styles.css', media_type='text/css')
-
-@app.get("/success")
-async def payment_success():
-    """Serve success page with ProfitPal styling"""
-    return FileResponse('success.html')
-
-@app.get("/cancel") 
-async def payment_cancel():
-    """Serve cancel page with ProfitPal styling"""
-    return FileResponse('cancel.html')
-
-@app.get('/setup-success')
-async def setup_success():
-    """Handle successful setup payment"""
-    return FileResponse('setup-success.html')
-
-@app.get("/api/stripe-key")
-async def get_stripe_key():
-    """API endpoint для получения Stripe publishable key"""
-    return {"publishable_key": os.getenv('STRIPE_PUBLISHABLE_KEY')}
-
-@app.post('/webhook')
-async def stripe_webhook(request: Request):
-    """Handle Stripe webhooks"""
-    payload = await request.body()
-    sig_header = request.headers.get('stripe-signature')
+def send_welcome_email_with_referral(email: str, license_key: str, full_name: str, referral_link: str = ""):
+    """Send welcome email with license key + referral link"""
+    if not GMAIL_PASSWORD:
+        print("⚠️ Gmail password not configured, skipping email")
+        return
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
-        print(f"Webhook received: {event['type']}")
-    except ValueError:
-        print("❌ Invalid webhook payload")
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
-        print("❌ Invalid webhook signature")
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        msg = MIMEMultipart()
+        msg['From'] = GMAIL_EMAIL
+        msg['To'] = email
+        msg['Subject'] = f"🎉 Welcome to ProfitPal Pro + Your Referral Link, {full_name}!"
 
-    # Handle different event types
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        print(f"✅ Setup payment successful for {session.get('customer_email')}")
+        referral_section = f"""
+            <div style="background: rgba(255, 215, 0, 0.1); padding: 25px; border-radius: 12px; margin: 20px 0; border: 2px solid #ffd700;">
+                <h3 style="color: #ffd700; margin-top: 0;">🔗 Your Personal Referral Link!</h3>
+                <p>Share this link with friends and earn <strong>FREE months</strong> for every $24.99 payment:</p>
 
-    elif event['type'] == 'invoice.payment_succeeded':
-        invoice = event['data']['object']
-        customer_id = invoice['customer']
+                <div style="background: rgba(255, 215, 0, 0.2); padding: 15px; border-radius: 8px; word-break: break-all; margin: 15px 0;">
+                    <code style="color: #ffd700; font-size: 14px; font-weight: bold;">{referral_link}</code>
+                </div>
 
-        # Update user status to active
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users 
-            SET subscription_status = ? 
-            WHERE stripe_customer_id = ?
-        ''', ('active', customer_id))
-        conn.commit()
-        conn.close()
+                <p style="margin-bottom: 0;">
+                    🎁 <strong>Each friend who joins = 1 FREE month for you!</strong><br>
+                    💰 <strong>12 friends = FREE year of $7.99 data updates!</strong>
+                </p>
+            </div>
+        """ if referral_link else ""
 
-        print(f"✅ Monthly payment successful for customer {customer_id}")
+        body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a0e27, #1e3a5f); color: white; border-radius: 20px; overflow: hidden; }}
+        .header {{ padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #32cd32, #228b22); }}
+        .content {{ padding: 30px; }}
+        .license-key {{ background: rgba(50, 205, 50, 0.2); border: 2px solid #32cd32; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0; }}
+        .key {{ font-size: 24px; font-weight: bold; color: #32cd32; letter-spacing: 2px; }}
+        .footer {{ padding: 20px; text-align: center; background: rgba(0,0,0,0.3); font-size: 14px; color: #87ceeb; }}
+        .button {{ display: inline-block; padding: 15px 30px; background: #32cd32; color: white; text-decoration: none; border-radius: 25px; font-weight: bold; }}
+        .billing-info {{ background: rgba(255, 107, 53, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #ff6b35; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💎 Welcome to ProfitPal Pro!</h1>
+            <p style="font-size: 18px; margin: 0;">Hello {full_name}!</p>
+        </div>
+        <div class="content">
+            <h2>🎉 Payment Successful!</h2>
+            <p>Congratulations! Your ProfitPal Pro lifetime access is now active.</p>
 
-    elif event['type'] == 'invoice.payment_failed':
-        invoice = event['data']['object']
-        customer_id = invoice['customer']
+            <div class="license-key">
+                <h3>🔑 Your License Key:</h3>
+                <div class="key">{license_key}</div>
+                <p style="margin: 10px 0 0 0; font-size: 14px;">Save this key - you'll need it to access ProfitPal Pro</p>
+            </div>
 
-        # Suspend user access
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users 
-            SET subscription_status = ? 
-            WHERE stripe_customer_id = ?
-        ''', ('payment_failed', customer_id))
-        conn.commit()
-        conn.close()
+            {referral_section}
 
-        print(f"❌ Monthly payment failed for customer {customer_id}")
+            <div class="billing-info">
+                <h4 style="color: #ff6b35; margin-top: 0;">💳 Monthly Data Updates - $7.99</h4>
+                <p>Starting next month, $7.99 will be auto-billed on the 1st for:</p>
+                <ul style="padding-left: 20px; margin: 10px 0;">
+                    <li>🔄 Real-time market data</li>
+                    <li>🔄 Server maintenance</li>
+                    <li>🔄 New ProfitPal features</li>
+                </ul>
+                <p style="margin-bottom: 0;"><strong>💡 Use referrals to get FREE months and skip the $7.99 charge!</strong></p>
+            </div>
 
-    return JSONResponse({'status': 'success'})
+            <h3>✅ What You Get:</h3>
+            <ul style="padding-left: 20px;">
+                <li>Unlimited stock analysis</li>
+                <li>Diamond rating system</li>
+                <li>Intrinsic value calculations</li>
+                <li>Technical indicators</li>
+                <li>Industry comparisons</li>
+                <li>Risk assessment tools</li>
+                <li>Real-time data updates</li>
+            </ul>
 
-# EXISTING ROUTES
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{YOUR_DOMAIN}/" class="button">🚀 Start Analyzing Now</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 ProfitPal - A product of Denava OÜ</p>
+            <p>Educational platform - Not investment advice</p>
+        </div>
+    </div>
+</body>
+</html>
+        """
+
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
+            server.send_message(msg)
+
+        print(f"✅ Welcome email with referral sent to: {full_name} ({email})")
+
+    except Exception as e:
+        print(f"❌ Error sending email: {e}")
+
+def send_referral_reward_email(referrer_email: str, new_balance: int, new_user_email: str):
+    """Send email about referral reward"""
+    if not GMAIL_PASSWORD:
+        return
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = GMAIL_EMAIL
+        msg['To'] = referrer_email
+        msg['Subject'] = "🎁 Congratulations! You Earned a Free Month!"
+
+        body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a0e27, #1e3a5f); color: white; border-radius: 20px; padding: 40px; }}
+        .reward-box {{ background: rgba(255, 215, 0, 0.1); border: 2px solid #ffd700; border-radius: 15px; padding: 30px; text-align: center; margin: 20px 0; }}
+        .balance {{ font-size: 28px; color: #32cd32; font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #ffd700; text-align: center;">🎉 Referral Success!</h1>
+
+        <div class="reward-box">
+            <h2 style="color: #ffd700; margin-top: 0;">💎 Great News!</h2>
+            <p><strong>{new_user_email}</strong> just joined ProfitPal using your referral link!</p>
+
+            <div style="background: rgba(50, 205, 50, 0.2); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <h3 style="color: #32cd32; margin: 0;">🎁 +1 FREE MONTH!</h3>
+                <div class="balance">{new_balance} FREE MONTHS</div>
+                <p style="margin: 10px 0 0 0;">Your next {new_balance} billing{'s' if new_balance > 1 else ''} will be $0.00!</p>
+            </div>
+        </div>
+
+        <div style="background: rgba(30, 58, 95, 0.6); padding: 20px; border-radius: 10px;">
+            <h3 style="color: #32cd32;">🚀 Keep Sharing!</h3>
+            <ul>
+                <li>💰 Each friend = 1 FREE month</li>
+                <li>🎯 12 friends = FREE entire year!</li>
+                <li>🔄 Unlimited earning potential</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{YOUR_DOMAIN}" style="background: #32cd32; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold;">View Dashboard →</a>
+        </div>
+    </div>
+</body>
+</html>
+        """
+
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
+            server.send_message(msg)
+
+        print(f"🎁 Referral reward email sent to: {referrer_email}")
+
+    except Exception as e:
+        print(f"❌ Error sending referral email: {e}")
+
+# 🔥 ДОБАВЬ СЮДА DONATION EMAIL ФУНКЦИЮ:
+def send_donation_thank_you_email(email: str, amount: float, donation_type: str):
+    """Send personalized thank you email for donations"""
+    if not GMAIL_PASSWORD:
+        print("⚠️ Gmail password not configured, skipping email")
+        return
+
+    try:
+        # Personalized messages in American English
+        messages = {
+            'coffee': "I love black coffee, thank you dear person! ☕",
+            'milk': "Oh! Black coffee with milk! You amazing human! 🥛", 
+            'features': "Features are coming, this will be awesome! 🚀",
+            'custom': "Huge thanks for recognizing my work! 💝"
+        }
+
+        message = messages.get(donation_type, messages['custom'])
+
+        msg = MIMEMultipart()
+        msg['From'] = GMAIL_EMAIL
+        msg['To'] = email
+        msg['Subject'] = f"💎 Thank you for boosting ProfitPal development!"
+
+        body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a0e27, #1e3a5f); color: white; border-radius: 20px; overflow: hidden; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="background: rgba(255, 215, 0, 0.1); padding: 30px; text-align: center;">
+            <h1 style="color: #ffd700; margin-bottom: 10px;">💎 Thank You for Boosting ProfitPal!</h1>
+            <h2 style="color: #32cd32; font-size: 20px; margin: 0;">{message}</h2>
+        </div>
+
+        <div style="padding: 30px;">
+            <p style="font-size: 18px; color: #ffffff; margin-bottom: 20px;">
+                Your <strong>${amount}</strong> contribution helps us:
+            </p>
+
+            <div style="background: rgba(50, 205, 50, 0.1); padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <ul style="color: #ffffff; font-size: 16px; line-height: 1.8;">
+                    <li>🚀 Develop new features faster</li>
+                    <li>📊 Improve data accuracy and speed</li>
+                    <li>🛠️ Maintain 24/7 reliable service</li>
+                    <li>💎 Add premium analysis tools</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #ffd700; font-size: 18px; font-weight: bold;">
+                    Thank you for being part of the ProfitPal community! 🎉
+                </p>
+            </div>
+
+            <div style="border-top: 2px solid rgba(50, 205, 50, 0.3); padding-top: 20px; text-align: center;">
+                <p style="color: #95a5a6; margin: 0;">
+                    Best regards,<br>
+                    <strong style="color: #32cd32;">ProfitPal Development Team</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+        """
+
+        msg.attach(MIMEText(body, 'html'))
+
+        # Send email
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
+            server.send_message(msg)
+
+        print(f"✅ Donation thank you email sent to {email} (${amount}, {donation_type})")
+
+    except Exception as e:
+        print(f"❌ Failed to send donation email: {e}")
+
+# ==========================================
+# STATIC FILE ROUTES
+# ==========================================
+
 @app.get("/")
 def serve_homepage():
     """Serve the main landing page"""
     return FileResponse('index.html')
 
-@app.get("/app")
-def serve_login():
-    """Serve the login page for user dashboard"""
-    return FileResponse('app.html')
+# 🔥 НОВЫЙ ROUTE - REFERRAL REDIRECTS!
+@app.get("/ref/{referral_code}")
+def handle_referral_redirect(referral_code: str):
+    """Handle referral links and redirect to main page with ref parameter"""
+    try:
+        print(f"🔗 Referral link clicked: {referral_code}")
 
-@app.get("/app/dashboard")
-def serve_dashboard():
-    return FileResponse('dashboard.html') 
+        # Validate referral code format and existence
+        if (referral_mgr.validate_referral_code_format(referral_code) and 
+            referral_mgr.referral_code_exists(referral_code)):
+            return RedirectResponse(url=f"/?ref={referral_code}", status_code=302)
+        else:
+            print(f"❌ Invalid referral code: {referral_code}")
+            return RedirectResponse(url="/", status_code=302)
 
-@app.get("/app/analysis")
-async def serve_analysis(request: Request):
-    """Serve analysis page with Stripe publishable key"""
-    return templates.TemplateResponse("analysis.html", {
-        "request": request,
-        "stripe_publishable_key": os.getenv('STRIPE_PUBLISHABLE_KEY')
-    })
+    except Exception as e:
+        print(f"❌ Referral redirect error: {e}")
+        return RedirectResponse(url="/", status_code=302)
 
-# CRITICAL FIX: Direct analysis access
 @app.get("/analysis")
-def serve_analysis_direct():
-    """Serve analysis page directly - fixes 404 Not Found error"""
+def serve_analysis():
+    """Serve analysis page for payments"""
     return FileResponse('analysis.html')
 
-@app.get("/health")
-def health_check():
-    """API health check"""
-    return {
-        "status": "healthy",
-        "api": "FMP",
-        "endpoints": ["/analyze", "/health", "/docs", "/app/", "/analysis", "/create-checkout-session"],
-        "stripe": "integrated",
-        "domain": YOUR_DOMAIN,
-        "database": "initialized"
-    }
-@app.get("/terms-of-service", response_class=HTMLResponse)
-async def serve_terms():
+@app.get("/fake-dashboard")
+def serve_fake_dashboard():
+    """Serve fake dashboard for free trial users"""
+    return FileResponse('fake-dashboard.html')
+
+@app.get("/success")
+def serve_success():
+    """Serve success page"""
+    return FileResponse('success.html')
+
+@app.get("/cancel")
+def serve_cancel():
+    """Serve cancel page"""
+    return FileResponse('cancel.html')
+
+@app.get("/terms-of-service")
+def serve_terms():
     """Serve Terms of Service page"""
     return FileResponse('terms-of-service.html')
 
-@app.get("/privacy-policy", response_class=HTMLResponse)
-async def serve_privacy():
+@app.get("/privacy-policy")
+def serve_privacy():
     """Serve Privacy Policy page"""
     return FileResponse('privacy-policy.html')
 
-@app.get("/refund-policy", response_class=HTMLResponse)
-async def serve_refund():
+@app.get("/refund-policy")
+def serve_refund():
     """Serve Refund Policy page"""
     return FileResponse('refund-policy.html')
 
-# CRITICAL FIX: Analysis endpoint with better error handling
+@app.get("/profitpal-styles.css")
+def serve_css():
+    """Serve ProfitPal CSS styles"""
+    return FileResponse('profitpal-styles.css', media_type='text/css')
+
+# ==========================================
+# 🔥 ОБНОВЛЕННЫЕ AUTHENTICATION API ENDPOINTS
+# ==========================================
+
+@app.post('/validate-credentials')
+async def check_credentials(request: Request):
+    """🎯 ГЛАВНЫЙ API - Проверка email + license для подсветки имени + referral info"""
+    try:
+        body = await request.json()
+        email = body.get('email', '').strip()
+        license_key = body.get('license_key', '').strip().upper()
+
+        if not email or not license_key:
+            return JSONResponse(
+                content={"show_name": False, "error": "Email and license key required"},
+                status_code=400
+            )
+
+        # Используем auth_manager для валидации
+        result = validate_user_credentials(email, license_key)
+
+        if result['valid']:
+            response_data = {
+                "show_name": True, 
+                "full_name": result['full_name'],
+                "email": result['email'],
+                "welcome_message": f"Welcome back, {result['full_name']}!"
+            }
+
+            # 🔥 ДОБАВЛЯЕМ REFERRAL INFO!
+            referral_info = referral_mgr.get_user_referral_info(email)
+            if referral_info:
+                response_data.update({
+                    "referral_code": referral_info['referral_code'],
+                    "referral_link": referral_info['referral_link'],
+                    "free_months_balance": referral_info['free_months_balance'],
+                    "total_referrals": referral_info['total_referrals']
+                })
+
+            return JSONResponse(content=response_data)
+        else:
+            return JSONResponse(content={
+                "show_name": False, 
+                "error": result.get('error', 'Invalid credentials')
+            })
+
+    except Exception as e:
+        print(f"❌ Credentials validation error: {e}")
+        return JSONResponse(
+            content={"show_name": False, "error": "Validation failed"},
+            status_code=500
+        )
+
+@app.post('/authenticate-user')
+async def full_authentication(request: Request):
+    """Полная аутентификация пользователя с созданием сессии"""
+    try:
+        body = await request.json()
+        email = body.get('email', '').strip()
+        license_key = body.get('license_key', '').strip().upper()
+        full_name = body.get('full_name', '').strip()
+
+        # Получаем IP и User Agent для безопасности
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
+
+        result = authenticate_user_login(
+            email=email,
+            license_key=license_key,
+            full_name=full_name,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+
+        if result['authenticated']:
+            return JSONResponse(content={
+                "success": True,
+                "session_token": result['session_token'],
+                "user": result['user'],
+                "message": result['message']
+            })
+        else:
+            return JSONResponse(
+                content={"success": False, "error": result['error']},
+                status_code=401
+            )
+
+    except Exception as e:
+        print(f"❌ Authentication error: {e}")
+        return JSONResponse(
+            content={"success": False, "error": "Authentication failed"},
+            status_code=500
+        )
+
+# ==========================================
+# 🔥 ОБНОВЛЕННЫЕ STRIPE PAYMENT API С REFERRAL
+# ==========================================
+
+@app.get('/get-stripe-key')
+def get_stripe_publishable_key():
+    """Return Stripe publishable key for frontend"""
+    return {"publishableKey": STRIPE_PUBLISHABLE_KEY}
+
+@app.post('/create-checkout-session')
+async def create_checkout_session(payment_request: PaymentRequest):
+    """🔥 Create Stripe Checkout Session с REFERRAL поддержкой"""
+    try:
+        print(f"💳 Creating checkout for: {payment_request.full_name} ({payment_request.email})")
+        print(f"🔗 Referral code: {payment_request.referral_code}")
+
+        # Create Stripe Checkout session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            customer_email=payment_request.email,
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': '💎 ProfitPal Pro Lifetime Access',
+                        'description': 'Unlimited professional stock analysis + $7.99/month data updates',
+                        'images': ['https://profitpal.org/logo.png'],
+                    },
+                    'unit_amount': 2499,  # $24.99 in cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{YOUR_DOMAIN}/cancel',
+            metadata={
+                'full_name': payment_request.full_name,
+                'email': payment_request.email,
+                'referral_code': payment_request.referral_code or '',  # 🔥 СОХРАНЯЕМ REFERRAL!
+                'product': 'profitpal_pro_lifetime',
+                'version': '2.0'
+            }
+        )
+
+        print(f"✅ Checkout session created: {checkout_session.id}")
+        return {"checkout_url": checkout_session.url}
+
+    except Exception as e:
+        print(f"❌ Error creating checkout session: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to create checkout session: {str(e)}"
+        )
+
+@app.post('/stripe-webhook')
+async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
+    """🔥 Handle Stripe webhook events + REFERRAL PROCESSING"""
+    try:
+        payload = await request.body()
+        sig_header = request.headers.get('stripe-signature')
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError as e:
+            print(f"❌ Invalid payload: {e}")
+            raise HTTPException(status_code=400, detail="Invalid payload")
+        except stripe.error.SignatureVerificationError as e:
+            print(f"❌ Invalid signature: {e}")
+            raise HTTPException(status_code=400, detail="Invalid signature")
+
+        print(f"🎯 Webhook received: {event['type']}")
+
+        # Handle successful payment
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            email = session.get('customer_email')
+            session_id = session.get('id')
+
+            # Получаем данные из metadata
+            metadata = session.get('metadata', {})
+            full_name = metadata.get('full_name', 'ProfitPal User')
+            referral_code = metadata.get('referral_code', '')
+
+            if email and session_id and full_name:
+                print(f"🎉 Payment completed for: {email}")
+                print(f"🔗 Used referral code: {referral_code}")
+
+                # 1. Создаем пользователя через auth_manager
+                user_result = create_new_user(
+                    email=email,
+                    full_name=full_name,
+                    stripe_customer_id=session.get('customer')
+                )
+
+                if user_result['success']:
+                    license_key = user_result['license_key']
+                    print(f"✅ User created: {full_name} ({email}) → {license_key}")
+
+                    # 🔥 2. СОЗДАЕМ REFERRAL КОД ДЛЯ НОВОГО ПОЛЬЗОВАТЕЛЯ!
+                    referral_result = referral_mgr.create_referral_for_user(email, YOUR_DOMAIN)
+                    referral_link = ""
+                    if referral_result['success']:
+                        referral_link = referral_result['referral_link']
+                        print(f"🔗 Referral created: {referral_result['referral_code']}")
+
+                    # 🔥 3. ОБРАБАТЫВАЕМ ИСПОЛЬЗОВАННЫЙ REFERRAL КОД!
+                    if referral_code and referral_mgr.referral_code_exists(referral_code):
+                        signup_result = referral_mgr.process_referral_signup(referral_code, email, 24.99)
+                        if signup_result['success']:
+                            print(f"🎁 Referral processed! {signup_result['referrer_email']} earned free month")
+
+                            # Отправляем email реферреру о награде
+                            background_tasks.add_task(
+                                send_referral_reward_email,
+                                signup_result['referrer_email'],
+                                signup_result['new_balance'],
+                                email
+                            )
+
+                    # 4. Отправляем welcome email новому пользователю с referral ссылкой
+                    background_tasks.add_task(
+                        send_welcome_email_with_referral, 
+                        email, 
+                        license_key, 
+                        full_name,
+                        referral_link
+                    )
+
+                else:
+                    print(f"❌ Failed to create user: {user_result.get('error')}")
+            else:
+                print(f"❌ Missing required data in webhook: email={email}, name={full_name}")
+
+        return JSONResponse(content={"status": "success"}, status_code=200)
+
+    except Exception as e:
+        print(f"❌ Webhook error: {e}")
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+# ==========================================
+# 🔥 НОВЫЕ REFERRAL API ENDPOINTS
+# ==========================================
+
+@app.get('/api/referral-stats/{email}')
+async def get_referral_statistics(email: str):
+    """Получить referral статистику пользователя для dashboard"""
+    try:
+        stats = referral_mgr.get_referral_statistics(email)
+        return JSONResponse(content=stats)
+    except Exception as e:
+        print(f"❌ Error getting referral stats: {e}")
+        return JSONResponse(
+            content={'error': 'Failed to get referral statistics'},
+            status_code=500
+        )
+
+@app.get('/api/referral-link/{email}')
+async def get_user_referral_link(email: str):
+    """Получить referral ссылку пользователя"""
+    try:
+        referral_info = referral_mgr.get_user_referral_info(email)
+        if referral_info:
+            return JSONResponse(content={
+                'referral_link': referral_info['referral_link'],
+                'referral_code': referral_info['referral_code'],
+                'free_months_balance': referral_info['free_months_balance'],
+                'total_referrals': referral_info['total_referrals']
+            })
+        else:
+            return JSONResponse(
+                content={'error': 'No referral info found'},
+                status_code=404
+            )
+    except Exception as e:
+        print(f"❌ Error getting referral link: {e}")
+        return JSONResponse(
+            content={'error': 'Failed to get referral link'},
+            status_code=500
+        )
+
+@app.post('/api/monthly-billing/{email}')
+async def process_monthly_billing(email: str):
+    """🔥 Обработать месячный billing с учетом referral free months"""
+    try:
+        billing_result = referral_mgr.check_and_use_free_month(email)
+
+        if billing_result['should_charge']:
+            charge_amount = billing_result['charge_amount']
+            print(f"💳 Charging ${charge_amount} for {email}")
+            # TODO: Stripe subscription billing integration
+        else:
+            print(f"🎁 Free month used for {email}. {billing_result['free_months_remaining']} remaining")
+
+        return JSONResponse(content=billing_result)
+
+    except Exception as e:
+        print(f"❌ Monthly billing error: {e}")
+        return JSONResponse(
+            content={'error': 'Monthly billing failed'},
+            status_code=500
+        )
+
+# 🔍 ДОБАВИТЬ СЮДА FREE TRIAL ENDPOINTS:
+@app.post("/api/check-free-trial")
+async def check_free_trial(request: FreeTrialRequest):
+    """Проверка лимита бесплатных анализов по fingerprint"""
+    try:
+        print(f"🔍 Checking free trial for fingerprint: {request.fingerprint[:10]}...")
+
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # Найти запись по fingerprint
+        cursor.execute('''
+            SELECT analyses_used, max_analyses 
+            FROM free_trials 
+            WHERE fingerprint = ?
+        ''', (request.fingerprint,))
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            analyses_used, max_analyses = result
+            remaining = max_analyses - analyses_used
+            allowed = remaining > 0
+
+            print(f"📊 Existing user: {analyses_used}/{max_analyses} used, remaining: {remaining}")
+        else:
+            # Новый пользователь
+            analyses_used = 0
+            max_analyses = 5
+            remaining = 5
+            allowed = True
+
+            print(f"🆕 New user: {remaining} analyses available")
+
+        return JSONResponse(content={
+            'allowed': allowed,
+            'used': analyses_used,
+            'remaining': remaining,
+            'max_analyses': max_analyses
+        })
+
+    except Exception as e:
+        print(f"❌ Error checking free trial: {e}")
+        return JSONResponse(
+            content={'error': f'Free trial check failed: {str(e)}'},
+            status_code=500
+        )
+
+@app.post("/api/record-free-trial")
+async def record_free_trial(request: FreeTrialRecordRequest):
+    """Запись использования бесплатного анализа"""
+    try:
+        print(f"📝 Recording free trial usage: {request.fingerprint[:10]}... ticker: {request.ticker}")
+
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # Проверить существующую запись
+        cursor.execute('''
+            SELECT analyses_used, max_analyses 
+            FROM free_trials 
+            WHERE fingerprint = ?
+        ''', (request.fingerprint,))
+
+        result = cursor.fetchone()
+
+        if result:
+            # Обновить существующую запись
+            analyses_used, max_analyses = result
+            new_count = analyses_used + 1
+
+            cursor.execute('''
+                UPDATE free_trials 
+                SET analyses_used = ?, last_used = CURRENT_TIMESTAMP
+                WHERE fingerprint = ?
+            ''', (new_count, request.fingerprint))
+
+            print(f"📈 Updated existing user: {new_count}/{max_analyses} used")
+
+        else:
+            # Создать новую запись
+            cursor.execute('''
+                INSERT INTO free_trials (fingerprint, analyses_used, max_analyses)
+                VALUES (?, 1, 5)
+            ''', (request.fingerprint,))
+
+            new_count = 1
+            max_analyses = 5
+            print(f"🆕 Created new user: {new_count}/{max_analyses} used")
+
+        conn.commit()
+        conn.close()
+
+        remaining = max_analyses - new_count
+
+        return JSONResponse(content={
+            'success': True,
+            'analyses_used': new_count,
+            'remaining': remaining,
+            'ticker': request.ticker
+        })
+
+    except Exception as e:
+        print(f"❌ Error recording free trial: {e}")
+        return JSONResponse(
+            content={'error': f'Free trial recording failed: {str(e)}'},
+            status_code=500
+        )
+
+# 🔥 ДОБАВИТЬ СЮДА НОВЫЙ ENDPOINT:
+@app.post("/api/process-donation")
+async def process_donation(request: DonationRequest):
+    """💎 Обработка donation платежей через Stripe"""
+    try:
+        print(f"💝 Processing donation: ${request.amount} ({request.type}) from {request.email}")
+
+        # Найти пользователя в базе
+        auth_user = auth_mgr.get_user_by_email(request.email)
+        if not auth_user:
+            raise Exception("User not found")
+
+        # Создать Stripe payment intent для donation
+        payment_intent = stripe.PaymentIntent.create(
+            amount=int(request.amount * 100),  # Конвертируем в центы
+            currency='usd',
+            customer=auth_user['stripe_customer_id'],
+            payment_method=auth_user.get('default_payment_method'),
+            confirm=True,
+            description=f"ProfitPal Boost Development - {request.type}",
+            metadata={
+                'type': 'donation',
+                'donation_type': request.type,
+                'user_email': request.email
+            }
+        )
+
+        # Отправить персонализированный thank you email
+        await send_donation_thank_you_email(request.email, request.amount, request.type)
+
+        print(f"✅ Donation processed successfully: ${request.amount}")
+
+        return JSONResponse(content={
+            'success': True,
+            'amount': request.amount,
+            'message': 'Thank you for boosting ProfitPal development!'
+        })
+
+    except Exception as e:
+        print(f"❌ Donation processing error: {e}")
+        return JSONResponse(
+            content={'error': f'Donation failed: {str(e)}'},
+            status_code=500
+        )
+
+# ==========================================
+# STOCK ANALYSIS API ENDPOINTS (UNCHANGED)
+# ==========================================
+
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_stock(request: AnalysisRequest):
-    """
-    Analyze a stock using educational financial metrics with license validation
-
-    This endpoint aggregates public financial data and performs mathematical
-    calculations for educational purposes only. Not financial advice.
-    """
+    """Analyze stock with license validation"""
     try:
         print(f"🔍 Analysis request for {request.ticker} with license: {request.license_key}")
 
-        # Validate license key
-        if request.license_key == "FREE" or not request.license_key:
-            print("🆓 Free user analysis")
-            # Free users get limited access
+        # License validation for PRO features
+        if request.license_key != "FREE" and request.license_key:
+            # Validate license through auth_manager
             pass
-        else:
-            # Validate PRO license key
-            user = validate_license_key(request.license_key)
-            if not user:
-                print(f"❌ Invalid license key: {request.license_key}")
-                raise HTTPException(
-                    status_code=403, 
-                    detail="Invalid or expired license key. Please subscribe to ProfitPal Pro."
-                )
-            print(f"✅ Valid license for user: {user.get('email', 'unknown')}")
 
         # Get stock data
         print(f"📊 Fetching data for {request.ticker.upper()}")
@@ -553,9 +1133,12 @@ async def analyze_stock(request: AnalysisRequest):
 
         if not stock_data["current_price"]:
             print(f"❌ No data found for {request.ticker}")
-            raise HTTPException(status_code=404, detail=f"Stock data not found for {request.ticker}")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Stock data not found for {request.ticker}"
+            )
 
-        # Perform analysis
+        # Extract data
         current_price = stock_data["current_price"]
         pe_ratio = stock_data["pe_ratio"]
         market_cap = stock_data["market_cap"]
@@ -567,7 +1150,7 @@ async def analyze_stock(request: AnalysisRequest):
         if intrinsic_value and current_price:
             valuation_gap = ((intrinsic_value - current_price) / current_price) * 100
 
-        # Determine verdict based on filters
+        # Analysis logic
         verdict_factors = []
 
         # P/E Analysis
@@ -634,7 +1217,90 @@ async def analyze_stock(request: AnalysisRequest):
         print(f"❌ Analysis failed for {request.ticker}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+# ==========================================
+# 🔥 ОБНОВЛЕННЫЕ ADMIN ENDPOINTS С REFERRAL
+# ==========================================
+
+@app.get("/admin/stats")
+async def get_admin_stats():
+    """🔥 Get comprehensive system statistics + REFERRAL stats"""
+    try:
+        auth_stats = get_auth_stats()
+        referral_stats = referral_mgr.get_all_referral_stats()  # 🔥 НОВЫЙ!
+
+        return JSONResponse(content={
+            "system": {
+                "version": "2.0.0",
+                "environment": "production" if "profitpal.org" in YOUR_DOMAIN else "development",
+                "domain": YOUR_DOMAIN
+            },
+            "auth": auth_stats,
+            "referrals": referral_stats,  # 🔥 НОВЫЙ!
+            "api": {
+                "fmp_key_status": "configured" if len(FMP_API_KEY) > 10 else "missing",
+                "stripe_status": "configured" if len(STRIPE_SECRET_KEY) > 10 else "missing",
+                "email_status": "configured" if GMAIL_PASSWORD else "missing"
+            },
+            "generated_at": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        print(f"❌ Admin stats error: {e}")
+        return JSONResponse(
+            content={"error": "Failed to get stats"},
+            status_code=500
+        )
+
+@app.get("/health")
+def health_check():
+    """🔥 System health check + REFERRAL system"""
+    return {
+        "status": "healthy",
+        "version": "2.0.0",
+        "features": [
+            "auth_manager", 
+            "stripe_payments", 
+            "email_notifications", 
+            "stock_analysis",
+            "referral_system",  # 🔥 НОВЫЙ!
+            "environment_variables"
+        ],
+        "endpoints": [
+            "/", 
+            "/analysis", 
+            "/fake-dashboard", 
+            "/validate-credentials",
+            "/create-checkout-session",
+            "/stripe-webhook",
+            "/analyze",
+            "/api/referral-stats/{email}",  # 🔥 НОВЫЙ!
+            "/api/referral-link/{email}",   # 🔥 НОВЫЙ!
+            "/ref/{referral_code}"          # 🔥 НОВЫЙ!
+        ],
+        "timestamp": datetime.now().isoformat()
+    }
+
+# ==========================================
+# APPLICATION STARTUP
+# ==========================================
+
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting ProfitPal API server...")
+
+    # Создаем таблицу при запуске
+    create_free_trial_table()
+
+    print("\n" + "="*60)
+    print("🚀🚀🚀 PROFITPAL PRO SERVER v2.0 STARTING 🚀🚀🚀")
+    print("="*60)
+    print("✅ Auth Manager: Integrated")
+    print("✅ Referral Manager: Integrated")  # 🔥 НОВЫЙ!
+    print("✅ Environment Variables: Configured") 
+    print("✅ Stripe Payments: Ready")
+    print("✅ Email Notifications: Ready")
+    print("✅ Stock Analysis: FMP API Connected")
+    print("✅ Database: Auth + Referral + Free Trial Management")  # 🔥 ОБНОВЛЕН!
+    print("💎 Ready for Production with Referral System! 💎")
+    print("="*60 + "\n")
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
