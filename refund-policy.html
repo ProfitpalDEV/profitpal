@@ -14,6 +14,7 @@
             margin: 0;
             padding: 20px;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -22,11 +23,13 @@
             border-radius: 20px;
             padding: 40px;
             border: 2px solid rgba(34, 139, 34, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
         }
+
         .header {
-            text-align: center;
             margin-bottom: 40px;
         }
+
         .logo {
             font-size: 28px;
             font-weight: 900;
@@ -34,37 +37,49 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 10px;
+            margin-bottom: 30px;
+            text-align: left;
         }
+
+        .title-section {
+            text-align: center;
+        }
+
         h1 {
             color: #ffd700;
             font-size: 32px;
             margin-bottom: 10px;
         }
+
         .last-updated {
             color: #95a5a6;
             font-size: 14px;
         }
+
         h2 {
             color: #32cd32;
             font-size: 24px;
             margin-top: 30px;
             margin-bottom: 15px;
         }
+
         h3 {
             color: #ffd700;
             font-size: 18px;
             margin-top: 20px;
             margin-bottom: 10px;
         }
+
         p, li {
             line-height: 1.6;
             margin-bottom: 15px;
             color: #ffffff;
         }
+
         ul, ol {
             padding-left: 20px;
         }
+
         .highlight {
             background: rgba(50, 205, 50, 0.1);
             padding: 20px;
@@ -72,6 +87,7 @@
             border-left: 4px solid #32cd32;
             margin: 20px 0;
         }
+
         .price-highlight {
             background: rgba(255, 215, 0, 0.1);
             padding: 20px;
@@ -79,6 +95,7 @@
             border-left: 4px solid #ffd700;
             margin: 20px 0;
         }
+
         .non-refundable {
             background: rgba(220, 53, 69, 0.1);
             padding: 15px;
@@ -86,6 +103,7 @@
             border-left: 4px solid #dc3545;
             margin: 15px 0;
         }
+
         .refundable {
             background: rgba(40, 167, 69, 0.1);
             padding: 15px;
@@ -93,12 +111,14 @@
             border-left: 4px solid #28a745;
             margin: 15px 0;
         }
+
         .contact-info {
             background: rgba(44, 62, 80, 0.3);
             padding: 20px;
             border-radius: 10px;
             margin-top: 30px;
         }
+
         .table {
             width: 100%;
             border-collapse: collapse;
@@ -107,6 +127,7 @@
             border-radius: 10px;
             overflow: hidden;
         }
+
         .table th {
             background: rgba(50, 205, 50, 0.2);
             color: #32cd32;
@@ -114,28 +135,35 @@
             text-align: left;
             font-weight: 600;
         }
+
         .table td {
             padding: 12px 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .table tr:last-child td {
             border-bottom: none;
         }
+
         .status-non-refundable {
             color: #dc3545;
             font-weight: bold;
         }
+
         .status-refundable {
             color: #28a745;
             font-weight: bold;
         }
+
         a {
             color: #32cd32;
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
+
         .back-button {
             display: inline-block;
             background: linear-gradient(135deg, #32cd32, #228b22);
@@ -147,16 +175,35 @@
             margin-top: 20px;
             transition: all 0.3s ease;
         }
+
         .back-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(50, 205, 50, 0.3);
         }
+
         strong {
             color: #ffd700;
         }
+
         em {
             color: #95a5a6;
             font-style: italic;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(34, 139, 34, 0.2);
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -164,8 +211,10 @@
     <div class="container">
         <div class="header">
             <div class="logo">💎 ProfitPal</div>
-            <h1>Refund Policy</h1>
-            <div class="last-updated">Last updated: August 4, 2025</div>
+            <div class="title-section">
+                <h1>Refund Policy</h1>
+                <div class="last-updated">Last updated: August 4, 2025</div>
+            </div>
         </div>
 
         <div class="highlight">
@@ -189,44 +238,52 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>Setup Fee (Lifetime Access)</td>
-                    <td>$24.99</td>
+                    <td>ProfitPal Membership (One-time)</td>
+                    <td>$29.99</td>
                     <td class="status-non-refundable">NON-REFUNDABLE</td>
-                    <td>After account activation and license key generation</td>
+                    <td>After account activation and access granted</td>
                 </tr>
                 <tr>
-                    <td>Monthly Subscription</td>
+                    <td>Early Bird Subscription</td>
                     <td>$9.99/month</td>
                     <td class="status-refundable">REFUNDABLE</td>
                     <td>Pro-rated refund within 14 days of billing</td>
                 </tr>
                 <tr>
+                    <td>Standard Subscription</td>
+                    <td>$14.99/month</td>
+                    <td class="status-refundable">REFUNDABLE</td>
+                    <td>Pro-rated refund within 14 days of billing</td>
+                </tr>
+                <tr>
                     <td>Unused Monthly Billing</td>
-                    <td>$9.99</td>
+                    <td>Varies</td>
                     <td class="status-refundable">REFUNDABLE</td>
                     <td>If service not accessed during billing period</td>
                 </tr>
             </tbody>
         </table>
 
-        <h2>3. Setup Fee Policy</h2>
+        <h2>3. Membership Fee Policy</h2>
         <div class="non-refundable">
-            <h3>⚠️ Important: Setup Fee is Non-Refundable</h3>
-            <p>The <strong>$29.99 setup fee</strong> is non-refundable once your account has been activated and you have received your license key. This fee covers:</p>
+            <h3>⚠️ Important: Membership Fee is Non-Refundable</h3>
+            <p>The <strong>$29.99 membership fee</strong> is non-refundable once your account has been activated and you have gained access to the ProfitPal ECOSYSTEM. This fee covers:</p>
             <ul>
                 <li>Account setup and configuration</li>
-                <li>License key generation and activation</li>
-                <li>Lifetime access to basic platform features</li>
+                <li>Access to ProfitPal ECOSYSTEM</li>
+                <li>Basic platform features and tools</li>
                 <li>Initial onboarding and support</li>
+                <li>Referral system participation</li>
             </ul>
         </div>
 
         <h2>4. Monthly Subscription Policy</h2>
         <div class="refundable">
             <h3>✅ Monthly Subscription Refunds</h3>
-            <p>Monthly subscription fees of <strong>$9.99</strong> may be refunded under the following conditions:</p>
+            <p>Monthly subscription fees may be refunded under the following conditions:</p>
             <ul>
-                <li><strong>14-day window:</strong> Refund requests must be submitted within 14 days of billing</li>
+                <li><strong>Early Bird ($9.99/month until 12/31/2025):</strong> Refundable within 14 days</li>
+                <li><strong>Standard ($14.99/month from 01/01/2026):</strong> Refundable within 14 days</li>
                 <li><strong>Pro-rated refunds:</strong> Based on unused service time in the billing period</li>
                 <li><strong>Service issues:</strong> Technical problems preventing access for more than 72 hours</li>
                 <li><strong>Billing errors:</strong> Duplicate charges or billing after cancellation</li>
@@ -247,23 +304,24 @@
             <ul>
                 <li><strong>Review Period:</strong> 5-7 business days</li>
                 <li><strong>Processing Time:</strong> 3-10 business days after approval</li>
-                <li><strong>Refund Method:</strong> Original payment method via Paddle</li>
+                <li><strong>Refund Method:</strong> Original payment method via Stripe or Telegram Stars</li>
             </ul>
             <p><em>All refund requests are reviewed manually and processed at our discretion based on the specific circumstances.</em></p>
         </div>
 
         <h2>6. Non-Refundable Situations</h2>
         <ul>
-            <li>Setup fees after account activation and license key delivery</li>
+            <li>Membership fees ($29.99) after account activation and access granted</li>
             <li>Monthly fees for services already accessed and used</li>
             <li>Refund requests submitted more than 30 days after billing</li>
             <li>Account suspension due to terms of service violations</li>
             <li>Change of mind after successful service delivery and usage</li>
-            <li>Failure to cancel subscription before renewal</li>
+            <li>Failure to cancel subscription before renewal on the 1st of each month</li>
+            <li>Free trial abuse or multiple account violations</li>
         </ul>
 
         <h2>7. Cancellation Policy</h2>
-        <p>You may cancel your monthly subscription at any time through your account settings or by contacting support. Cancellations take effect at the end of the current billing period. Your lifetime access (from the setup fee) remains valid after subscription cancellation.</p>
+        <p>You may cancel your monthly subscription at any time through your account settings or by contacting support. Cancellations take effect at the end of the current billing period. Your ProfitPal membership (from the $29.99 fee) remains valid after subscription cancellation, but premium features will be restricted.</p>
 
         <h2>8. Service Downtime Refunds</h2>
         <div class="highlight">
@@ -272,14 +330,26 @@
                 <li>Service downtime exceeding 72 hours in a billing period (with documentation)</li>
                 <li>Duplicate billing due to technical errors (verified through payment records)</li>
                 <li>Billing after successful cancellation (with proof of cancellation)</li>
+                <li>Failed payment processing resulting in service disruption</li>
             </ul>
         </div>
 
-        <h2>9. Payment Processor</h2>
-        <p>All payments are processed through <strong>Paddle.com</strong>. Refunds will be processed through the same system and may be subject to Paddle's policies and processing times.</p>
+        <h2>9. Payment Processors</h2>
+        <p>All payments are processed through <strong>Stripe</strong> or <strong>Telegram Stars</strong>. Refunds will be processed through the same system and may be subject to the respective processor's policies and processing times.</p>
+
+        <div class="price-highlight">
+            <h3>💳 Current Pricing Structure</h3>
+            <ul>
+                <li><strong>ProfitPal Membership:</strong> $29.99 (one-time payment)</li>
+                <li><strong>Early Bird Subscription:</strong> $9.99/month (valid until 12/31/2025)</li>
+                <li><strong>Standard Subscription:</strong> $14.99/month (starting 01/01/2026)</li>
+                <li><strong>Free Trial:</strong> 5 stock analyses per device/fingerprint</li>
+                <li><strong>Referral Bonus:</strong> 1 month free per friend (max 12 months)</li>
+            </ul>
+        </div>
 
         <h2>10. Modifications to This Policy</h2>
-        <p>Denava OÜ reserves the right to modify this refund policy at any time. Changes will be effective immediately upon posting. Continued use of our services constitutes acceptance of any modifications.</p>
+        <p>Denava OÜ reserves the right to modify this refund policy at any time with 30 days advance notice. Changes will be communicated via email to active subscribers. Continued use of our services constitutes acceptance of any modifications.</p>
 
         <h2>11. Applicable Law</h2>
         <p>This refund policy is governed by Estonian law and European Union consumer protection regulations. Disputes will be resolved in accordance with Estonian jurisdiction.</p>
@@ -296,9 +366,9 @@
             <a href="/" class="back-button">← Back to ProfitPal</a>
         </div>
 
-        <p style="text-align: center; margin-top: 40px; color: #95a5a6; font-size: 14px;">
-            © 2025 ProfitPal. A product of Denava OÜ. All rights reserved.
-        </p>
+        <div class="footer">
+            <p>© 2025 ProfitPal. A product of Denava OÜ. All rights reserved.</p>
+        </div>
     </div>
 </body>
 </html>
