@@ -650,8 +650,7 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">💎 ProfitPal</div>
-            <a href="/app/dashboard" class="back-btn">← Back to Dashboard</a>
-        </div>
+                </div>
     </header>
 
     <!-- Main Content -->
@@ -910,8 +909,13 @@
             <h2 class="payment-title">🚀 Upgrade to ProfitPal Pro</h2>
             <p class="payment-subtitle">
                 Unlock unlimited stock analysis with AI-powered insights.<br>
-                <strong>$24.99 lifetime + $4.99/month for data updates</strong>
+                <strong>$29.99 lifetime + $9.99/month for data updates</strong>
             </p>
+
+            <!-- Referral Notice -->
+            <div id="referralNotice" style="display:none; background: linear-gradient(45deg,     #4CAF50, #45a049); padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: 600;">
+                🎉 You're joining through a referral link! Your friend will get a free month when you complete your purchase.
+            </div>
 
             <!-- Progress Bar -->
             <div class="progress-bar">
@@ -948,7 +952,7 @@
                         Before choosing payment method, you MUST provide a credit/debit card for:
                     </p>
                     <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #ffffff;">
-                        <li>Monthly $4.99 auto-billing (starts after $24.99 payment)</li>
+                        <li>Monthly $9.99 auto-billing (starts after $29.99 payment)</li>
                         <li>Payment verification and security</li>
                         <li>Account activation requirements</li>
                     </ul>
@@ -995,7 +999,7 @@
                 <div class="success-box">
                     <div class="success-title">✅ Great! Your card is ready for monthly billing</div>
                     <p style="color: #ffffff; margin: 0;">
-                        Now choose how to pay the $24.99 lifetime fee:
+                        Now choose how to pay the $29.99 lifetime fee:
                     </p>
                 </div>
 
@@ -1013,8 +1017,8 @@
                     <div class="checkbox-item">
                         <input type="checkbox" id="monthlyAgree">
                         <label class="checkbox-label" for="monthlyAgree">
-                            I authorize ProfitPal to charge my payment method <strong>$4.99 monthly</strong> 
-                            for data updates and premium features, starting after the initial $24.99 payment
+                            I authorize ProfitPal to charge my payment method <strong>$9.99 monthly</strong> 
+                            for data updates and premium features, starting after the initial $29.99 payment
                         </label>
                     </div>
 
@@ -1029,15 +1033,15 @@
 
                 <!-- Payment Options -->
                 <div style="margin-top: 30px;">
-                    <h4 style="color: #32cd32; margin-bottom: 20px; text-align: center;">Choose Payment Method for $24.99:</h4>
+                    <h4 style="color: #32cd32; margin-bottom: 20px; text-align: center;">Choose Payment Method for $29.99:</h4>
 
                     <button class="btn btn-primary btn-full" id="payWithCard" disabled onclick="payWithCard()">
-                        💳 Pay $24.99 Now with Same Card
+                        💳 Pay $29.99 Now with Same Card
                     </button>
 
                     <button class="btn btn-full" id="payWithStars" disabled onclick="payWithTelegram()" 
                             style="background: linear-gradient(135deg, #0088cc, #005580); color: white;">
-                        ⭐ Pay with Telegram Stars (2499 Stars = $24.99)
+                        ⭐ Pay with Telegram Stars (2999 Stars = $29.99)
                     </button>
 
                     <button class="btn btn-full" disabled style="background: #6c757d; color: white; opacity: 0.7;">
@@ -1087,7 +1091,7 @@
                 <div style="color: #95a5a6; font-size: 14px; line-height: 1.8;">
                     📱 1. Open camera or Telegram scanner<br>
                     🔍 2. Scan QR → Opens @AIStockScreenerPro_bot<br>
-                    📝 3. Type /buy → Pay $24.99 lifetime<br>
+                    📝 3. Type /buy → Pay $29.99 lifetime<br>
                     🔑 4. Get license key → Enter in ProfitPal<br>
                     💎 5. Unlimited access forever!
                 </div>
@@ -1118,6 +1122,11 @@
     }
     return stripePromise;
 }
+                        // Extract referral code from URL
+                        function getReferralCodeFromURL() {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            return urlParams.get('ref');
+                        }
 
                         // Initialize Stripe on page load
                         initializeStripe();
@@ -1189,12 +1198,12 @@
                             const termsAgree = document.getElementById('termsAgree').checked;
                             const monthlyAgree = document.getElementById('monthlyAgree').checked;
                             const disclaimerAgree = document.getElementById('disclaimerAgree').checked;
-        
+
                             const allAgreed = termsAgree && monthlyAgree && disclaimerAgree;
-        
+
                             const payWithCardBtn = document.getElementById('payWithCard');
                             const payWithStarsBtn = document.getElementById('payWithStars');
-        
+
                             if (payWithCardBtn) {
                             payWithCardBtn.disabled = !allAgreed;
                             payWithCardBtn.style.opacity = allAgreed ? '1' : '0.6';
@@ -1210,11 +1219,11 @@
                             const termsAgree = document.getElementById('termsAgree')?.checked;
                             const monthlyAgree = document.getElementById('monthlyAgree')?.checked;
                             const disclaimerAgree = document.getElementById('disclaimerAgree')?.checked;
-    
+
                             if (termsAgree && monthlyAgree && disclaimerAgree) {
                             const payWithCardBtn = document.getElementById('payWithCard');
                             const payWithStarsBtn = document.getElementById('payWithStars');
-        
+
                             if (payWithCardBtn) {
                             payWithCardBtn.disabled = false;
                             payWithCardBtn.style.opacity = '1';
@@ -1227,7 +1236,7 @@
                         // ✅ ДОБАВИТЬ ЭТОТ БЛОК:
                             const payWithCardBtn = document.getElementById('payWithCard');
                             const payWithStarsBtn = document.getElementById('payWithStars');
-        
+
                             if (payWithCardBtn) {
                             payWithCardBtn.disabled = true;
                             payWithCardBtn.style.opacity = '0.6';
@@ -1250,7 +1259,7 @@
                         try {
                         // Wait for Stripe to be initialized
                         const stripe = await initializeStripe();
-        
+
                         // Create checkout session
                         const response = await fetch('/create-checkout-session', {
                         method: 'POST',
@@ -1258,8 +1267,10 @@
                         'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                        email: userEmail
-                    })
+                        email: userEmail,
+                        full_name: userEmail,
+                        ...(getReferralCodeFromURL() && { referral_code: getReferralCodeFromURL() })
+                            })
                 });
 
         if (!response.ok) {
@@ -1267,7 +1278,7 @@
         }
 
         const { checkout_url } = await response.json();
-        
+
         if (checkout_url) {
             window.location.href = checkout_url;
         } else {
@@ -1706,6 +1717,15 @@
                                     checkbox.addEventListener('change', checkAgreements);
                                 }
                             });
+
+                            // Check for referral code
+                            const referralCode = getReferralCodeFromURL();
+                            if (referralCode) {
+                                document.getElementById('referralNotice').style.display = 'block';
+                                console.log('Referral code detected:', referralCode);
+                            }
+
+                            console.log('ProfitPal Analysis initialized');
 
                             // Card number formatting
                             const cardNumberInput = document.getElementById('cardNumber');
