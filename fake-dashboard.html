@@ -1042,20 +1042,28 @@
         async function updateAnalysisCounters() {
             const fingerprint = generateFingerprint();
 
-            // 👑 ADMIN FINGERPRINTS - UNLIMITED ACCESS
-            const ADMIN_FINGERPRINTS = [
-                fingerprint  // Твой текущий fingerprint становится админским
-            ];
-
-            function isAdmin(fp) {
-                return ADMIN_FINGERPRINTS.includes(fp);
+            // 👑 ПРОВЕРКА АДМИНА ЧЕРЕЗ BACKEND
+            let isAdminUser = false;
+            try {
+                const adminCheckResponse = await fetch('/api/check-admin-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        fingerprint: fingerprint,
+                        email: "denava.business@gmail.com"
+                    })
+                });
+                const adminData = await adminCheckResponse.json();
+                isAdminUser = adminData.is_admin || false;
+            } catch (error) {
+                console.log('Admin check failed, proceeding as regular user');
+                isAdminUser = false;
             }
 
             const trialStatus = await checkFreeTrial(fingerprint);
-
             let analysisCount, remaining;
 
-            if (isAdmin(fingerprint)) {
+            if (isAdminUser) {
                 // 👑 АДМИН: Цикл 1-5, потом снова 1-5
                 analysisCount = ((trialStatus.used - 1) % 5) + 1;
                 remaining = 5 - analysisCount;
