@@ -798,7 +798,49 @@
                 text-align: center;
             }
         }
-    </style>
+        /* 🔥 PRO/DOWNGRADE BANNER STYLES */
+            .pro-banner, .downgrade-banner {
+                background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 193, 7, 0.15));
+                backdrop-filter: blur(20px);
+                border: 2px solid rgba(255, 107, 53, 0.5);
+                border-radius: 15px;
+                padding: 20px 25px;
+                margin-bottom: 25px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                position: relative;
+            }
+
+            .downgrade-banner {
+                background: linear-gradient(135deg, rgba(135, 206, 235, 0.2), rgba(95, 158, 160, 0.15));
+                border-color: rgba(135, 206, 235, 0.5);
+            }
+
+            .pro-banner:hover, .downgrade-banner:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 30px rgba(255, 107, 53, 0.2);
+                border-color: #ff6b35;
+            }
+
+            .downgrade-banner:hover {
+                box-shadow: 0 10px 30px rgba(135, 206, 235, 0.2);
+                border-color: #87ceeb;
+            }
+
+            .pro-options, .downgrade-options {
+                background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+                backdrop-filter: blur(20px);
+                border-radius: 15px;
+                padding: 25px;
+                margin-bottom: 25px;
+                border: 2px solid rgba(255, 107, 53, 0.3);
+                animation: slideDown 0.3s ease-out;
+            }
+
+            .downgrade-options {
+                border-color: rgba(135, 206, 235, 0.3);
+            }
+        </style>
 </head>
 <body>
     <!-- Background Animation -->
@@ -896,6 +938,88 @@
 
             <button class="donation-submit" id="submitDonation" disabled onclick="processDonation()">
                 BOOST NOW
+            </button>
+        </div>
+        <!-- 🔥 PRO SUBSCRIPTION BANNER -->
+        <div class="pro-banner" id="proBanner" onclick="toggleProOptions()" style="display: none;">
+            <div class="boost-content">
+                <div class="boost-title">
+                    🚀 PRO SUBSCRIPTION
+                    <span class="boost-subtitle">Upgrade to advanced options trading & analytics</span>
+                </div>
+                <div class="boost-expand-hint">Click to expand upgrade options →</div>
+            </div>
+        </div>
+
+        <!-- PRO Upgrade Options -->
+        <div class="pro-options" id="proOptions" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(50, 205, 50, 0.05)); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 2px solid rgba(255, 107, 53, 0.3);">
+                <h3 style="color: #ff6b35; margin-bottom: 15px;">🚀 PRO Package Features ($49.99/month)</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="color: #ffffff;">✅ Real-time Options Analysis</div>
+                    <div style="color: #ffffff;">📊 Live Greeks Dashboard</div>
+                    <div style="color: #ffffff;">🎯 Options Strategies Simulator</div>
+                    <div style="color: #ffffff;">⚡ Volatility Spike Alerts</div>
+                    <div style="color: #ffffff;">📈 Paper Trading Simulation</div>
+                    <div style="color: #ffffff;">🔥 Unusual Options Activity</div>
+                </div>
+            </div>
+
+            <div id="prorationInfo" style="background: rgba(255, 215, 0, 0.1); border: 2px solid #ffd700; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #ffd700; margin-bottom: 10px;">💰 Proration Calculation</h4>
+                <div style="color: #ffffff; font-size: 14px;" id="prorationDetails">
+                    <!-- Proration details will be calculated here -->
+                </div>
+            </div>
+
+            <div class="donation-agreement">
+                <input type="checkbox" id="proConsent" onchange="toggleProSubmitButton()">
+                <label for="proConsent">I authorize payment processing and subscription upgrade</label>
+            </div>
+
+            <button class="donation-submit" id="submitProUpgrade" disabled onclick="processProUpgrade()" style="background: linear-gradient(135deg, #ff6b35, #e74c3c);">
+                UPGRADE TO PRO ($49.99/month)
+            </button>
+        </div>
+
+        <!-- 🔥 DOWNGRADE BANNER -->
+        <div class="downgrade-banner" id="downgradeBanner" onclick="toggleDowngradeOptions()" style="display: none;">
+            <div class="boost-content">
+                <div class="boost-title">
+                    ⬇️ RETURN TO STANDARD
+                    <span class="boost-subtitle">Downgrade from PRO to Standard subscription</span>
+                </div>
+                <div class="boost-expand-hint">Click to expand downgrade options →</div>
+            </div>
+        </div>
+
+        <!-- Downgrade Options -->
+        <div class="downgrade-options" id="downgradeOptions" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(135, 206, 235, 0.1), rgba(95, 158, 160, 0.05)); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 2px solid rgba(135, 206, 235, 0.3);">
+                <h3 style="color: #87ceeb; margin-bottom: 15px;">⬇️ Standard Subscription ($14.99/month)</h3>
+                <div style="color: #ffffff; margin-bottom: 20px;">
+                    <div>✅ Real-time Market Data</div>
+                    <div>✅ Server Maintenance</div>
+                    <div>✅ Basic Stock Analysis</div>
+                    <div>❌ Options Trading Features</div>
+                    <div>❌ Advanced Analytics</div>
+                </div>
+            </div>
+
+            <div id="downgradeProrationInfo" style="background: rgba(135, 206, 235, 0.1); border: 2px solid #87ceeb; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #87ceeb; margin-bottom: 10px;">💰 Refund Calculation</h4>
+                <div style="color: #ffffff; font-size: 14px;" id="downgradeProrationDetails">
+                    <!-- Downgrade proration details will be calculated here -->
+                </div>
+            </div>
+
+            <div class="donation-agreement">
+                <input type="checkbox" id="downgradeConsent" onchange="toggleDowngradeSubmitButton()">
+                <label for="downgradeConsent">I authorize subscription downgrade and refund processing</label>
+            </div>
+
+            <button class="donation-submit" id="submitDowngrade" disabled onclick="processDowngrade()" style="background: linear-gradient(135deg, #87ceeb, #5f9ea0);">
+                DOWNGRADE TO STANDARD ($14.99/month)
             </button>
         </div>
 
@@ -1081,6 +1205,126 @@
         // 🔥 DONATION СИСТЕМА
         let selectedDonationAmount = 0;
         let selectedDonationType = '';
+        // 🔥 PRO SUBSCRIPTION LOGIC
+        function toggleProOptions() {
+            const options = document.getElementById('proOptions');
+            const banner = document.getElementById('proBanner');
+
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
+                calculateProration('upgrade');
+            } else {
+                options.style.display = 'none';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand upgrade options →';
+            }
+        }
+
+        function toggleDowngradeOptions() {
+            const options = document.getElementById('downgradeOptions');
+            const banner = document.getElementById('downgradeBanner');
+
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
+                calculateProration('downgrade');
+            } else {
+                options.style.display = 'none';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand downgrade options →';
+            }
+        }
+
+        function calculateProration(type) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+
+            // Get days in current month using calendar
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const daysUsed = day - 1;
+            const daysRemaining = daysInMonth - daysUsed;
+
+            if (type === 'upgrade') {
+                // Early Bird $9.99 → PRO $49.99
+                const currentPrice = 9.99;
+                const newPrice = 49.99;
+                const dailyRateCurrent = currentPrice / daysInMonth;
+                const dailyRateNew = newPrice / daysInMonth;
+
+                const refund = dailyRateCurrent * daysRemaining;
+                const newCharge = dailyRateNew * daysRemaining;
+                const totalCharge = newCharge - refund;
+
+                document.getElementById('prorationDetails').innerHTML = `
+                    <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} days remaining (${daysInMonth} total)</div>
+                    <div>💸 Refund for unused Early Bird: $${refund.toFixed(2)}</div>
+                    <div>💳 Charge for PRO remainder: $${newCharge.toFixed(2)}</div>
+                    <div style="font-weight: bold; color: #ffd700; margin-top: 10px;">
+                        💰 Total charge today: $${totalCharge.toFixed(2)}
+                    </div>
+                `;
+            } else {
+                // PRO $49.99 → Standard $14.99
+                const currentPrice = 49.99;
+                const newPrice = 14.99;
+                const dailyRateCurrent = currentPrice / daysInMonth;
+                const dailyRateNew = newPrice / daysInMonth;
+
+                const refund = dailyRateCurrent * daysRemaining;
+                const newCharge = dailyRateNew * daysRemaining;
+                const totalRefund = refund - newCharge;
+
+                document.getElementById('downgradeProrationDetails').innerHTML = `
+                    <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} days remaining (${daysInMonth} total)</div>
+                    <div>💸 Refund for unused PRO: $${refund.toFixed(2)}</div>
+                    <div>💳 Charge for Standard remainder: $${newCharge.toFixed(2)}</div>
+                    <div style="font-weight: bold; color: #87ceeb; margin-top: 10px;">
+                        💰 Total refund: $${totalRefund.toFixed(2)}
+                    </div>
+                `;
+            }
+        }
+
+        function toggleProSubmitButton() {
+            const consent = document.getElementById('proConsent').checked;
+            const submitBtn = document.getElementById('submitProUpgrade');
+            submitBtn.disabled = !consent;
+        }
+
+        function toggleDowngradeSubmitButton() {
+            const consent = document.getElementById('downgradeConsent').checked;
+            const submitBtn = document.getElementById('submitDowngrade');
+            submitBtn.disabled = !consent;
+        }
+
+        async function processProUpgrade() {
+            alert('🚀 PRO Package upgrade will be available soon! Options trading features are in development.');
+            // TODO: Implement actual upgrade logic when options API is ready
+        }
+
+        async function processDowngrade() {
+            alert('⬇️ Downgrade functionality will be available when PRO package launches!');
+            // TODO: Implement actual downgrade logic
+        }
+
+        // Show appropriate banner based on user's current plan
+        function updateSubscriptionBanners() {
+            const userPlan = getCurrentUserPlan(); // This would come from API
+
+            if (userPlan === 'early_bird' || userPlan === 'standard') {
+                document.getElementById('proBanner').style.display = 'block';
+                document.getElementById('downgradeBanner').style.display = 'none';
+            } else if (userPlan === 'pro') {
+                document.getElementById('proBanner').style.display = 'none';
+                document.getElementById('downgradeBanner').style.display = 'block';
+            }
+        }
+
+        function getCurrentUserPlan() {
+            // TODO: Get from API, for now return demo
+            return 'early_bird'; // or 'standard', 'pro'
+        }
 
         function toggleBoostOptions() {
             const options = document.getElementById('boostOptions');
@@ -1509,6 +1753,7 @@
             showDemoData();
             loadUserData();
             animateFreeMonths();
+            updateSubscriptionBanners();
 
             // Add smooth transitions for cards
             const cards = document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner');
