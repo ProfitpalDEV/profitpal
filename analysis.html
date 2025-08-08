@@ -651,8 +651,14 @@
         <div class="header-content">
             <div style="display: flex; align-items: center;">
                 <div class="logo">💎 ProfitPal</div>
-                <div class="admin-badge" id="adminBadge" style="background: linear-gradient(135deg, #ff6b35, #e74c3c); color: white; padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; display: none; margin-left: 15px;">👑 ADMIN MODE</div>
-            </div>
+                <div class="admin-badge" id="adminBadge" style="background: linear-gradient(135deg, #ff6b35, #e74c3c); color: white; padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; display: none; margin-left: 15px;">
+                    👑 ADMIN MODE
+                    <select id="adminModeSelect" style="margin-left: 10px; background: rgba(0,0,0,0.3); color: white; border: 1px solid #fff; border-radius: 5px; padding: 2px 8px; font-size: 11px;">
+                        <option value="simulate">🎭 Simulate</option>
+                        <option value="real" selected>🔍 Real Stripe</option>
+                        <option value="debug">🐛 Debug</option>
+                    </select>
+                </div>
             <a href="/" class="back-btn">← Back to Home</a>
                 </div>
     </header>
@@ -1283,20 +1289,48 @@
                             const isAdmin = await checkAdminStatus();
 
                             if (isAdmin) {
-                                // АДМИН: ИМИТАЦИЯ ОПЛАТЫ
-                                console.log('🎭 ADMIN: Simulating successful payment');
+                                // 👑 ADMIN TESTING MODES
+                                const ADMIN_MODES = {
+                                    SIMULATE: 'simulate',    // Быстрая имитация → dashboard
+                                    REAL: 'real',           // Полный путь клиента через Stripe
+                                    DEBUG: 'debug'          // Полный путь + детальные логи
+                                };
 
-                                // Показать processing overlay (если есть)
-                                const processingOverlay = document.getElementById('paymentProcessing');
-                                if (processingOverlay) {
-                                    processingOverlay.classList.add('visible');
+                                // 🎯 ПОЛУЧАЕМ РЕЖИМ ИЗ ПЕРЕКЛЮЧАЛКИ:
+                                const modeSelect = document.getElementById('adminModeSelect');
+                                let currentAdminMode = modeSelect ? ADMIN_MODES[modeSelect.value.toUpperCase()] : ADMIN_MODES.REAL;
+
+                                console.log(`👑 ADMIN MODE: ${currentAdminMode.toUpperCase()}`);
+
+                                if (currentAdminMode === ADMIN_MODES.SIMULATE) {
+                                    // 🎭 БЫСТРАЯ ИМИТАЦИЯ
+                                    console.log('🎭 ADMIN: Fast simulation - bypassing all payments');
+                                    const processingOverlay = document.getElementById('paymentProcessing');
+                                    if (processingOverlay) {
+                                        processingOverlay.classList.add('visible');
+                                    }
+                                    setTimeout(() => {
+                                        window.location.href = '/success?session_id=admin_test_session&admin=true';
+                                    }, 2000);
+                                    return;
+
+                                } else if (currentAdminMode === ADMIN_MODES.REAL) {
+                                    // 🔍 ПОЛНЫЙ ПУТЬ КЛИЕНТА
+                                    console.log('🔍 ADMIN: Testing REAL customer journey with test card');
+                                    console.log('🔍 Use test card: 4242424242424242, 12/34, 123');
+                                    // НЕ ВОЗВРАЩАЕМ - идем к реальному Stripe коду!
+
+                                } else if (currentAdminMode === ADMIN_MODES.DEBUG) {
+                                    // 🐛 DEBUG РЕЖИМ
+                                    console.log('🐛 ADMIN: Debug mode - detailed error tracking enabled');
+                                    console.log('🐛 Will log ALL Stripe errors and network issues');
+                                    // НЕ ВОЗВРАЩАЕМ - идем к реальному Stripe коду!
                                 }
 
-                                // Имитация 3-секундной обработки, затем redirect на success
-                                setTimeout(() => {
-                                    window.location.href = '/success?session_id=admin_test_session&admin=true';
-                                }, 3000);
-                                return;
+                                // Только SIMULATE режим прерывается, остальные идут к Stripe
+                                if (currentAdminMode !== ADMIN_MODES.SIMULATE) {
+                                    console.log('👑 ADMIN: Proceeding with real Stripe payment flow...');
+                                }
                             }
 
                         try {
