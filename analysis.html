@@ -649,7 +649,10 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <div class="logo">💎 ProfitPal</div>
+            <div style="display: flex; align-items: center;">
+                <div class="logo">💎 ProfitPal</div>
+                <div class="admin-badge" id="adminBadge" style="background: linear-gradient(135deg, #ff6b35, #e74c3c); color: white; padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; display: none; margin-left: 15px;">👑 ADMIN MODE</div>
+            </div>
             <a href="/" class="back-btn">← Back to Home</a>
                 </div>
     </header>
@@ -1123,6 +1126,26 @@
     }
     return stripePromise;
 }
+
+                        // 👑 ADMIN SYSTEM - CHECK ADMIN STATUS
+                        async function checkAdminStatus() {
+                            try {
+                                const response = await fetch('/api/check-admin-status', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 
+                                        email: "denava.business@gmail.com",
+                                        fingerprint: Date.now() // простой fingerprint для проверки
+                                    })
+                                });
+                                const data = await response.json();
+                                console.log('🎯 Admin status check:', data);
+                                return data.is_admin || false;
+                            } catch (error) {
+                                console.log('Admin check failed, proceeding as regular user');
+                                return false;
+                            }
+                        }
                         // Extract referral code from URL
                         function getReferralCodeFromURL() {
                             const urlParams = new URLSearchParams(window.location.search);
@@ -1256,6 +1279,25 @@
                         alert('Please setup your card first!');
                         return;
                     }
+                            // 👑 ПРОВЕРКА АДМИНА ПЕРЕД ОПЛАТОЙ
+                            const isAdmin = await checkAdminStatus();
+
+                            if (isAdmin) {
+                                // АДМИН: ИМИТАЦИЯ ОПЛАТЫ
+                                console.log('🎭 ADMIN: Simulating successful payment');
+
+                                // Показать processing overlay (если есть)
+                                const processingOverlay = document.getElementById('paymentProcessing');
+                                if (processingOverlay) {
+                                    processingOverlay.classList.add('visible');
+                                }
+
+                                // Имитация 3-секундной обработки, затем redirect на success
+                                setTimeout(() => {
+                                    window.location.href = '/success?session_id=admin_test_session&admin=true';
+                                }, 3000);
+                                return;
+                            }
 
                         try {
                         // Wait for Stripe to be initialized
@@ -1716,6 +1758,17 @@
                                 const checkbox = document.getElementById(id);
                                 if (checkbox) {
                                     checkbox.addEventListener('change', checkAgreements);
+                                }
+                            });
+
+                            // 👑 ПРОВЕРКА АДМИНА ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+                            checkAdminStatus().then(isAdmin => {
+                                if (isAdmin) {
+                                    const adminBadge = document.getElementById('adminBadge');
+                                    if (adminBadge) {
+                                        adminBadge.style.display = 'inline-block';
+                                        console.log('👑 Admin mode activated - badge visible');
+                                    }
                                 }
                             });
 
