@@ -1259,9 +1259,15 @@
     }
 
     // Continue to Full Analysis
-    function continueToFullAnalysis() {
+    async function continueToFullAnalysis() {
       console.log('🎯 Continue to Full Analysis clicked!');
       const ticker = document.getElementById('ticker-input').value.toUpperCase().trim() || 'AAPL';
+
+      // 📝 ЗАПИСАТЬ ИСПОЛЬЗОВАНИЕ FINGERPRINT (-1 анализ) ПРИ ПЕРЕХОДЕ
+      const userFingerprint = generateFingerprint();
+      await recordFreeTrial(userFingerprint, ticker);
+      console.log('✅ Continue button usage recorded - first paid analysis');
+
       window.location.href = `/fake-dashboard?ticker=${ticker}`;
     }
 
