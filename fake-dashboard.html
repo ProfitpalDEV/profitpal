@@ -759,8 +759,8 @@
         <div class="analysis-section" style="text-align: center;">
             <h3 style="color: #32cd32; margin-bottom: 25px; font-size: 24px;">Want to Analyze Another Stock?</h3>
             <p style="color: #87ceeb; margin-bottom: 30px; font-size: 18px; line-height: 1.6;">
-                Sorry! Free trial allows <strong>1 analysis per IP address</strong>.<br>
-                Upgrade to ProfitPal Pro for unlimited analysis of any stock, anytime.
+                Use the input field above to analyze any stock instantly!<br>
+                763        Free trial: <strong>5 analyses per device</strong>. Then upgrade for unlimited access.
             </p>
 
             <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin: 30px 0;">
@@ -1041,10 +1041,30 @@
         // 📊 UPDATE ANALYSIS COUNTERS ON PAGE LOAD
         async function updateAnalysisCounters() {
             const fingerprint = generateFingerprint();
+
+            // 👑 ADMIN FINGERPRINTS - UNLIMITED ACCESS
+            const ADMIN_FINGERPRINTS = [
+                fingerprint  // Твой текущий fingerprint становится админским
+            ];
+
+            function isAdmin(fp) {
+                return ADMIN_FINGERPRINTS.includes(fp);
+            }
+
             const trialStatus = await checkFreeTrial(fingerprint);
 
-            const analysisCount = trialStatus.used || 1;
-            const remaining = Math.max(0, 5 - analysisCount);
+            let analysisCount, remaining;
+
+            if (isAdmin(fingerprint)) {
+                // 👑 АДМИН: Цикл 1-5, потом снова 1-5
+                analysisCount = ((trialStatus.used - 1) % 5) + 1;
+                remaining = 5 - analysisCount;
+                console.log('👑 ADMIN MODE: Showing analysis', analysisCount, 'remaining', remaining);
+            } else {
+                // 👤 ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
+                analysisCount = trialStatus.used || 1;
+                remaining = Math.max(0, 5 - analysisCount);
+            }
 
             // Update counter displays
             const countElement = document.getElementById('analysis-count');
