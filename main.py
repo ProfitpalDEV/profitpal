@@ -712,6 +712,37 @@ async def check_credentials(request: Request):
             status_code=500
         )
 
+@app.post('/api/check-admin-status')
+async def check_admin_status(request: Request):
+    """🎯 API для проверки админского статуса пользователя"""
+    try:
+        body = await request.json()
+        email = body.get('email', '').strip().lower()
+        fingerprint = body.get('fingerprint', '')
+
+        # 👑 ПРОВЕРКА АДМИНСКОГО EMAIL ИЗ ENVIRONMENT VARIABLES
+        admin_email = os.getenv('ADMIN_EMAIL', '').lower()
+        is_admin = (email == admin_email)
+
+        print(f"🎯 Admin status check: email={email}, admin_email={admin_email}, is_admin={is_admin}")
+
+        return JSONResponse(
+            content={
+                "is_admin": is_admin,
+                "admin_email": admin_email,
+                "fingerprint": fingerprint,
+                "status": "success"
+            },
+            status_code=200
+        )
+
+    except Exception as e:
+        print(f"❌ Error in check_admin_status: {e}")
+        return JSONResponse(
+            content={"is_admin": False, "error": str(e)},
+            status_code=500
+        )
+
 @app.post('/authenticate-user')
 async def full_authentication(request: Request):
     """Полная аутентификация пользователя с созданием сессии"""
