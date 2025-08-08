@@ -430,6 +430,13 @@
                 <div class="free-user-badge">🆓 Free Trial</div>
                 <a href="/" class="nav-link">← Home</a>
                 <a href="#upgrade" class="nav-link">Upgrade</a>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="new-ticker-input" placeholder="Enter ticker..." 
+                           style="padding: 8px 12px; border-radius: 8px; border: 2px solid #32cd32; background: rgba(30, 58, 95, 0.6); color: white; font-size: 14px; width: 120px;">
+                    <button onclick="analyzeNewStock()" class="nav-link" style="background: linear-gradient(135deg, #32cd32, #228b22); padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;">
+                        Analyze
+                    </button>
+                </div>
             </nav>
         </div>
     </div>
@@ -439,7 +446,7 @@
         <div class="trial-notice">
             <h3>🎉 Congratulations! You're experiencing ProfitPal Pro!</h3>
             <p style="color: #ffffff; margin: 0; font-size: 18px;">
-                This is your <strong>1 FREE comprehensive analysis</strong>. Want unlimited access to any stock? 
+                This is your <strong><span id="analysis-count">1st</span> free analysis</strong>. Remaining: <strong><span id="remaining-count">4</span>/5</strong>. Want unlimited access to any stock? 
                 <strong>Upgrade to ProfitPal Pro below!</strong>
             </p>
         </div>
@@ -951,6 +958,111 @@
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
+        });
+        // 🔍 FINGERPRINT SYSTEM FOR FREE TRIAL TRACKING
+        function generateFingerprint() {
+            const data = {
+                screen: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language,
+                platform: navigator.platform,
+                userAgent: navigator.userAgent.substring(0, 100)
+            };
+            const fingerprint = hashCode(JSON.stringify(data));
+            console.log('🔐 Generated fingerprint:', fingerprint);
+            return fingerprint;
+        }
+
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString();
+        }
+
+        async function checkFreeTrial(fingerprint) {
+            try {
+                const response = await fetch('/api/check-free-trial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fingerprint: fingerprint })
+                });
+                const data = await response.json();
+                console.log('🎯 Free trial status:', data);
+                return data;
+            } catch (error) {
+                console.error('❌ Error checking free trial:', error);
+                return { allowed: true, remaining: 5, used: 0 };
+            }
+        }
+
+        async function recordFreeTrial(fingerprint, ticker) {
+            try {
+                const response = await fetch('/api/record-free-trial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fingerprint: fingerprint, ticker: ticker })
+                });
+                const data = await response.json();
+                console.log('📝 Free trial recorded:', data);
+            } catch (error) {
+                console.error('❌ Error recording free trial:', error);
+            }
+        }
+
+        // 🚀 NEW STOCK ANALYSIS FUNCTION
+        async function analyzeNewStock() {
+            const newTicker = document.getElementById('new-ticker-input').value.toUpperCase().trim();
+
+            if (!newTicker) {
+                alert('Please enter a ticker symbol');
+                return;
+            }
+
+            const fingerprint = generateFingerprint();
+            const trialStatus = await checkFreeTrial(fingerprint);
+
+            if (!trialStatus.allowed) {
+                alert(`Free trial limit reached (${trialStatus.used}/5). Please upgrade for unlimited access!`);
+                window.location.href = '/analysis';
+                return;
+            }
+
+            // Record new analysis
+            await recordFreeTrial(fingerprint, newTicker);
+
+            // Redirect to new analysis
+            window.location.href = `/fake-dashboard?ticker=${newTicker}`;
+        }
+
+        // 📊 UPDATE ANALYSIS COUNTERS ON PAGE LOAD
+        async function updateAnalysisCounters() {
+            const fingerprint = generateFingerprint();
+            const trialStatus = await checkFreeTrial(fingerprint);
+
+            const analysisCount = trialStatus.used || 1;
+            const remaining = Math.max(0, 5 - analysisCount);
+
+            // Update counter displays
+            const countElement = document.getElementById('analysis-count');
+            const remainingElement = document.getElementById('remaining-count');
+
+            if (countElement) {
+                const ordinals = ['', '1st', '2nd', '3rd', '4th', '5th'];
+                countElement.textContent = ordinals[analysisCount] || `${analysisCount}th`;
+            }
+
+            if (remainingElement) {
+                remainingElement.textContent = remaining;
+            }
+        }
+
+        // Initialize counters when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAnalysisCounters();
         });
     </script>
 </body>
