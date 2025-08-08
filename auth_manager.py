@@ -90,14 +90,18 @@ class AuthManager:
 
     def generate_license_key(self, email: str, full_name: str) -> str:
         """Генерация уникального лицензионного ключа"""
-        # Создаем уникальный seed из email, имени и timestamp
-        seed = f"{email.lower().strip()}_{full_name.upper().strip()}_{datetime.now().isoformat()}_{secrets.token_hex(16)}"
 
-        # Генерируем hash
+        # 👑 ПРОВЕРКА НА АДМИНА ИЗ ENVIRONMENT VARIABLES
+        admin_email = os.getenv('ADMIN_EMAIL', '')
+        if email.lower().strip() == admin_email.lower():
+            admin_key = os.getenv('ADMIN_LICENSE_KEY', 'PP-ADMIN-DEFAULT')
+            print(f"🎯 Generating ADMIN license key for: {email}")
+            return admin_key
+
+        # 👤 ОБЫЧНЫЙ КЛИЕНТСКИЙ КЛЮЧ
+        seed = f"{email.lower().strip()}_{full_name.upper().strip()}_{datetime.now().isoformat()}_{secrets.token_hex(16)}"
         hash_object = hashlib.sha256(seed.encode())
         hash_hex = hash_object.hexdigest()
-
-        # Форматируем как PP-XXXX-XXXX-XXXX
         key_part = hash_hex[:12].upper()
         license_key = f"PP-{key_part[:4]}-{key_part[4:8]}-{key_part[8:12]}"
 
