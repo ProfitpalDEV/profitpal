@@ -1,7 +1,7 @@
 import requests
 import os
 import json
-import stripe as stripe_lib
+import stripe
 import secrets
 import hashlib
 import sqlite3
@@ -101,12 +101,11 @@ STANDARD_PRICE_ID = "price_1RuYJ6L7x3ZEcHzxv268oIVA"
 PRO_PRICE_ID = "price_1RuYPtL7x3ZEcHzxJ10tk95d"
 
 # Configure Stripe
-stripe_lib.api_key = STRIPE_SECRET_KEY
+stripe.api_key = STRIPE_SECRET_KEY
 
 # 🔥 ДОБАВЬТЕ ЭТУ СТРОКУ:
-stripe = stripe_lib
 print(f"🔍 Stripe check: {stripe}")
-print(f"🔍 stripe_lib.checkout: {stripe_lib.checkout}")
+print(f"🔍 stripe.checkout: {stripe.checkout}")
 
 print("✅ Environment variables loaded!")
 print(f"🔑 FMP API Key: {FMP_API_KEY[:15]}...")
@@ -1047,7 +1046,7 @@ async def create_subscription_checkout(request: Request):
         next_month = datetime.now().replace(day=1) + timedelta(days=32)
         billing_anchor = int(next_month.replace(day=1).timestamp())
 
-        checkout_session = stripe_lib.checkout.Session.create(
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             customer_email=email,
             line_items=[{
@@ -1087,7 +1086,7 @@ async def create_checkout_session(payment_request: PaymentRequest):
         )
         print(f"🔗 Referral code: {payment_request.referral_code}")
 
-        checkout_session = stripe_lib.checkout.Session.create(
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             customer_email=payment_request.email,
             line_items=[{
@@ -1124,13 +1123,13 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
         sig_header = request.headers.get('stripe-signature')
 
         try:
-            event = stripe_lib.Webhook.construct_event(payload, sig_header,
+            event = stripe.Webhook.construct_event(payload, sig_header,
                                                    STRIPE_WEBHOOK_SECRET)
         except ValueError as e:
             print(f"❌ Invalid payload: {e}")
             return JSONResponse(content={"error": "Invalid payload"},
                                 status_code=400)
-        except stripe_lib.error.SignatureVerificationError as e:
+        except stripe.error.SignatureVerificationError as e:
             print(f"❌ Invalid signature: {e}")
             return JSONResponse(content={"error": "Invalid signature"},
                                 status_code=400)
@@ -1175,7 +1174,7 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
                             )
 
                             # Создаем subscription на Early Bird план
-                            subscription = stripe_lib.Subscription.create(
+                            subscription = stripe.Subscription.create(
                                 customer=session.get('customer'),
                                 items=[{
                                     'price': EARLY_BIRD_PRICE_ID,
@@ -1352,7 +1351,7 @@ async def upgrade_subscription(request: Request,
         customer_id = auth_user['stripe_customer_id']
 
         # Находим активную подписку пользователя
-        subscriptions = stripe_lib.Subscription.list(customer=customer_id,
+        subscriptions = stripe.Subscription.list(customer=customer_id,
                                                  status='active',
                                                  limit=10)
 
@@ -1373,7 +1372,7 @@ async def upgrade_subscription(request: Request,
         # Выполняем upgrade подписки
         target_price_id = plan_price_map[target_plan]['price_id']
 
-        updated_subscription = stripe_lib.Subscription.modify(
+        updated_subscription = stripe.Subscription.modify(
             current_subscription.id,
             items=[{
                 'id': current_subscription.items.data[0].id,
@@ -1425,7 +1424,7 @@ async def get_upgrade_options(request: Request):
         customer_id = auth_user['stripe_customer_id']
 
         # Находим активную подписку
-        subscriptions = stripe_lib.Subscription.list(customer=customer_id,
+        subscriptions = stripe.Subscription.list(customer=customer_id,
                                                  status='active',
                                                  limit=10)
 
@@ -1639,7 +1638,7 @@ async def process_donation(request: DonationRequest,
             raise Exception("User not found")
 
         # Создать Stripe payment intent для donation
-        payment_intent = stripe_lib.PaymentIntent.create(
+        payment_intent = stripe.PaymentIntent.create(
             amount=int(request.amount * 100),  # Конвертируем в центы
             currency='usd',
             customer=auth_user['stripe_customer_id'],
