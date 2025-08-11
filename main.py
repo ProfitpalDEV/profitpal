@@ -104,11 +104,11 @@ PRO_PRICE_ID = "price_1RuYPtL7x3ZEcHzxJ10tk95d"
 stripe.api_key = STRIPE_SECRET_KEY
 try:
     # Тестируем Stripe подключение
-        stripe.Account.retrieve()
-        print(f"✅ Stripe connection successful!")
-        print(f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
-    except Exception as e:
-        print(f"❌ Stripe connection failed: {e}")
+    stripe.Account.retrieve()
+    print(f"✅ Stripe connection successful!")
+    print(f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
+except Exception as e:
+    print(f"❌ Stripe connection failed: {e}")
 
 # 🔥 ДОБАВЬТЕ ЭТУ СТРОКУ:
 print(f"🔍 Stripe check: {stripe}")
