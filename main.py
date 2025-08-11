@@ -100,19 +100,53 @@ EARLY_BIRD_PRICE_ID = "price_1RuYFBL7x3ZEcHzxTIEdGidS"
 STANDARD_PRICE_ID = "price_1RuYJ6L7x3ZEcHzxv268oIVA"
 PRO_PRICE_ID = "price_1RuYPtL7x3ZEcHzxJ10tk95d"
 
-# Configure Stripe
-stripe.api_key = STRIPE_SECRET_KEY
+# ==========================================
+# CONFIGURE STRIPE
+# ==========================================
+
+# Берём ключ из переменных окружения
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+if not stripe.api_key:
+    raise RuntimeError("❌ Stripe API key is not set! Check your environment variables.")
+
+# Проверка подключения к Stripe
 try:
-    # Тестируем Stripe подключение
-    stripe.Account.retrieve()
-    print(f"✅ Stripe connection successful!")
+    account_info = stripe.Account.retrieve()
+    print("✅ Stripe connection successful!")
+    print(f"🏢 Stripe account: {account_info.get('email', 'No email')}")
     print(f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
 except Exception as e:
-    print(f"❌ Stripe connection failed: {e}")
+    raise RuntimeError(f"❌ Stripe connection failed: {e}")
 
-# 🔥 ДОБАВЬТЕ ЭТУ СТРОКУ:
-print(f"🔍 Stripe check: {stripe}")
-print(f"🔍 stripe.checkout: {stripe.checkout}")
+# Отладочная инфа
+print(f"🔍 Stripe module: {stripe}")
+print(f"🔍 stripe.checkout: {getattr(stripe, 'checkout', None)}")
+
+# --- Тест создания Checkout Session (только в DEV) ---
+if os.getenv("APP_ENV", "prod") == "dev":
+    try:
+        test_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": "Test Product",
+                    },
+                    "unit_amount": 500,  # $5.00
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url="https://example.com/success",
+            cancel_url="https://example.com/cancel",
+        )
+        print(f"✅ Test Checkout Session created: {test_session.url}")
+    except Exception as e:
+        print(f"❌ Failed to create test Checkout Session: {e}")
+else:
+    print("ℹ Skipping test Checkout Session creation (not in DEV mode)")
 
 print("✅ Environment variables loaded!")
 print(f"🔑 FMP API Key: {FMP_API_KEY[:15]}...")
