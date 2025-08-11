@@ -1351,7 +1351,9 @@
                 });
 
         if (!response.ok) {
-            throw new Error('Failed to create checkout session');
+            const errorText = await response.text();
+            console.error('Checkout error:', response.status, errorText);
+            throw new Error(`Failed to create checkout session: ${response.status} - ${errorText}`);
         }
 
         const { checkout_url } = await response.json();
