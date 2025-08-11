@@ -1,6 +1,8 @@
-fastapi
-uvicorn[standard]
-requests
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+stripe==7.8.0
+requests==2.31.0
+python-multipart==0.0.6
+jinja2==3.1.2
+cryptography>=41.0.0
 pydantic
-stripe
-python-multipart

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProfitPal Dashboard</title>
+    <title>💎 ProfitPal Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -118,6 +118,315 @@
             padding: 30px;
             z-index: 10;
             position: relative;
+        }
+
+        /* 🔥 REFERRAL BANNER - ГЛАВНАЯ ФИЧА! */
+        .referral-banner {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(50, 205, 50, 0.15));
+            backdrop-filter: blur(20px);
+            border: 3px solid rgba(255, 215, 0, 0.6);
+            border-radius: 20px;
+            padding: 25px 35px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .referral-banner:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+        }
+
+        .referral-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .referral-banner:hover::before {
+            left: 100%;
+        }
+
+        .referral-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .referral-main {
+            flex: 1;
+        }
+
+        .referral-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffd700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .referral-link {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            word-break: break-all;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .copy-hint {
+            font-size: 14px;
+            color: #87ceeb;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        .referral-stats {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .referral-stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(50, 205, 50, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(50, 205, 50, 0.3);
+            min-width: 120px;
+        }
+
+        .stat-number-large {
+            font-size: 28px;
+            font-weight: 900;
+            color: #32cd32;
+            display: block;
+            line-height: 1;
+        }
+
+        .stat-label-small {
+            font-size: 12px;
+            color: #87ceeb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        .free-months-highlight {
+            background: linear-gradient(135deg, #32cd32, #228b22) !important;
+            color: white !important;
+        }
+
+        .free-months-highlight .stat-number-large {
+            color: white !important;
+        }
+
+        .free-months-highlight .stat-label-small {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        /* 🔥 BOOST DEVELOPMENT BANNER */
+        .boost-banner {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 193, 7, 0.15));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 107, 53, 0.5);
+            border-radius: 15px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .boost-banner:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.2);
+            border-color: #ff6b35;
+        }
+
+        .boost-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .boost-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ff6b35;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .boost-subtitle {
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 400;
+        }
+
+        .boost-expand-hint {
+            font-size: 14px;
+            color: #87ceeb;
+            font-style: italic;
+        }
+
+        .boost-options {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .donation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .donation-btn {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05));
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 12px;
+            padding: 20px 15px;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .donation-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 193, 7, 0.1));
+            border-color: #ff6b35;
+            transform: translateY(-2px);
+        }
+
+        .donation-btn .price {
+            display: block;
+            font-size: 20px;
+            color: #ff6b35;
+            margin-top: 5px;
+        }
+
+        .custom-donation {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(44, 62, 80, 0.3);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 12px;
+            padding: 20px 15px;
+            color: #ffffff;
+            font-weight: 600;
+            justify-content: center;
+        }
+
+        .custom-donation input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+            width: 80px;
+            text-align: center;
+        }
+
+        .custom-donation input:focus {
+            outline: none;
+        }
+
+        .currency {
+            font-size: 20px;
+            color: #ff6b35;
+        }
+
+        .donation-agreement {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(44, 62, 80, 0.2);
+            border-radius: 8px;
+        }
+
+        .donation-agreement input[type="checkbox"] {
+            transform: scale(1.2);
+            accent-color: #ff6b35;
+        }
+
+        .donation-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #ff6b35, #e74c3c);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .donation-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+        }
+
+        .donation-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Copy Success Animation */
+        .copy-success {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            z-index: 1000;
+            animation: copyFeedback 2s ease-out;
+        }
+
+        @keyframes copyFeedback {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
         }
 
         /* Welcome Section */
@@ -359,6 +668,87 @@
             font-weight: 600;
         }
 
+        /* 🔥 REFERRAL FRIENDS LIST */
+        .referral-friends {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+        }
+
+        .friends-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .next-billing-info {
+            color: #32cd32;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            background: rgba(50, 205, 50, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(50, 205, 50, 0.3);
+        }
+
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: rgba(44, 62, 80, 0.3);
+            border-radius: 10px;
+            border-left: 4px solid #ffd700;
+        }
+
+        .friend-email {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .friend-date {
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        .friend-reward {
+            background: linear-gradient(135deg, #ffd700, #ffed4a);
+            color: #0a0e27;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .progress-section {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 12px;
+        }
+
+        .progress-bar-container {
+            background: rgba(0,0,0,0.3);
+            height: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .dashboard-grid {
@@ -376,8 +766,81 @@
             .nav-menu {
                 display: none;
             }
+
+            .referral-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .referral-stats {
+                flex-direction: row;
+                gap: 15px;
+                justify-content: center;
+            }
+
+            .referral-stat {
+                min-width: 100px;
+            }
+
+            .friends-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .donation-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .boost-content {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
         }
-    </style>
+        /* 🔥 PRO/DOWNGRADE BANNER STYLES */
+            .pro-banner, .downgrade-banner {
+                background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 193, 7, 0.15));
+                backdrop-filter: blur(20px);
+                border: 2px solid rgba(255, 107, 53, 0.5);
+                border-radius: 15px;
+                padding: 20px 25px;
+                margin-bottom: 25px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                position: relative;
+            }
+
+            .downgrade-banner {
+                background: linear-gradient(135deg, rgba(135, 206, 235, 0.2), rgba(95, 158, 160, 0.15));
+                border-color: rgba(135, 206, 235, 0.5);
+            }
+
+            .pro-banner:hover, .downgrade-banner:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 30px rgba(255, 107, 53, 0.2);
+                border-color: #ff6b35;
+            }
+
+            .downgrade-banner:hover {
+                box-shadow: 0 10px 30px rgba(135, 206, 235, 0.2);
+                border-color: #87ceeb;
+            }
+
+            .pro-options, .downgrade-options {
+                background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+                backdrop-filter: blur(20px);
+                border-radius: 15px;
+                padding: 25px;
+                margin-bottom: 25px;
+                border: 2px solid rgba(255, 107, 53, 0.3);
+                animation: slideDown 0.3s ease-out;
+            }
+
+            .downgrade-options {
+                border-color: rgba(135, 206, 235, 0.3);
+            }
+        </style>
 </head>
 <body>
     <!-- Background Animation -->
@@ -400,18 +863,170 @@
             </nav>
 
             <div class="user-info">
-                <div class="user-avatar">DJ</div>
-                <span>Welcome back!</span>
+                <div class="user-avatar" id="user-avatar">DJ</div>
+                <span id="user-greeting">Welcome back!</span>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
     <div class="main-container">
+        <!-- 🔥 REFERRAL BANNER - ГЛАВНАЯ ФИЧА! -->
+        <div class="referral-banner" onclick="copyReferralLink()" title="Click to copy referral link">
+            <div class="referral-content">
+                <div class="referral-main">
+                    <div class="referral-title">
+                        🔗 Your Personal Referral Link
+                        <span style="font-size: 14px; background: rgba(255, 215, 0, 0.2); padding: 4px 8px; border-radius: 10px;">EARN FREE MONTHS!</span>
+                    </div>
+                    <div class="referral-link" id="referral-link">
+                        https://profitpal.org?ref=LOADING...
+                    </div>
+                    <div class="copy-hint">💡 Click anywhere on this banner to copy your referral link!</div>
+                </div>
+
+                <div class="referral-stats">
+                    <div class="referral-stat free-months-highlight">
+                        <span class="stat-number-large" id="free-months-count">0</span>
+                        <span class="stat-label-small">FREE MONTHS</span>
+                    </div>
+                    <div class="referral-stat">
+                        <span class="stat-number-large" id="paid-friends-count">0</span>
+                        <span class="stat-label-small">FRIENDS PAID</span>
+                    </div>
+                    <div class="referral-stat">
+                        <span class="stat-number-large" id="money-saved">$0.00</span>
+                        <span class="stat-label-small">MONEY SAVED</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔥 BOOST DEVELOPMENT BANNER -->
+        <div class="boost-banner" id="boostBanner" onclick="toggleBoostOptions()">
+            <div class="boost-content">
+                <div class="boost-title">
+                    ⚡ BOOST DEVELOPMENT
+                    <span class="boost-subtitle">Support innovation & get premium features faster</span>
+                </div>
+                <div class="boost-expand-hint">Click to expand options →</div>
+            </div>
+        </div>
+
+        <!-- Expanded Donation Options -->
+        <div class="boost-options" id="boostOptions" style="display: none;">
+            <div class="donation-grid">
+                <button class="donation-btn" onclick="selectDonation(3, 'coffee')">
+                    ☕ Developer's Coffee<br><span class="price">$3</span>
+                </button>
+                <button class="donation-btn" onclick="selectDonation(5, 'milk')">
+                    🥛 Coffee with Milk<br><span class="price">$5</span>
+                </button>
+                <button class="donation-btn" onclick="selectDonation(10, 'features')">
+                    🚀 New Features<br><span class="price">$10</span>
+                </button>
+                <div class="custom-donation">
+                    💝 Custom Amount: <input type="number" id="customAmount" placeholder="0" min="1" max="1000" step="1" onchange="selectCustomDonation()">
+                    <span class="currency">$</span>
+                </div>
+            </div>
+
+            <div class="donation-agreement">
+                <input type="checkbox" id="donationConsent" onchange="toggleSubmitButton()">
+                <label for="donationConsent">I authorize this transaction</label>
+            </div>
+
+            <button class="donation-submit" id="submitDonation" disabled onclick="processDonation()">
+                BOOST NOW
+            </button>
+        </div>
+        <!-- 🔥 PRO SUBSCRIPTION BANNER -->
+        <div class="pro-banner" id="proBanner" onclick="toggleProOptions()" style="display: none;">
+            <div class="boost-content">
+                <div class="boost-title">
+                    🚀 PRO SUBSCRIPTION
+                    <span class="boost-subtitle">Upgrade to advanced options trading & analytics</span>
+                </div>
+                <div class="boost-expand-hint">Click to expand upgrade options →</div>
+            </div>
+        </div>
+
+        <!-- PRO Upgrade Options -->
+        <div class="pro-options" id="proOptions" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(50, 205, 50, 0.05)); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 2px solid rgba(255, 107, 53, 0.3);">
+                <h3 style="color: #ff6b35; margin-bottom: 15px;">🚀 PRO Package Features ($49.99/month)</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="color: #ffffff;">✅ Real-time Options Analysis</div>
+                    <div style="color: #ffffff;">📊 Live Greeks Dashboard</div>
+                    <div style="color: #ffffff;">🎯 Options Strategies Simulator</div>
+                    <div style="color: #ffffff;">⚡ Volatility Spike Alerts</div>
+                    <div style="color: #ffffff;">📈 Paper Trading Simulation</div>
+                    <div style="color: #ffffff;">🔥 Unusual Options Activity</div>
+                </div>
+            </div>
+
+            <div id="prorationInfo" style="background: rgba(255, 215, 0, 0.1); border: 2px solid #ffd700; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #ffd700; margin-bottom: 10px;">💰 Proration Calculation</h4>
+                <div style="color: #ffffff; font-size: 14px;" id="prorationDetails">
+                    <!-- Proration details will be calculated here -->
+                </div>
+            </div>
+
+            <div class="donation-agreement">
+                <input type="checkbox" id="proConsent" onchange="toggleProSubmitButton()">
+                <label for="proConsent">I authorize payment processing and subscription upgrade</label>
+            </div>
+
+            <button class="donation-submit" id="submitProUpgrade" disabled onclick="processProUpgrade()" style="background: linear-gradient(135deg, #ff6b35, #e74c3c);">
+                UPGRADE TO PRO ($49.99/month)
+            </button>
+        </div>
+
+        <!-- 🔥 DOWNGRADE BANNER -->
+        <div class="downgrade-banner" id="downgradeBanner" onclick="toggleDowngradeOptions()" style="display: none;">
+            <div class="boost-content">
+                <div class="boost-title">
+                    ⬇️ RETURN TO STANDARD
+                    <span class="boost-subtitle">Downgrade from PRO to Standard subscription</span>
+                </div>
+                <div class="boost-expand-hint">Click to expand downgrade options →</div>
+            </div>
+        </div>
+
+        <!-- Downgrade Options -->
+        <div class="downgrade-options" id="downgradeOptions" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(135, 206, 235, 0.1), rgba(95, 158, 160, 0.05)); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 2px solid rgba(135, 206, 235, 0.3);">
+                <h3 style="color: #87ceeb; margin-bottom: 15px;">⬇️ Standard Subscription ($14.99/month)</h3>
+                <div style="color: #ffffff; margin-bottom: 20px;">
+                    <div>✅ Real-time Market Data</div>
+                    <div>✅ Server Maintenance</div>
+                    <div>✅ Basic Stock Analysis</div>
+                    <div>❌ Options Trading Features</div>
+                    <div>❌ Advanced Analytics</div>
+                </div>
+            </div>
+
+            <div id="downgradeProrationInfo" style="background: rgba(135, 206, 235, 0.1); border: 2px solid #87ceeb; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #87ceeb; margin-bottom: 10px;">💰 Refund Calculation</h4>
+                <div style="color: #ffffff; font-size: 14px;" id="downgradeProrationDetails">
+                    <!-- Downgrade proration details will be calculated here -->
+                </div>
+            </div>
+
+            <div class="donation-agreement">
+                <input type="checkbox" id="downgradeConsent" onchange="toggleDowngradeSubmitButton()">
+                <label for="downgradeConsent">I authorize subscription downgrade and refund processing</label>
+            </div>
+
+            <button class="donation-submit" id="submitDowngrade" disabled onclick="processDowngrade()" style="background: linear-gradient(135deg, #87ceeb, #5f9ea0);">
+                DOWNGRADE TO STANDARD ($14.99/month)
+            </button>
+        </div>
+
         <!-- Welcome Section -->
         <section class="welcome-section">
             <div class="welcome-content">
-                <h1 class="welcome-title">Welcome back, Investor! 💎</h1>
+                <h1 class="welcome-title" id="welcome-title">Welcome back, Investor! 💎</h1>
                 <p class="welcome-subtitle">Your AI-powered stock analysis dashboard is ready. Let's find your next winning investment!</p>
 
                 <div class="quick-stats">
@@ -459,7 +1074,7 @@
                 </div>
 
                 <div class="action-buttons">
-                    <a href="/app/analysis" class="action-btn">Full Analysis</a>
+                    <a href="/analysis" class="action-btn">Full Analysis</a>
                     <a href="#" class="action-btn primary">Add to Portfolio</a>
                 </div>
             </div>
@@ -546,9 +1161,525 @@
                 <a href="#" class="action-btn">Customize Alerts</a>
             </div>
         </div>
+
+        <!-- 🔥 REFERRAL FRIENDS SECTION -->
+        <div class="referral-friends" id="referral-friends-section" style="display: none;">
+            <div class="friends-header">
+                <h3 class="card-title">🎉 Your Successful Referrals</h3>
+                <div class="next-billing-info" id="next-billing-info">Next billing: FREE!</div>
+            </div>
+
+            <div id="friends-list">
+                <!-- Friends will be loaded dynamically -->
+            </div>
+
+            <div class="progress-section">
+                <h4 style="color: #ffd700; margin-bottom: 10px;">🎯 Referral Goal Progress</h4>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+                </div>
+                <p style="color: #87ceeb; margin: 0;" id="progress-text">
+                    0 of 12 friends joined • 12 more for a FREE YEAR! 🎁
+                </p>
+            </div>
+        </div>
     </div>
 
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 30px 20px; margin-top: 50px; border-top: 1px solid rgba(34, 139, 34, 0.2); color: #95a5a6; font-size: 14px;">
+        © 2025 ProfitPal. A product of Denava OÜ. All rights reserved.
+    </footer>
+
     <script>
+        // 🔥 ПРАВИЛЬНАЯ ЛОГИКА - ДАННЫЕ ИЗ API
+        let userData = {
+            fullName: "Loading...",
+            email: "loading@example.com",
+            referralLink: "https://profitpal.org?ref=LOADING...",
+            freeMonthsBalance: 0,        // Остаток free months
+            totalPaidReferrals: 0,       // Кол-во друзей, которые ЗАПЛАТИЛИ $29.99
+            totalEarnedMonths: 0,        // Всего earned months за все время
+            recentReferrals: []          // Список друзей с датами
+        };
+
+        // 🔥 DONATION СИСТЕМА
+        let selectedDonationAmount = 0;
+        let selectedDonationType = '';
+        // 🔥 PRO SUBSCRIPTION LOGIC
+        function toggleProOptions() {
+            const options = document.getElementById('proOptions');
+            const banner = document.getElementById('proBanner');
+
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
+                calculateProration('upgrade');
+            } else {
+                options.style.display = 'none';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand upgrade options →';
+            }
+        }
+
+        function toggleDowngradeOptions() {
+            const options = document.getElementById('downgradeOptions');
+            const banner = document.getElementById('downgradeBanner');
+
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
+                calculateProration('downgrade');
+            } else {
+                options.style.display = 'none';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand downgrade options →';
+            }
+        }
+
+        function calculateProration(type) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+
+            // Get days in current month using calendar
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const daysUsed = day - 1;
+            const daysRemaining = daysInMonth - daysUsed;
+
+            if (type === 'upgrade') {
+                // Early Bird $9.99 → PRO $49.99
+                const currentPrice = 9.99;
+                const newPrice = 49.99;
+                const dailyRateCurrent = currentPrice / daysInMonth;
+                const dailyRateNew = newPrice / daysInMonth;
+
+                const refund = dailyRateCurrent * daysRemaining;
+                const newCharge = dailyRateNew * daysRemaining;
+                const totalCharge = newCharge - refund;
+
+                document.getElementById('prorationDetails').innerHTML = `
+                    <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} days remaining (${daysInMonth} total)</div>
+                    <div>💸 Refund for unused Early Bird: $${refund.toFixed(2)}</div>
+                    <div>💳 Charge for PRO remainder: $${newCharge.toFixed(2)}</div>
+                    <div style="font-weight: bold; color: #ffd700; margin-top: 10px;">
+                        💰 Total charge today: $${totalCharge.toFixed(2)}
+                    </div>
+                `;
+            } else {
+                // PRO $49.99 → Standard $14.99
+                const currentPrice = 49.99;
+                const newPrice = 14.99;
+                const dailyRateCurrent = currentPrice / daysInMonth;
+                const dailyRateNew = newPrice / daysInMonth;
+
+                const refund = dailyRateCurrent * daysRemaining;
+                const newCharge = dailyRateNew * daysRemaining;
+                const totalRefund = refund - newCharge;
+
+                document.getElementById('downgradeProrationDetails').innerHTML = `
+                    <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} days remaining (${daysInMonth} total)</div>
+                    <div>💸 Refund for unused PRO: $${refund.toFixed(2)}</div>
+                    <div>💳 Charge for Standard remainder: $${newCharge.toFixed(2)}</div>
+                    <div style="font-weight: bold; color: #87ceeb; margin-top: 10px;">
+                        💰 Total refund: $${totalRefund.toFixed(2)}
+                    </div>
+                `;
+            }
+        }
+
+        function toggleProSubmitButton() {
+            const consent = document.getElementById('proConsent').checked;
+            const submitBtn = document.getElementById('submitProUpgrade');
+            submitBtn.disabled = !consent;
+        }
+
+        function toggleDowngradeSubmitButton() {
+            const consent = document.getElementById('downgradeConsent').checked;
+            const submitBtn = document.getElementById('submitDowngrade');
+            submitBtn.disabled = !consent;
+        }
+
+        async function processProUpgrade() {
+            alert('🚀 PRO Package upgrade will be available soon! Options trading features are in development.');
+            // TODO: Implement actual upgrade logic when options API is ready
+        }
+
+        async function processDowngrade() {
+            alert('⬇️ Downgrade functionality will be available when PRO package launches!');
+            // TODO: Implement actual downgrade logic
+        }
+
+        // Show appropriate banner based on user's current plan
+        function updateSubscriptionBanners() {
+            const userPlan = getCurrentUserPlan(); // This would come from API
+
+            if (userPlan === 'early_bird' || userPlan === 'standard') {
+                document.getElementById('proBanner').style.display = 'block';
+                document.getElementById('downgradeBanner').style.display = 'none';
+            } else if (userPlan === 'pro') {
+                document.getElementById('proBanner').style.display = 'none';
+                document.getElementById('downgradeBanner').style.display = 'block';
+            }
+        }
+
+        function getCurrentUserPlan() {
+            // TODO: Get from API, for now return demo
+            return 'early_bird'; // or 'standard', 'pro'
+        }
+
+        function toggleBoostOptions() {
+            const options = document.getElementById('boostOptions');
+            const banner = document.getElementById('boostBanner');
+
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
+            } else {
+                options.style.display = 'none';
+                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand options →';
+            }
+        }
+
+        function selectDonation(amount, type) {
+            selectedDonationAmount = amount;
+            selectedDonationType = type;
+
+            // Reset custom amount if preset selected
+            document.getElementById('customAmount').value = '';
+
+            // Highlight selected button
+            document.querySelectorAll('.donation-btn').forEach(btn => {
+                btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+                btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
+            });
+
+            event.target.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 193, 7, 0.2))';
+            event.target.style.borderColor = '#ff6b35';
+
+            toggleSubmitButton();
+        }
+
+        function selectCustomDonation() {
+            const customAmount = parseInt(document.getElementById('customAmount').value);
+            if (customAmount && customAmount > 0) {
+                selectedDonationAmount = customAmount;
+                selectedDonationType = 'custom';
+
+                // Reset preset buttons
+                document.querySelectorAll('.donation-btn').forEach(btn => {
+                    btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+                    btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
+                });
+            }
+
+            toggleSubmitButton();
+        }
+
+        function toggleSubmitButton() {
+            const consent = document.getElementById('donationConsent').checked;
+            const hasAmount = selectedDonationAmount > 0;
+            const submitBtn = document.getElementById('submitDonation');
+
+            submitBtn.disabled = !(consent && hasAmount);
+        }
+
+        async function processDonation() {
+            if (selectedDonationAmount <= 0) {
+                alert('Please select a donation amount');
+                return;
+            }
+
+            try {
+                const submitBtn = document.getElementById('submitDonation');
+                submitBtn.textContent = 'Processing...';
+                submitBtn.disabled = true;
+
+                // Send donation request to backend
+                const response = await fetch('/api/process-donation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: selectedDonationAmount,
+                        type: selectedDonationType,
+                        email: userData.email
+                    })
+                });
+
+                if (response.ok) {
+                    showDonationSuccess();
+                    toggleBoostOptions(); // Close options
+                    resetDonationForm();
+                } else {
+                    throw new Error('Donation failed');
+                }
+
+            } catch (error) {
+                console.error('Donation error:', error);
+                alert('Donation failed. Please try again.');
+
+                const submitBtn = document.getElementById('submitDonation');
+                submitBtn.textContent = 'BOOST NOW';
+                submitBtn.disabled = false;
+            }
+        }
+
+        function showDonationSuccess() {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'copy-success';
+
+            let message = '💎 Thank you for supporting ProfitPal! ';
+            if (selectedDonationType === 'coffee') {
+                message += 'I love black coffee, thank you dear person! ☕';
+            } else if (selectedDonationType === 'milk') {
+                message += 'Oh! Black coffee with milk! You amazing human! 🥛';
+            } else if (selectedDonationType === 'features') {
+                message += 'Features are coming, this will be awesome! 🚀';
+            } else {
+                message += 'Huge thanks for recognizing my work! 💝';
+            }
+
+            successDiv.textContent = message;
+            document.body.appendChild(successDiv);
+
+            setTimeout(() => {
+                document.body.removeChild(successDiv);
+            }, 4000);
+        }
+
+        function resetDonationForm() {
+            selectedDonationAmount = 0;
+            selectedDonationType = '';
+            document.getElementById('customAmount').value = '';
+            document.getElementById('donationConsent').checked = false;
+
+            // Reset button styles
+            document.querySelectorAll('.donation-btn').forEach(btn => {
+                btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+                btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
+            });
+
+            const submitBtn = document.getElementById('submitDonation');
+            submitBtn.textContent = 'BOOST NOW';
+            submitBtn.disabled = true;
+        }
+
+        // 🔥 ЗАГРУЗКА ДАННЫХ ИЗ API
+        async function loadUserData() {
+            try {
+                // Получаем email пользователя из URL или localStorage
+                const userEmail = getUserEmail();
+
+                if (!userEmail) {
+                    console.log('User email not found, using demo data');
+                    showDemoData();
+                    return;
+                }
+
+                console.log('Loading referral data for:', userEmail);
+
+                // API запрос за referral статистикой
+                const response = await fetch(`/api/referral-stats/${userEmail}`);
+
+                // Проверяем что ответ действительно JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.log('API endpoint not available, using demo data');
+                    showDemoData();
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.log('No referral data found:', data.error);
+                    showDemoData();
+                    return;
+                }
+
+                // Обновляем userData из API
+                if (data.referral_info) {
+                    userData.referralLink = data.referral_info.referral_link;
+                    userData.freeMonthsBalance = data.referral_info.free_months_balance;
+                    userData.totalPaidReferrals = data.referral_info.total_referrals;
+                    userData.totalEarnedMonths = data.referral_info.total_earned_months;
+                }
+
+                if (data.recent_referrals) {
+                    userData.recentReferrals = data.recent_referrals;
+                }
+
+                console.log('✅ Referral data loaded successfully');
+                updateUI();
+
+            } catch (error) {
+                console.log('API не доступен, показываем demo данные:', error);
+                showDemoData();
+            }
+        }
+
+        function showDemoData() {
+            // Демо данные для тестирования
+            userData = {
+                fullName: "DJ Investor",
+                email: "dj@profitpal.org", 
+                referralLink: "https://profitpal.org?ref=ABCDE12345fghij",
+                freeMonthsBalance: 3,
+                totalPaidReferrals: 3,
+                totalEarnedMonths: 3,
+                recentReferrals: [
+                    { new_user_email: "alex.smith@gmail.com", used_at: "2025-01-03" },
+                    { new_user_email: "sarah.jones@yahoo.com", used_at: "2025-01-01" },
+                    { new_user_email: "mike.wilson@gmail.com", used_at: "2024-12-28" }
+                ]
+            };
+            updateUI();
+        }
+
+        function updateUI() {
+            // 🔥 ПРАВИЛЬНЫЕ РАСЧЕТЫ
+            const freeMonths = userData.freeMonthsBalance;
+            const paidFriends = userData.totalPaidReferrals;
+            const moneySaved = userData.totalEarnedMonths * 9.99; // NEW PRICING
+
+            // Обновляем основные счетчики
+            document.getElementById('referral-link').textContent = userData.referralLink;
+            document.getElementById('free-months-count').textContent = freeMonths;
+            document.getElementById('paid-friends-count').textContent = paidFriends;
+            document.getElementById('money-saved').textContent = `$${moneySaved.toFixed(2)}`;
+
+            // Обновляем информацию о пользователе
+            const initials = userData.fullName.split(' ').map(n => n[0]).join('');
+            document.getElementById('user-avatar').textContent = initials;
+            document.getElementById('user-greeting').textContent = `Welcome back, ${userData.fullName.split(' ')[0]}!`;
+
+            // Обновляем заголовок
+            updateGreeting(userData.fullName.split(' ')[0]);
+
+            // Показываем friends section только если есть referrals
+            if (paidFriends > 0) {
+                document.getElementById('referral-friends-section').style.display = 'block';
+                updateFriendsList();
+                updateProgress();
+            }
+
+            // Обновляем информацию о следующем биллинге
+            updateNextBilling();
+        }
+
+        function updateFriendsList() {
+            const friendsList = document.getElementById('friends-list');
+            friendsList.innerHTML = '';
+
+            userData.recentReferrals.forEach(referral => {
+                const friendDiv = document.createElement('div');
+                friendDiv.className = 'friend-item';
+
+                const date = new Date(referral.used_at);
+                const timeAgo = getTimeAgo(date);
+
+                friendDiv.innerHTML = `
+                    <div>
+                        <div class="friend-email">${referral.new_user_email}</div>
+                        <div class="friend-date">Joined ${timeAgo}</div>
+                    </div>
+                    <div class="friend-reward">+1 FREE MONTH</div>
+                `;
+
+                friendsList.appendChild(friendDiv);
+            });
+        }
+
+        function updateProgress() {
+            const current = userData.totalPaidReferrals;
+            const target = 12; // 12 друзей для бесплатного года
+            const percentage = Math.min((current / target) * 100, 100);
+
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+
+            const remaining = Math.max(target - current, 0);
+            document.getElementById('progress-text').textContent = 
+                `${current} of ${target} friends joined • ${remaining} more for a FREE YEAR! 🎁`;
+        }
+
+        function updateNextBilling() {
+            const freeMonths = userData.freeMonthsBalance;
+            const billingInfo = document.getElementById('next-billing-info');
+
+            if (freeMonths > 0) {
+                billingInfo.textContent = `Next ${freeMonths} billing${freeMonths > 1 ? 's' : ''}: FREE!`;
+                billingInfo.style.background = 'rgba(50, 205, 50, 0.1)';
+                billingInfo.style.color = '#32cd32';
+            } else {
+                billingInfo.textContent = 'Next billing: $9.99 on 1st'; // NEW PRICING
+                billingInfo.style.background = 'rgba(255, 107, 53, 0.1)';
+                billingInfo.style.color = '#ff6b35';
+            }
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) return '1 day ago';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 30) {
+                const weeks = Math.floor(diffDays / 7);
+                return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+            }
+            const months = Math.floor(diffDays / 30);
+            return months === 1 ? '1 month ago' : `${months} months ago`;
+        }
+
+        function getUserEmail() {
+            // В реальности получаем из session/auth
+            // Пока возвращаем demo email
+            return 'dj@profitpal.org';
+        }
+
+        // 🔥 КОПИРОВАНИЕ REFERRAL ССЫЛКИ
+        async function copyReferralLink() {
+            try {
+                const referralLink = userData.referralLink;
+                await navigator.clipboard.writeText(referralLink);
+
+                showCopySuccess();
+
+                // Анимация banner
+                const banner = document.querySelector('.referral-banner');
+                banner.style.transform = 'translateY(-3px) scale(1.02)';
+                banner.style.borderColor = '#32cd32';
+
+                setTimeout(() => {
+                    banner.style.transform = '';
+                    banner.style.borderColor = '';
+                }, 500);
+
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = userData.referralLink;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showCopySuccess();
+            }
+        }
+
+        function showCopySuccess() {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'copy-success';
+            successDiv.innerHTML = '🎉 Referral link copied! Share with friends! 💎';
+            document.body.appendChild(successDiv);
+
+            setTimeout(() => {
+                document.body.removeChild(successDiv);
+            }, 2000);
+        }
+
         // Quick Analysis Function
         function quickAnalysis() {
             const ticker = document.getElementById('quickTicker').value.toUpperCase();
@@ -574,7 +1705,6 @@
                 const resultContent = resultsDiv.querySelector('h4');
                 resultContent.textContent = `💎 ${ticker} Analysis Complete!`;
 
-                // Scroll to results
                 resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 2000);
         }
@@ -587,44 +1717,46 @@
         });
 
         // Update time-based greetings
-        function updateGreeting() {
+        function updateGreeting(firstName = 'Investor') {
             const hour = new Date().getHours();
-            const welcomeTitle = document.querySelector('.welcome-title');
+            const welcomeTitle = document.getElementById('welcome-title');
 
             if (hour < 12) {
-                welcomeTitle.textContent = 'Good morning, Investor! 💎';
+                welcomeTitle.textContent = `Good morning, ${firstName}! 💎`;
             } else if (hour < 18) {
-                welcomeTitle.textContent = 'Good afternoon, Investor! 💎';
+                welcomeTitle.textContent = `Good afternoon, ${firstName}! 💎`;
             } else {
-                welcomeTitle.textContent = 'Good evening, Investor! 💎';
+                welcomeTitle.textContent = `Good evening, ${firstName}! 💎`;
             }
         }
 
-        // Initialize
-        updateGreeting();
+        // 🔥 АНИМАЦИЯ FREE MONTHS COUNTER
+        function animateFreeMonths() {
+            const counter = document.getElementById('free-months-count');
 
-        // Auto-refresh stats (simulate real-time data)
-        setInterval(() => {
-            const statNumbers = document.querySelectorAll('.stat-number');
-            statNumbers.forEach(stat => {
-                if (stat.textContent.includes('%')) {
-                    const currentValue = parseFloat(stat.textContent.replace('%', ''));
-                    const change = (Math.random() - 0.5) * 0.2;
-                    const newValue = (currentValue + change).toFixed(1);
-                    stat.textContent = newValue + '%';
-
-                    // Add animation
-                    stat.style.transform = 'scale(1.1)';
+            // Пульсирующий эффект каждые 15 секунд
+            setInterval(() => {
+                if (parseInt(counter.textContent) > 0) {
+                    counter.style.transform = 'scale(1.2)';
+                    counter.style.color = '#ffd700';
                     setTimeout(() => {
-                        stat.style.transform = 'scale(1)';
-                    }, 200);
+                        counter.style.transform = 'scale(1)';
+                        counter.style.color = 'white';
+                    }, 300);
                 }
-            });
-        }, 30000); // Update every 30 seconds
+            }, 15000);
+        }
 
-        // Add smooth transitions
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.dashboard-card');
+            // Сначала показываем demo данные, потом загружаем настоящие
+            showDemoData();
+            loadUserData();
+            animateFreeMonths();
+            updateSubscriptionBanners();
+
+            // Add smooth transitions for cards
+            const cards = document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner');
             cards.forEach((card, index) => {
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
@@ -636,6 +1768,11 @@
                 }, index * 200);
             });
         });
+
+        // Auto-refresh stats every 5 minutes
+        setInterval(() => {
+            loadUserData();
+        }, 300000); // 5 minutes
     </script>
 </body>
 </html>

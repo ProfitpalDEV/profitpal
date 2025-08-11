@@ -649,139 +649,419 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <div class="logo">💎 ProfitPal</div>
-            <a href="/app/dashboard" class="back-btn">← Back to Dashboard</a>
-        </div>
+            <div style="display: flex; align-items: center;">
+                <div class="logo">💎 ProfitPal</div>
+                <div class="admin-badge" id="adminBadge" style="background: linear-gradient(135deg, #ff6b35, #e74c3c); color: white; padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; display: none; margin-left: 15px;">
+                    👑 ADMIN MODE
+                    <select id="adminModeSelect" style="margin-left: 10px; background: rgba(0,0,0,0.3); color: white; border: 1px solid #fff; border-radius: 5px; padding: 2px 8px; font-size: 11px;">
+                        <option value="simulate">🎭 Simulate</option>
+                        <option value="real" selected>🔍 Real Stripe</option>
+                        <option value="debug">🐛 Debug</option>
+                    </select>
+                </div>
+            <a href="/" class="back-btn">← Back to Home</a>
+                </div>
     </header>
 
     <!-- Main Content -->
     <div class="main-container">
-        <!-- Payment Section -->
+
+        <style>
+        /* Progress Bar */
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        /* Payment Steps */
+        .payment-step {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+            display: none;
+        }
+
+        .payment-step.active {
+            display: block;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(34, 139, 34, 0.3);
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            color: #ffd700;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: #32cd32;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(44, 62, 80, 0.3);
+            border: 2px solid rgba(34, 139, 34, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #32cd32;
+            box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
+        }
+
+        .card-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .card-row .form-group {
+            flex: 1;
+        }
+
+        /* Warning Boxes */
+        .warning-box {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 107, 53, 0.1));
+            border: 2px solid rgba(255, 193, 7, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #ffc107;
+        }
+
+        .warning-title {
+            color: #ffc107;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .success-box {
+            background: linear-gradient(135deg, rgba(50, 205, 50, 0.15), rgba(34, 139, 34, 0.1));
+            border: 2px solid rgba(50, 205, 50, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #32cd32;
+        }
+
+        .success-title {
+            color: #32cd32;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        /* Checkboxes */
+        .checkbox-group {
+            margin: 25px 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 18px;
+            padding: 20px;
+            background: rgba(44, 62, 80, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(44, 62, 80, 0.3);
+            border-color: rgba(50, 205, 50, 0.3);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            margin-top: 3px;
+            accent-color: #32cd32;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            flex: 1;
+            line-height: 1.5;
+            font-size: 15px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .checkbox-label a {
+            color: #32cd32;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .checkbox-label a:hover {
+            text-decoration: underline;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+        }
+
+        .btn-full {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        /* Security Info */
+        .security-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #95a5a6;
+            opacity: 0.8;
+        }
+
+        .security-info::before {
+            content: "🔒";
+            margin-right: 8px;
+        }
+        </style>
+
+        <!-- 🚀 НОВАЯ PAYMENT SECTION: -->
         <section class="payment-section">
             <h2 class="payment-title">🚀 Upgrade to ProfitPal Pro</h2>
             <p class="payment-subtitle">
                 Unlock unlimited stock analysis with AI-powered insights.<br>
-                <strong>$24.99 lifetime + $4.99/month for data updates</strong>
+                <strong>$29.99 lifetime + $9.99/month for data updates</strong>
             </p>
 
-            <!-- Step 1: Card Setup Required -->
-            <div id="cardSetupStep" class="card-setup-step">
-                <div class="card-setup-warning">
-                    <h3>⚠️ REQUIRED: Setup Payment Card First</h3>
-                    <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-                        <strong>Before choosing payment method, you MUST provide a credit/debit card for:</strong><br>
-                        • Monthly $4.99 auto-billing (starts after $24.99 payment)<br>
-                        • Payment verification and security<br>
-                        • Account activation requirements
+            <!-- Referral Notice -->
+            <div id="referralNotice" style="display:none; background: linear-gradient(45deg,     #4CAF50, #45a049); padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: 600;">
+                🎉 You're joining through a referral link! Your friend will get a free month when you complete your purchase.
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 33%"></div>
+            </div>
+
+            <!-- Step 1: Email & Basic Info -->
+            <div class="payment-step active" id="step1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <h3 class="step-title">Account Setup</h3>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="userEmail">Email Address</label>
+                    <input type="email" id="userEmail" class="form-input" placeholder="Enter your email address" required>
+                </div>
+
+                <button class="btn btn-primary btn-full" onclick="goToStep2()">
+                    Continue to Payment Setup →
+                </button>
+            </div>
+
+            <!-- Step 2: Payment Card Setup -->
+            <div class="payment-step" id="step2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <h3 class="step-title">Payment Method Setup</h3>
+                </div>
+
+                <div class="warning-box">
+                    <div class="warning-title">⚠️ Required: Setup Payment Card First</div>
+                    <p style="color: #ffffff; margin: 0; line-height: 1.6;">
+                        Before choosing payment method, you MUST provide a credit/debit card for:
+                    </p>
+                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #ffffff;">
+                        <li>Monthly $9.99 auto-billing (starts after $29.99 payment)</li>
+                        <li>Payment verification and security</li>
+                        <li>Account activation requirements</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="cardNumber">Card Number</label>
+                    <input type="text" id="cardNumber" class="form-input" placeholder="1234 5678 9012 3456" maxlength="19">
+                </div>
+
+                <div class="card-row">
+                    <div class="form-group">
+                        <label class="form-label" for="expiry">Expiry Date</label>
+                        <input type="text" id="expiry" class="form-input" placeholder="MM/YY" maxlength="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="cvc">CVC</label>
+                        <input type="text" id="cvc" class="form-input" placeholder="123" maxlength="3">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="cardName">Name on Card</label>
+                    <input type="text" id="cardName" class="form-input" placeholder="John Doe">
+                </div>
+
+                <div class="security-info">
+                    Secure processing via Stripe • No charges until you confirm payment
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-secondary" onclick="goToStep1()">← Back</button>
+                    <button class="btn btn-primary" onclick="goToStep3()">Save Card & Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Agreements & Final Payment -->
+            <div class="payment-step" id="step3">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <h3 class="step-title">Review & Confirm</h3>
+                </div>
+
+                <div class="success-box">
+                    <div class="success-title">✅ Great! Your card is ready for monthly billing</div>
+                    <p style="color: #ffffff; margin: 0;">
+                        Now choose how to pay the $29.99 lifetime fee:
                     </p>
                 </div>
 
-                <div class="card-setup-form">
-                    <h4>💳 Step 1: Setup Your Payment Card</h4>
-                    <input type="email" id="userEmail" class="email-input" placeholder="Enter your email address" required>
-                    <button type="button" id="setupCardBtn" class="setup-card-btn" onclick="setupCard()">
-                        🔒 Setup Card & Continue
+                <!-- Agreements -->
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="termsAgree">
+                        <label class="checkbox-label" for="termsAgree">
+                            I have read and agree to the <a href="/terms-of-service" target="_blank">Terms of Service</a>, 
+                            <a href="/privacy-policy" target="_blank">Privacy Policy</a>, and 
+                            <a href="/refund-policy" target="_blank">Refund Policy</a>
+                        </label>
+                    </div>
+
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="monthlyAgree">
+                        <label class="checkbox-label" for="monthlyAgree">
+                            I authorize ProfitPal to charge my payment method <strong>$9.99 monthly</strong> 
+                            for data updates and premium features, starting after the initial $29.99 payment
+                        </label>
+                    </div>
+
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="disclaimerAgree">
+                        <label class="checkbox-label" for="disclaimerAgree">
+                            I understand that ProfitPal provides educational stock analysis only and is 
+                            <strong>not investment advice</strong>. All investment decisions are my own responsibility.
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Payment Options -->
+                <div style="margin-top: 30px;">
+                    <h4 style="color: #32cd32; margin-bottom: 20px; text-align: center;">Choose Payment Method for $29.99:</h4>
+
+                    <button class="btn btn-primary btn-full" id="payWithCard" disabled onclick="payWithCard()">
+                        💳 Pay $29.99 Now with Same Card
                     </button>
-                    <p style="color: #95a5a6; font-size: 14px; margin-top: 15px;">
-                        🔐 Secure processing via Stripe • No charges until you confirm payment
-                    </p>
-                </div>
-            </div>
 
-            <!-- Step 2: Payment Methods -->
-            <div id="paymentMethodsStep" class="payment-methods-step">
-                <div class="payment-success-alert">
-                    <h3>✅ Card Setup Complete!</h3>
-                    <p style="color: #ffffff; font-size: 16px;">
-                        Great! Your card is ready for monthly billing. Now choose how to pay the $24.99 lifetime fee:
-                    </p>
+                    <button class="btn btn-full" id="payWithStars" disabled onclick="payWithTelegram()" 
+                            style="background: linear-gradient(135deg, #0088cc, #005580); color: white;">
+                        ⭐ Pay with Telegram Stars (2999 Stars = $29.99)
+                    </button>
+
+                    <button class="btn btn-full" disabled style="background: #6c757d; color: white; opacity: 0.7;">
+                        💙 PayPal (Coming Soon)
+                    </button>
                 </div>
 
-                <div class="payment-options">
-                    <!-- Stripe Card Payment -->
-                    <div class="payment-option">
-                        <div class="payment-card">
-                            <h4>💳 Pay with Same Card</h4>
-                            <p>Use the card you just added<br>Instant activation</p>
-                            <button class="payment-btn stripe" onclick="payWithCard()">
-                                💳 Pay $24.99 Now
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Telegram Stars -->
-                    <div class="payment-option">
-                        <div class="payment-card">
-                            <h4>⭐ Pay with Telegram Stars</h4>
-                            <p>Quick payment via Telegram<br>2499 Stars ≈ $24.99</p>
-                            <button class="payment-btn telegram" onclick="payWithTelegram()">
-                                ⭐ Pay with Stars
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- PayPal -->
-                    <div class="payment-option">
-                        <div class="payment-card">
-                            <h4>💙 PayPal</h4>
-                            <p>PayPal integration<br>Coming soon!</p>
-                            <button class="payment-btn paypal" onclick="payWithPayPal()">
-                                💙 Coming Soon
-                            </button>
-                        </div>
-                    </div>
+                <div class="btn-row">
+                    <button class="btn btn-secondary" onclick="goToStep2()">← Back</button>
                 </div>
-
-                <div class="billing-reminder">
-                    <p style="color: #95a5a6; font-size: 14px; text-align: center;">
-                        💡 <strong>Remember:</strong> Your card will be charged $4.99/month starting next month.<br>
-                        Cancel anytime to stop monthly billing (lifetime access remains).
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Analysis Input Section -->
-        <section class="analysis-input-section">
-            <!-- License Key Input -->
-            <div class="license-input-section">
-                <div class="license-title">🔑 ENTER YOUR LICENSE KEY</div>
-                <div class="input-field">
-                    <label class="input-label">License Key (Get from payment above):</label>
-                    <input type="text" class="input-control license-key-input" id="licenseKey"
-                           placeholder="PP-XXXXXXXX-XXXXXXXX" style="text-align: center; font-weight: bold;">
-                </div>
-            </div>
-
-            <div class="input-group">
-                <div class="input-field">
-                    <label class="input-label">Enter Ticker:</label>
-                    <input type="text" class="input-control ticker-input" id="tickerInput" placeholder="e.g., AAPL, MSFT, GOOGL">
-                </div>
-
-                <div class="input-field">
-                    <label class="input-label">P/E Ratio Min:</label>
-                    <input type="number" class="input-control" id="peMin" value="5" min="0" step="0.1">
-                </div>
-
-                <div class="input-field">
-                    <label class="input-label">P/E Ratio Max:</label>
-                    <input type="number" class="input-control" id="peMax" value="30" min="0" step="0.1">
-                </div>
-
-                <div class="input-field">
-                    <label class="input-label">Debt Ratio Max (%):</label>
-                    <input type="number" class="input-control" id="debtMax" value="50" min="0" max="100" step="1">
-                </div>
-
-                <button class="analyze-button" onclick="performAnalysis()">ANALYZE</button>
-            </div>
-
-            <div class="filter-settings">
-                <div class="filter-title">>>> FILTER SETTINGS <<<</div>
-                <p style="color: #bdc3c7; text-align: center; font-size: 14px;">
-                    Adjust the parameters above to customize your analysis criteria
-                </p>
             </div>
         </section>
 
@@ -821,7 +1101,7 @@
                 <div style="color: #95a5a6; font-size: 14px; line-height: 1.8;">
                     📱 1. Open camera or Telegram scanner<br>
                     🔍 2. Scan QR → Opens @AIStockScreenerPro_bot<br>
-                    📝 3. Type /buy → Pay $24.99 lifetime<br>
+                    📝 3. Type /buy → Pay $29.99 lifetime<br>
                     🔑 4. Get license key → Enter in ProfitPal<br>
                     💎 5. Unlimited access forever!
                 </div>
@@ -835,78 +1115,258 @@
 
                     <script>
                         // Stripe initialization
-                        const stripe = Stripe('pk_test_51RqAupL8Gx8kkO0xuGwxlKkIR9yfZvVuU7NBroRCHNTEw2dlAAEb9aydcXHEa1UhJbWQgHXTM2Y1cju7nT6rABXF00IvavpJWB');
+                       let stripePromise;
+
+                    function initializeStripe() {
+                    if (!stripePromise) {
+                    stripePromise = fetch('/api/stripe-key')
+                    .then(response => response.json())
+                    .then(data => {
+                    console.log('✅ Stripe key loaded:', data.publishable_key.substring(0, 15) + '...');
+                    return Stripe(data.publishable_key);
+                })
+                    .catch(error => {
+                    console.error('❌ Failed to load Stripe key:', error);
+                    throw error;
+                });
+    }
+    return stripePromise;
+}
+
+                        // 👑 ADMIN SYSTEM - CHECK ADMIN STATUS
+                        async function checkAdminStatus() {
+                            try {
+                                const response = await fetch('/api/check-admin-status', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 
+                                        email: "denava.business@gmail.com",
+                                        fingerprint: Date.now() // простой fingerprint для проверки
+                                    })
+                                });
+                                const data = await response.json();
+                                console.log('🎯 Admin status check:', data);
+                                return data.is_admin || false;
+                            } catch (error) {
+                                console.log('Admin check failed, proceeding as regular user');
+                                return false;
+                            }
+                        }
+                        // Extract referral code from URL
+                        function getReferralCodeFromURL() {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            return urlParams.get('ref');
+                        }
+
+                        // Initialize Stripe on page load
+                        initializeStripe();
                         // Global variables
                         let userCardSetup = false;
                         let userEmail = '';
+                        // 🚀 НОВЫЕ ФУНКЦИИ ДЛЯ 3-STEP FLOW:
+                        let currentStep = 1;
 
-                        // Step 1: Setup Card
-                        async function setupCard() {
+                        function updateProgress() {
+                            const progressFill = document.getElementById('progressFill');
+                            const width = (currentStep / 3) * 100;
+                            progressFill.style.width = width + '%';
+                        }
+
+                        function showStep(stepNumber) {
+                            // Hide all steps
+                            document.querySelectorAll('.payment-step').forEach(step => {
+                                step.classList.remove('active');
+                            });
+
+                            // Show current step
+                            document.getElementById('step' + stepNumber).classList.add('active');
+                            currentStep = stepNumber;
+                            updateProgress();
+
+                            // Scroll to payment section
+                            document.querySelector('.payment-section').scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+
+                        function goToStep1() {
+                            showStep(1);
+                        }
+
+                        function goToStep2() {
                             const email = document.getElementById('userEmail').value;
-
                             if (!email || !email.includes('@')) {
                                 alert('Please enter a valid email address');
                                 return;
                             }
-
-                            try {
-                                const button = document.getElementById('setupCardBtn');
-                                const originalText = button.textContent;
-                                button.textContent = '🔄 Setting up...';
-                                button.disabled = true;
-
-                                // Simulate card setup (in real implementation, call Stripe Setup Intent)
-                                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                                // Card setup successful
-                                userCardSetup = true;
-                                userEmail = email;
-
-                                // Hide step 1, show step 2
-                                document.getElementById('cardSetupStep').style.display = 'none';
-                                document.getElementById('paymentMethodsStep').style.display = 'block';
-
-                                // Scroll to payment methods
-                                document.getElementById('paymentMethodsStep').scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'start'
-                                });
-
-                            } catch (error) {
-                                alert('Card setup failed. Please try again.');
-                                const button = document.getElementById('setupCardBtn');
-                                button.textContent = '🔒 Setup Card & Continue';
-                                button.disabled = false;
-                            }
+                            userEmail = email;
+                            showStep(2);
                         }
 
-                        // Step 2: Payment Methods
-                        async function payWithCard() {
-                            if (!userCardSetup) {
-                                alert('Please setup your card first!');
+                        function goToStep3() {
+                            // Validate card fields
+                            const cardNumber = document.getElementById('cardNumber').value;
+                            const expiry = document.getElementById('expiry').value;
+                            const cvc = document.getElementById('cvc').value;
+                            const cardName = document.getElementById('cardName').value;
+
+                            if (!cardNumber || !expiry || !cvc || !cardName) {
+                                alert('Please fill in all card details');
                                 return;
                             }
 
-                            try {
-                                // Process $24.99 payment with Stripe
-                                const formData = new FormData();
-                                formData.append('email', userEmail);
-
-                                const response = await fetch('/create-checkout-session', {
-                                    method: 'POST',
-                                    body: formData
-                                });
-
-                                if (response.ok) {
-                                    // Redirect to Stripe checkout
-                                    window.location.href = response.url;
-                                } else {
-                                    throw new Error('Payment failed');
-                                }
-                            } catch (error) {
-                                alert('Payment failed. Please try again.');
-                            }
+                            // Simulate card setup
+                            userCardSetup = true;
+                            showStep(3);
+                            checkAgreements();
                         }
+
+                        function checkAgreements() {
+                        // Принудительно вызывать каждый раз
+                            setTimeout(() => {
+                            const termsAgree = document.getElementById('termsAgree').checked;
+                            const monthlyAgree = document.getElementById('monthlyAgree').checked;
+                            const disclaimerAgree = document.getElementById('disclaimerAgree').checked;
+
+                            const allAgreed = termsAgree && monthlyAgree && disclaimerAgree;
+
+                            const payWithCardBtn = document.getElementById('payWithCard');
+                            const payWithStarsBtn = document.getElementById('payWithStars');
+
+                            if (payWithCardBtn) {
+                            payWithCardBtn.disabled = !allAgreed;
+                            payWithCardBtn.style.opacity = allAgreed ? '1' : '0.6';
+                         }
+                            if (payWithStarsBtn) {
+                            payWithStarsBtn.disabled = !allAgreed;
+                            payWithStarsBtn.style.opacity = allAgreed ? '1' : '0.6';
+                        }
+                        }, 100);
+                        }
+                        // Принудительная проверка каждые 500ms  
+                            setInterval(function() {
+                            const termsAgree = document.getElementById('termsAgree')?.checked;
+                            const monthlyAgree = document.getElementById('monthlyAgree')?.checked;
+                            const disclaimerAgree = document.getElementById('disclaimerAgree')?.checked;
+
+                            if (termsAgree && monthlyAgree && disclaimerAgree) {
+                            const payWithCardBtn = document.getElementById('payWithCard');
+                            const payWithStarsBtn = document.getElementById('payWithStars');
+
+                            if (payWithCardBtn) {
+                            payWithCardBtn.disabled = false;
+                            payWithCardBtn.style.opacity = '1';
+                        }
+                            if (payWithStarsBtn) {
+                            payWithStarsBtn.disabled = false; 
+                            payWithStarsBtn.style.opacity = '1';
+                        } 
+                    }  else {
+                        // ✅ ДОБАВИТЬ ЭТОТ БЛОК:
+                            const payWithCardBtn = document.getElementById('payWithCard');
+                            const payWithStarsBtn = document.getElementById('payWithStars');
+
+                            if (payWithCardBtn) {
+                            payWithCardBtn.disabled = true;
+                            payWithCardBtn.style.opacity = '0.6';
+                            }
+                            if (payWithStarsBtn) {
+                            payWithStarsBtn.disabled = true;
+                            payWithStarsBtn.style.opacity = '0.6';
+                            }
+                        } 
+                    }, 500);
+
+
+
+                        async function payWithCard() {
+                        if (!userCardSetup) {
+                        alert('Please setup your card first!');
+                        return;
+                    }
+                            // 👑 ПРОВЕРКА АДМИНА ПЕРЕД ОПЛАТОЙ
+                            const isAdmin = await checkAdminStatus();
+
+                            if (isAdmin) {
+                                // 👑 ADMIN TESTING MODES
+                                const ADMIN_MODES = {
+                                    SIMULATE: 'simulate',    // Быстрая имитация → dashboard
+                                    REAL: 'real',           // Полный путь клиента через Stripe
+                                    DEBUG: 'debug'          // Полный путь + детальные логи
+                                };
+
+                                // 🎯 ПОЛУЧАЕМ РЕЖИМ ИЗ ПЕРЕКЛЮЧАЛКИ:
+                                const modeSelect = document.getElementById('adminModeSelect');
+                                let currentAdminMode = modeSelect ? ADMIN_MODES[modeSelect.value.toUpperCase()] : ADMIN_MODES.REAL;
+
+                                console.log(`👑 ADMIN MODE: ${currentAdminMode.toUpperCase()}`);
+
+                                if (currentAdminMode === ADMIN_MODES.SIMULATE) {
+                                    // 🎭 БЫСТРАЯ ИМИТАЦИЯ
+                                    console.log('🎭 ADMIN: Fast simulation - bypassing all payments');
+                                    const processingOverlay = document.getElementById('paymentProcessing');
+                                    if (processingOverlay) {
+                                        processingOverlay.classList.add('visible');
+                                    }
+                                    setTimeout(() => {
+                                        window.location.href = '/success?session_id=admin_test_session&admin=true';
+                                    }, 2000);
+                                    return;
+
+                                } else if (currentAdminMode === ADMIN_MODES.REAL) {
+                                    // 🔍 ПОЛНЫЙ ПУТЬ КЛИЕНТА
+                                    console.log('🔍 ADMIN: Testing REAL customer journey with test card');
+                                    console.log('🔍 Use test card: 4242424242424242, 12/34, 123');
+                                    // НЕ ВОЗВРАЩАЕМ - идем к реальному Stripe коду!
+
+                                } else if (currentAdminMode === ADMIN_MODES.DEBUG) {
+                                    // 🐛 DEBUG РЕЖИМ
+                                    console.log('🐛 ADMIN: Debug mode - detailed error tracking enabled');
+                                    console.log('🐛 Will log ALL Stripe errors and network issues');
+                                    // НЕ ВОЗВРАЩАЕМ - идем к реальному Stripe коду!
+                                }
+
+                                // Только SIMULATE режим прерывается, остальные идут к Stripe
+                                if (currentAdminMode !== ADMIN_MODES.SIMULATE) {
+                                    console.log('👑 ADMIN: Proceeding with real Stripe payment flow...');
+                                }
+                            }
+
+                        try {
+                        // Wait for Stripe to be initialized
+                        const stripe = await initializeStripe();
+
+                        // Create checkout session
+                        const response = await fetch('/create-checkout-session', {
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                        email: userEmail,
+                        full_name: userEmail,
+                        ...(getReferralCodeFromURL() && { referral_code: getReferralCodeFromURL() })
+                            })
+                });
+
+        if (!response.ok) {
+            throw new Error('Failed to create checkout session');
+        }
+
+        const { checkout_url } = await response.json();
+
+        if (checkout_url) {
+            window.location.href = checkout_url;
+        } else {
+            throw new Error('No checkout URL received');
+        }
+
+    } catch (error) {
+        console.error('Payment error:', error);
+        alert('Payment failed. Please try again.');
+    }
+}
 
                         function payWithTelegram() {
                             if (!userCardSetup) {
@@ -914,9 +1374,10 @@
                                 return;
                             }
 
-                            // Show Telegram modal
+                            // Show existing Telegram modal
                             document.getElementById('telegram-modal').style.display = 'block';
                         }
+
 
                         function payWithPayPal() {
                             alert('PayPal integration coming soon! Use card or Telegram Stars for now.');
@@ -957,10 +1418,13 @@
                                 showDemoData(ticker, peMin, peMax, debtMax);
                                 return;
                             }
-                            
+
                             // Show loading state
                             document.getElementById('loadingState').style.display = 'block';
                             document.getElementById('analysisResults').style.display = 'none';
+
+                            // 🔥 МГНОВЕННЫЙ СКРОЛЛ К РЕЗУЛЬТАТАМ
+                            document.getElementById('loadingState').scrollIntoView({ behavior: 'smooth' });
 
                             try {
                                 // Call our backend API
@@ -1321,8 +1785,73 @@
                             }
                         });
 
-                        // Auto-focus ticker input
-                        document.getElementById('tickerInput').focus();
+                        // Auto-focus ticker input and clear it
+                        const tickerInput = document.getElementById('tickerInput');
+                        if (tickerInput) {
+                            tickerInput.value = '';  // 🔥 ОЧИСТКА ПОЛЯ
+                            tickerInput.focus();
+                        }
+                        // ✅ НОВЫЕ EVENT LISTENERS:
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Checkbox validation
+                            const checkboxes = ['termsAgree', 'monthlyAgree', 'disclaimerAgree'];
+                            checkboxes.forEach(id => {
+                                const checkbox = document.getElementById(id);
+                                if (checkbox) {
+                                    checkbox.addEventListener('change', checkAgreements);
+                                }
+                            });
+
+                            // 👑 ПРОВЕРКА АДМИНА ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+                            checkAdminStatus().then(isAdmin => {
+                                if (isAdmin) {
+                                    const adminBadge = document.getElementById('adminBadge');
+                                    if (adminBadge) {
+                                        adminBadge.style.display = 'inline-block';
+                                        console.log('👑 Admin mode activated - badge visible');
+                                    }
+                                }
+                            });
+
+                            // Check for referral code
+                            const referralCode = getReferralCodeFromURL();
+                            if (referralCode) {
+                                document.getElementById('referralNotice').style.display = 'block';
+                                console.log('Referral code detected:', referralCode);
+                            }
+
+                            console.log('ProfitPal Analysis initialized');
+
+                            // Card number formatting
+                            const cardNumberInput = document.getElementById('cardNumber');
+                            if (cardNumberInput) {
+                                cardNumberInput.addEventListener('input', function(e) {
+                                    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                                    let formattedValue = value.match(/\d{1,4}/g)?.join(' ') || value;
+                                    e.target.value = formattedValue;
+                                });
+                            }
+
+                            // Expiry formatting
+                            const expiryInput = document.getElementById('expiry');
+                            if (expiryInput) {
+                                expiryInput.addEventListener('input', function(e) {
+                                    let value = e.target.value.replace(/\D/g, '');
+                                    if (value.length >= 2) {
+                                        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                                    }
+                                    e.target.value = value;
+                                });
+                            }
+
+                            // CVC validation
+                            const cvcInput = document.getElementById('cvc');
+                            if (cvcInput) {
+                                cvcInput.addEventListener('input', function(e) {
+                                    e.target.value = e.target.value.replace(/\D/g, '');
+                                });
+                            }
+                        });
                     </script>
-                    </body>
+                     </body>
                     </html> 

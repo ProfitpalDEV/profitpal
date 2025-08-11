@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Cancelled - ProfitPal</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            animation: backgroundShift 2s ease-in-out;
+        }
+
+        @keyframes backgroundShift {
+            0% { background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%); }
+            50% { background: linear-gradient(135deg, #0a0e27 0%, #e74c3c 15%, #1e3a5f 85%, #2c5f2d 100%); }
+            100% { background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%); }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid rgba(231, 76, 60, 0.3);
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .title-section {
+            text-align: center;
+        }
+
+        .cancel-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: gentle-shake 2s infinite;
+        }
+
+        @keyframes gentle-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+
+        h1 {
+            color: #ff6b35;
+            font-size: 42px;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: #87ceeb;
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .description {
+            color: #ffffff;
+            font-size: 18px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .no-charge-box {
+            background: rgba(50, 205, 50, 0.1);
+            border: 2px solid #32cd32;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .no-charge-box h3 {
+            color: #32cd32;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+        }
+
+        .no-charge-box p {
+            color: #ffffff;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .features {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 4px solid #ffd700;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .features h3 {
+            color: #ffd700;
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            color: #ffffff;
+            margin: 12px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            font-size: 16px;
+        }
+
+        .features li:before {
+            content: "💎 ";
+            margin-right: 10px;
+        }
+
+        .offer-box {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 215, 0, 0.1));
+            border: 2px solid #ff6b35;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+            animation: gentle-glow 3s infinite;
+        }
+
+        @keyframes gentle-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 107, 53, 0.6); }
+        }
+
+        .offer-box h4 {
+            color: #ff6b35;
+            margin: 0 0 15px 0;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .offer-pricing {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .pricing-item {
+            background: rgba(15, 35, 65, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 107, 53, 0.3);
+        }
+
+        .pricing-item .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .pricing-item .period {
+            font-size: 14px;
+            color: #87ceeb;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+
+        .btn {
+            padding: 18px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            box-shadow: 0 8px 25px rgba(50, 205, 50, 0.3);
+        }
+
+        .btn.success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(50, 205, 50, 0.5);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #1e3a5f, #0a0e27);
+            color: white;
+            border: 2px solid #87ceeb;
+            box-shadow: 0 8px 25px rgba(135, 206, 235, 0.3);
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(135, 206, 235, 0.5);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff6b35, #e74c3c);
+            color: white;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn.danger:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 53, 0.5);
+        }
+
+        .contact-box {
+            background: rgba(44, 62, 80, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .contact-box a {
+            color: #32cd32;
+            text-decoration: none;
+        }
+
+        .contact-box a:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(34, 139, 34, 0.2);
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .offer-pricing {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">💎 ProfitPal</div>
+            <div class="title-section">
+                <div class="cancel-icon">💔</div>
+                <h1>Payment Cancelled</h1>
+                <p class="subtitle">No worries! Your payment was cancelled.</p>
+                <p class="description">No charges were made to your account. You can try again anytime when you're ready.</p>
+            </div>
+        </div>
+
+        <div class="no-charge-box">
+            <h3>✅ No Charges Applied</h3>
+            <p>Your card was not charged. You can safely try again or contact us if you have any questions.</p>
+        </div>
+
+        <div class="features">
+            <h3>💎 Still Interested? Here's What You Get:</h3>
+            <ul>
+                <li>Join ProfitPal ECOSYSTEM with $29.99 membership</li>
+                <li>Unlimited AI-powered stock analysis</li>
+                <li>Diamond/Trash classification system</li>
+                <li>Intrinsic value calculations</li>
+                <li>All premium metrics and indicators</li>
+                <li>Referral system (earn free months!)</li>
+                <li>Priority customer support</li>
+            </ul>
+        </div>
+
+        <div class="offer-box">
+            <h4>🔥 Current Pricing - Don't Miss Out!</h4>
+            <div class="offer-pricing">
+                <div class="pricing-item">
+                    <div class="price">$29.99</div>
+                    <div class="period">One-time membership</div>
+                </div>
+                <div class="pricing-item">
+                    <div class="price">$9.99</div>
+                    <div class="period">Early Bird /month</div>
+                    <div style="font-size: 12px; color: #ff6b35;">Until 12/31/2025</div>
+                </div>
+                <div class="pricing-item">
+                    <div class="price">$14.99</div>
+                    <div class="period">Standard /month</div>
+                    <div style="font-size: 12px; color: #87ceeb;">Starting 01/01/2026</div>
+                </div>
+            </div>
+            <p style="color: #87ceeb; margin: 15px 0 0 0; font-size: 14px;">
+                🎁 Refer friends to earn free months!
+            </p>
+        </div>
+
+        <div class="buttons">
+            <a href="/analysis" class="btn success">💳 Try Payment Again</a>
+            <a href="/" class="btn primary">🏠 Back to Home</a>
+            <a href="mailto:denava.business@gmail.com" class="btn danger">📧 Contact Support</a>
+        </div>
+
+        <div class="contact-box">
+            <strong>Need Help?</strong><br>
+            Email us at <a href="mailto:denava.business@gmail.com">denava.business@gmail.com</a> or try the payment again when you're ready.
+        </div>
+
+        <div class="footer">
+            <p>© 2025 ProfitPal. A product of Denava OÜ. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // Add gentle floating elements for visual interest
+        function createFloatingElement() {
+            const elements = ['💎', '💔', '🔄', '💳'];
+            const element = document.createElement('div');
+            element.innerHTML = elements[Math.floor(Math.random() * elements.length)];
+            element.style.position = 'fixed';
+            element.style.left = Math.random() * 100 + '%';
+            element.style.top = '100vh';
+            element.style.fontSize = '24px';
+            element.style.opacity = '0.6';
+            element.style.pointerEvents = 'none';
+            element.style.animation = 'float-up 8s linear forwards';
+
+            document.body.appendChild(element);
+
+            setTimeout(() => {
+                element.remove();
+            }, 8000);
+        }
+
+        // Add CSS for floating animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float-up {
+                to {
+                    transform: translateY(-110vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Create floating elements every 2 seconds
+        let floatInterval = setInterval(createFloatingElement, 2000);
+
+        // Stop after 10 seconds
+        setTimeout(() => {
+            clearInterval(floatInterval);
+        }, 10000);
+
+        console.log('💔 ProfitPal Payment Cancel Page loaded!');
+    </script>
+</body>
+</html>

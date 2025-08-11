@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - ProfitPal</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            animation: backgroundPulse 3s ease-in-out;
+        }
+
+        @keyframes backgroundPulse {
+            0% { background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%); }
+            50% { background: linear-gradient(135deg, #0a0e27 0%, #32cd32 20%, #1e3a5f 80%, #2c5f2d 100%); }
+            100% { background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%); }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .title-section {
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            color: #ffd700;
+            font-size: 42px;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: #32cd32;
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .description {
+            color: #87ceeb;
+            font-size: 18px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .features {
+            background: rgba(50, 205, 50, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 4px solid #32cd32;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .features h3 {
+            color: #32cd32;
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            color: #ffffff;
+            margin: 12px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(50, 205, 50, 0.2);
+            font-size: 16px;
+        }
+
+        .features li:before {
+            content: "✅ ";
+            margin-right: 10px;
+        }
+
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #ffd700;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .pricing-reminder {
+            background: rgba(255, 107, 53, 0.1);
+            border: 2px solid #ff6b35;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .pricing-reminder h4 {
+            color: #ff6b35;
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+
+        .pricing-reminder p {
+            color: #ffffff;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 18px 35px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            box-shadow: 0 8px 25px rgba(50, 205, 50, 0.3);
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(50, 205, 50, 0.5);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            color: white;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn.secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 53, 0.5);
+        }
+
+        .session-info {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(44, 62, 80, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #95a5a6;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(34, 139, 34, 0.2);
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">💎 ProfitPal</div>
+            <div class="title-section">
+                <div class="success-icon">🎉</div>
+                <h1>Payment Successful!</h1>
+                <p class="subtitle">Welcome to ProfitPal ECOSYSTEM!</p>
+                <p class="description">Thank you for joining ProfitPal! Your membership is now active.</p>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>🚀 You Now Have Access To:</h3>
+            <ul>
+                <li>Unlimited AI-powered stock analysis</li>
+                <li>Diamond/Trash classification system</li>
+                <li>Intrinsic value calculations</li>
+                <li>All premium metrics and indicators</li>
+                <li>Educational resources and guides</li>
+                <li>Referral system (earn free months!)</li>
+                <li>Priority customer support</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <strong>🎯 Ready to Start?</strong><br>
+            Your ProfitPal membership is now active! Check your email for license key and referral link.
+        </div>
+
+        <div class="pricing-reminder">
+            <h4>💳 Monthly Subscription Info</h4>
+            <p>Early Bird: $9.99/month (until 12/31/2025)</p>
+            <p>Standard: $14.99/month (starting 01/01/2026)</p>
+            <p>🎁 Refer friends to earn free months!</p>
+        </div>
+
+        <div class="buttons">
+            <a href="/analysis" class="btn primary">🔍 Start Analyzing Stocks</a>
+            <a href="/" class="btn secondary">🏠 Back to Home</a>
+        </div>
+
+        <div class="session-info" id="sessionInfo">
+            <!-- Session ID will be displayed here if available -->
+        </div>
+
+        <div class="footer">
+            <p>© 2025 ProfitPal. A product of Denava OÜ. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get session ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+
+        if (sessionId) {
+            document.getElementById('sessionInfo').innerHTML = 
+                `<strong>Transaction ID:</strong> ${sessionId.substring(0, 24)}...`;
+            document.getElementById('sessionInfo').style.display = 'block';
+        } else {
+            document.getElementById('sessionInfo').style.display = 'none';
+        }
+
+        // Add celebration confetti effect
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.innerHTML = ['🎉', '💎', '🚀', '⭐', '💰'][Math.floor(Math.random() * 5)];
+            confetti.style.position = 'fixed';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.top = '-50px';
+            confetti.style.fontSize = '30px';
+            confetti.style.pointerEvents = 'none';
+            confetti.style.animation = 'fall 3s linear forwards';
+
+            document.body.appendChild(confetti);
+
+            setTimeout(() => {
+                confetti.remove();
+            }, 3000);
+        }
+
+        // Add CSS for falling animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fall {
+                to {
+                    transform: translateY(100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Create confetti every 500ms for 5 seconds
+        let confettiInterval = setInterval(createConfetti, 500);
+        setTimeout(() => {
+            clearInterval(confettiInterval);
+        }, 5000);
+
+        console.log('🎉 ProfitPal Payment Success Page loaded!');
+    </script>
+</body>
+</html>
