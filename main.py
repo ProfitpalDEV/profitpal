@@ -78,62 +78,73 @@ create_free_trial_table()
 # ENVIRONMENT VARIABLES CONFIGURATION
 # ==========================================
 
-# Get API keys from environment variables (Railway secrets)
-FMP_API_KEY = os.getenv("FMP_API_KEY", "re6q6DqcjkmRuiXE0fNiDHIYwVH3DcfC")
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_test_fallback")
-STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY",
-                                   "pk_test_fallback")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_fallback")
-GMAIL_EMAIL = os.getenv("GMAIL_EMAIL", "denava.business@gmail.com")
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
-YOUR_DOMAIN = os.getenv("DOMAIN", "https://profitpal.org")
+APP_ENV = os.getenv("APP_ENV", "prod")
 
-# New Price IDs for subscription plans
-LIFETIME_ACCESS_PRICE_ID = os.getenv("LIFETIME_ACCESS_PRICE_ID")
-EARLY_BIRD_PRICE_ID = os.getenv("EARLY_BIRD_PRICE_ID")
-STANDARD_PRICE_ID = os.getenv("STANDARD_PRICE_ID")
-PRO_PRICE_ID = os.getenv("PRO_PRICE_ID")
-
-# New Price IDs for subscription plans
-LIFETIME_ACCESS_PRICE_ID = "price_1RuY60L7x3ZEcHzxt6G2kzeo"
-EARLY_BIRD_PRICE_ID = "price_1RuYFBL7x3ZEcHzxTIEdGidS"
-STANDARD_PRICE_ID = "price_1RuYJ6L7x3ZEcHzxv268oIVA"
-PRO_PRICE_ID = "price_1RuYPtL7x3ZEcHzxJ10tk95d"
+# Get API keys from environment variables (Railway/host secrets)
+FMP_API_KEY            = os.getenv("FMP_API_KEY", "")
+STRIPE_SECRET_KEY      = os.getenv("STRIPE_SECRET_KEY", "")  # no fallback to avoid false-positive configs
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_fallback")
+STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_fallback")
+GMAIL_EMAIL            = os.getenv("GMAIL_EMAIL", "denava.business@gmail.com")
+GMAIL_PASSWORD         = os.getenv("GMAIL_PASSWORD")
+YOUR_DOMAIN            = os.getenv("DOMAIN", "https://profitpal.org")
 
 # ==========================================
-# CONFIGURE STRIPE
+# PRICE IDs (ENV only — no hardcode)
 # ==========================================
 
-# Берём ключ из переменных окружения
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+LIFETIME_ACCESS_PRICE_ID = os.getenv("LIFETIME_ACCESS_PRICE_ID", "")
+EARLY_BIRD_PRICE_ID      = os.getenv("EARLY_BIRD_PRICE_ID", "")
+STANDARD_PRICE_ID        = os.getenv("STANDARD_PRICE_ID", "")
+PRO_PRICE_ID             = os.getenv("PRO_PRICE_ID", "")
 
-if not stripe.api_key:
-    raise RuntimeError("❌ Stripe API key is not set! Check your environment variables.")
+# Optional: quick diagnostics (won't crash the app)
+for _name, _val in [
+    ("LIFETIME_ACCESS_PRICE_ID", LIFETIME_ACCESS_PRICE_ID),
+    ("EARLY_BIRD_PRICE_ID", EARLY_BIRD_PRICE_ID),
+    ("STANDARD_PRICE_ID", STANDARD_PRICE_ID),
+    ("PRO_PRICE_ID", PRO_PRICE_ID),
+]:
+    if not _val:
+        print(f"⚠️ Missing Stripe price id: {_name} (plan disabled until set)")
 
-# Проверка подключения к Stripe
-try:
-    account_info = stripe.Account.retrieve()
-    print("✅ Stripe connection successful!")
-    print(f"🏢 Stripe account: {account_info.get('email', 'No email')}")
-    print(f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
-except Exception as e:
-    raise RuntimeError(f"❌ Stripe connection failed: {e}")
+# ==========================================
+# CONFIGURE STRIPE (safe at import time)
+# ==========================================
 
-# Отладочная инфа
-print(f"🔍 Stripe module: {stripe}")
-print(f"🔍 stripe.checkout: {getattr(stripe, 'checkout', None)}")
+# Single source of truth for the secret key
+stripe.api_key = STRIPE_SECRET_KEY
 
-# --- Тест создания Checkout Session (только в DEV) ---
-if os.getenv("APP_ENV", "prod") == "dev":
+# Do not crash the app at import time
+STRIPE_READY = bool(STRIPE_SECRET_KEY)
+STRIPE_STARTUP_ERROR = None
+
+if not STRIPE_READY:
+    print("⚠️ Stripe key missing. App will start, payments are disabled.")
+else:
+    try:
+        # Optional eager check (off by default to avoid crashes)
+        if os.getenv("STRIPE_EAGER_CHECK", "0") == "1":
+            account_info = stripe.Account.retrieve()
+            acc_email = getattr(account_info, "email", None) or "No email"
+            print("✅ Stripe connection successful!")
+            print(f"🏢 Stripe account: {acc_email}")
+            print(f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
+        else:
+            print("ℹ️ Skipping Stripe eager check at startup.")
+    except Exception as e:
+        STRIPE_STARTUP_ERROR = str(e)
+        print(f"⚠️ Stripe check failed (startup continues): {STRIPE_STARTUP_ERROR}")
+
+# --- Dev-only smoke test (guarded) ---
+if APP_ENV == "dev" and STRIPE_READY:
     try:
         test_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {
-                        "name": "Test Product",
-                    },
+                    "product_data": {"name": "Test Product"},
                     "unit_amount": 500,  # $5.00
                 },
                 "quantity": 1,
@@ -146,18 +157,20 @@ if os.getenv("APP_ENV", "prod") == "dev":
     except Exception as e:
         print(f"❌ Failed to create test Checkout Session: {e}")
 else:
-    print("ℹ Skipping test Checkout Session creation (not in DEV mode)")
+    print("ℹ Skipping test Checkout Session creation (not in DEV mode or Stripe not ready)")
 
-print("✅ Environment variables loaded!")
-print(f"🔑 FMP API Key: {FMP_API_KEY[:15]}...")
-print(f"💳 Stripe Keys: Configured")
-print(f"🌐 Domain: {YOUR_DOMAIN}")
-print(f"📧 Gmail: {GMAIL_EMAIL}")
-print(f"💳 Price IDs loaded:")
-print(f"   Lifetime: {LIFETIME_ACCESS_PRICE_ID}")
-print(f"   Early Bird: {EARLY_BIRD_PRICE_ID}")
-print(f"   Standard: {STANDARD_PRICE_ID}")
-print(f"   PRO: {PRO_PRICE_ID}")
+# --- Dev-only diagnostics (no secrets) ---
+if APP_ENV == "dev":
+    print("✅ Environment variables loaded!")
+    print(f"🔑 FMP API Key present: {bool(FMP_API_KEY)}")
+    print(f"💳 Stripe key present: {bool(STRIPE_SECRET_KEY)}")
+    print(f"🌐 Domain: {YOUR_DOMAIN}")
+    print(f"📧 Gmail: {GMAIL_EMAIL}")
+    print("💳 Price IDs loaded:")
+    print(f"   Lifetime: {bool(LIFETIME_ACCESS_PRICE_ID)}")
+    print(f"   Early Bird: {bool(EARLY_BIRD_PRICE_ID)}")
+    print(f"   Standard: {bool(STANDARD_PRICE_ID)}")
+    print(f"   PRO: {bool(PRO_PRICE_ID)}")
 
 # ==========================================
 # FASTAPI APPLICATION SETUP
@@ -1065,54 +1078,70 @@ def get_stripe_publishable_key():
 @app.post('/create-subscription-checkout')
 async def create_subscription_checkout(request: Request):
     """Create Stripe Checkout for subscription plans with billing cycle anchor"""
+    # Guards
+    if not STRIPE_READY:
+        raise HTTPException(status_code=503, detail="Stripe is not configured")
+
+    body = await request.json()
+    plan_type     = (body.get('plan_type') or "").strip()
+    email         = (body.get('email') or "").strip()
+    full_name     = (body.get('full_name') or "").strip()
+    referral_code = (body.get('referral_code') or "").strip()
+
+    if not plan_type:
+        raise HTTPException(status_code=400, detail="plan_type is required")
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+    if not full_name:
+        raise HTTPException(status_code=400, detail="full_name is required")
+
+    price_id_map = {
+        'early_bird': EARLY_BIRD_PRICE_ID,
+        'standard':   STANDARD_PRICE_ID,
+        'pro':        PRO_PRICE_ID,
+    }
+
+    # 1) валидируем тип плана
+    if plan_type not in price_id_map:
+        raise HTTPException(status_code=400, detail="Invalid plan type")
+
+    # 2) проверяем, что для выбранного плана реально задан Price ID в ENV
+    price_id = price_id_map[plan_type]
+    if not price_id:
+        raise HTTPException(status_code=503, detail=f"Price ID for '{plan_type}' not configured")
+
     try:
-        body = await request.json()
-        plan_type = body.get('plan_type')
-        email = body.get('email')
-        full_name = body.get('full_name')
-        referral_code = body.get('referral_code', '')
-
-        print(f"💳 Creating subscription checkout: {plan_type} for {email}")
-
-        price_id_map = {
-            'early_bird': EARLY_BIRD_PRICE_ID,
-            'standard': STANDARD_PRICE_ID,
-            'pro': PRO_PRICE_ID
-        }
-
-        price_id = price_id_map.get(plan_type)
-        if not price_id:
-            raise HTTPException(status_code=400, detail="Invalid plan type")
-
+        # привязываем биллинг к 1-му числу следующего месяца
         next_month = datetime.now().replace(day=1) + timedelta(days=32)
         billing_anchor = int(next_month.replace(day=1).timestamp())
 
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             customer_email=email,
-            line_items=[{
-                'price': price_id,
-                'quantity': 1,
-            }],
+            line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
             subscription_data={
                 'billing_cycle_anchor': billing_anchor,
                 'proration_behavior': 'create_prorations',
             },
-            success_url=
-            f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
+            success_url=f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{YOUR_DOMAIN}/cancel',
             metadata={
                 'full_name': full_name,
                 'email': email,
                 'referral_code': referral_code,
                 'plan_type': plan_type,
-                'product': 'profitpal_subscription'
-            })
+                'product': 'profitpal_subscription',
+            },
+        )
 
         print(f"✅ Subscription checkout created: {checkout_session.id}")
         return {"checkout_url": checkout_session.url}
 
+    except stripe.error.StripeError as e:
+        msg = getattr(e, "user_message", None) or str(e)
+        print(f"❌ Stripe error creating subscription checkout: {msg}")
+        raise HTTPException(status_code=502, detail=msg)
     except Exception as e:
         print(f"❌ Error creating subscription checkout: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1121,39 +1150,54 @@ async def create_subscription_checkout(request: Request):
 @app.post('/create-checkout-session')
 async def create_checkout_session(payment_request: PaymentRequest):
     """Create Stripe Checkout Session for LIFETIME ACCESS"""
+    # Guards
+    if not STRIPE_READY:
+        raise HTTPException(status_code=503, detail="Stripe is not configured")
+    if not LIFETIME_ACCESS_PRICE_ID:
+        raise HTTPException(status_code=503, detail="LIFETIME price ID not configured")
+
+    # Validate payload
+    email = (payment_request.email or "").strip()
+    full_name = (payment_request.full_name or "").strip()
+    referral_code = (payment_request.referral_code or "").strip()
+
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+    if not full_name:
+        raise HTTPException(status_code=400, detail="full_name is required")
+
     try:
-        print(
-            f"💳 Creating LIFETIME ACCESS checkout for: {payment_request.full_name} ({payment_request.email})"
-        )
-        print(f"🔗 Referral code: {payment_request.referral_code}")
+        print(f"💳 Creating LIFETIME ACCESS checkout for: {full_name} ({email})")
+        if referral_code:
+            print(f"🔗 Referral code: {referral_code}")
 
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            customer_email=payment_request.email,
-            line_items=[{
-                'price': LIFETIME_ACCESS_PRICE_ID,
-                'quantity': 1,
-            }],
+            customer_email=email,
+            line_items=[{'price': LIFETIME_ACCESS_PRICE_ID, 'quantity': 1}],
             mode='payment',
-            success_url=
-            f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
+            success_url=f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{YOUR_DOMAIN}/cancel',
             metadata={
-                'full_name': payment_request.full_name,
-                'email': payment_request.email,
-                'referral_code': payment_request.referral_code or '',
+                'full_name': full_name,
+                'email': email,
+                'referral_code': referral_code,
                 'product': 'profitpal_pro_lifetime',
                 'version': '2.0'
-            })
+            }
+        )
 
         print(f"✅ Checkout session created: {checkout_session.id}")
         return {"checkout_url": checkout_session.url}
 
+    except stripe.error.StripeError as e:
+        # Деталь для клиента — аккуратная, без лишних подробностей
+        msg = getattr(e, "user_message", None) or str(e)
+        print(f"❌ Stripe error creating checkout session: {msg}")
+        raise HTTPException(status_code=502, detail=msg)
     except Exception as e:
         print(f"❌ Error creating checkout session: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to create checkout session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
 
 
 @app.post('/stripe-webhook')
