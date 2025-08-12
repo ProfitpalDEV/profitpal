@@ -885,7 +885,7 @@ def serve_dashboard():
     """Dashboard page with stock analysis"""
     return FileResponse('dashboard.html')
 
-сь тольт@app.get("/fake-dashboard")
+@app.get("/fake-dashboard")
 def serve_fake_dashboard():
     """Serve fake dashboard for free trial users"""
     return FileResponse('fake-dashboard.html')
