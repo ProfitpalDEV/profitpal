@@ -945,7 +945,7 @@ async def get_stripe_key():
 
 
 @app.post('/validate-credentials')
-    async def check_credentials(request: Request):
+async def check_credentials(request: Request):
         """Проверка email + license для подсветки имени + referral info"""
         try:
             body = await request.json()
