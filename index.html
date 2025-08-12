@@ -1279,7 +1279,6 @@
       window.location.href = `/fake-dashboard?ticker=${ticker}`;
     }
 
-    // Validate Sign In Credentials - ПОДСВЕТКА ИМЕНИ!
     async function validateCredentials() {
       const email = document.getElementById('signin-email').value.trim();
       const licenseKey = document.getElementById('signin-license').value.trim().toUpperCase();
@@ -1287,23 +1286,31 @@
       const nameSuggestion = document.getElementById('name-suggestion');
       const suggestedName = document.getElementById('suggested-name');
 
-      // Валидация в зависимости от режима
+      // Базовая проверка - email должен быть всегда
+      if (!email) {
+        nameSuggestion.style.display = 'none';
+        return;
+      }
+
+      // Валидация ключа в зависимости от режима
       if (isAdminMode) {
+        // Admin: минимальная проверка
         if (!licenseKey.startsWith('PP-') || licenseKey.length < 10) {
           nameSuggestion.style.display = 'none';
           return;
         }
       } else {
-        if (!email || !licenseKey || licenseKey.length < 16) {
+        // Client: строгая проверка
+        if (!licenseKey || licenseKey.length < 16) {
           nameSuggestion.style.display = 'none';
           return;
         }
       }
 
+      // ПРОДОЛЖАЕМ ВЫПОЛНЕНИЕ - отправляем на API
       try {
         console.log('🔍 Validating credentials:', email, licenseKey);
 
-        // Call API to validate credentials
         const response = await fetch('/validate-credentials', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1314,7 +1321,6 @@
         console.log('📊 API Response:', data);
 
         if (data.show_name && data.full_name) {
-          // 🎉 MAGIC MOMENT - SHOW NAME!
           suggestedName.textContent = data.full_name;
           nameSuggestion.style.display = 'block';
           console.log(`✨ Name revealed: ${data.full_name}`);
