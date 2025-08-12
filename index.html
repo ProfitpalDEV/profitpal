@@ -800,7 +800,15 @@
       <h3>🔑 Already have ProfitPal? Sign In</h3>
       <form class="sign-in-form" onsubmit="handleSignIn(event)">
         <input type="email" id="signin-email" class="sign-in-input" placeholder="Email Address" required>
-        <input type="text" id="signin-license" class="sign-in-input" placeholder="License Key (PP-XXXXXXXX-XXXXXXXX)" required pattern="PP-[A-Z0-9]{4,}-[A-Z0-9]{4,}-[A-Z0-9]{4,}">
+        <input type="text" id="signin-license" class="sign-in-input" placeholder="License Key" required>
+
+        <!-- Admin Mode Toggle -->
+        <div style="display: flex; align-items: center; gap: 10px; margin: 15px 0; background: rgba(44, 62, 80, 0.2); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 107, 53, 0.3);">
+          <input type="checkbox" id="admin-mode-index" style="transform: scale(1.2); accent-color: #ff6b35;">
+          <label for="admin-mode-index" style="color: #ff6b35; font-weight: 600; cursor: pointer;">
+            👑 Admin Mode (Different key format)
+          </label>
+        </div>
 
         <!-- Name suggestion появляется здесь -->
         <div id="name-suggestion" class="name-suggestion" onclick="selectSuggestedName()">
@@ -849,7 +857,7 @@
       <h2>Live Demo - See ProfitPal in Action</h2>
       <div class="demo-section">
         <div class="demo-input-row">
-          <input type="text" id="ticker-input" class="demo-input" placeholder="Enter ticker (e.g., AAPL)" value="AAPL">
+          <input type="text" id="ticker-input" class="demo-input" placeholder="Enter ticker (e.g., AAPL)" value="">
           <button id="analyze-button" class="cta-button">Analyze Stock 💎</button>
         </div>
 
@@ -1057,7 +1065,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2025 ProfitPal. A product of Denava OÜ. All rights reserved.</p>
+      <p>&copy; 2025 ProfitPal. A product of Denava LLC. All rights reserved.</p>
     </div>
   </footer>
 
@@ -1225,16 +1233,16 @@
       const data = mockData[ticker] || mockData['AAPL'];
 
       // Simulate analysis delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       // 📝 RECORD FINGERPRINT USAGE
       await recordFreeTrial(userFingerprint, ticker);
 
       // Update the data
-      document.getElementById('price').textContent = `$${data.price}`;
+      document.getElementById('price').textContent = `${data.price}`;
       document.getElementById('pe-ratio').textContent = `${data.pe}x`;
-      document.getElementById('market-cap').textContent = `$${data.mcap}T`;
-      document.getElementById('intrinsic-value').textContent = `$${data.intrinsic}`;
+      document.getElementById('market-cap').textContent = `${data.mcap}T`;
+      document.getElementById('intrinsic-value').textContent = `${data.intrinsic}`;
       document.getElementById('verdict').textContent = data.verdict;
 
       // 🔥 THE MAGIC MOMENT - UNBLUR THE DATA!
@@ -1252,7 +1260,7 @@
           continueSection.classList.add('show');
           continueSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 1000);
-      }, 500);
+      }, 300);
 
       hasAnalyzed = true;
       analysisCount++;
@@ -1275,12 +1283,21 @@
     async function validateCredentials() {
       const email = document.getElementById('signin-email').value.trim();
       const licenseKey = document.getElementById('signin-license').value.trim().toUpperCase();
+      const isAdminMode = document.getElementById('admin-mode-index').checked;
       const nameSuggestion = document.getElementById('name-suggestion');
       const suggestedName = document.getElementById('suggested-name');
 
-      if (!email || !licenseKey || licenseKey.length < 10) {
-        nameSuggestion.style.display = 'none';
-        return;
+      // Валидация в зависимости от режима
+      if (isAdminMode) {
+        if (!licenseKey.startsWith('PP-') || licenseKey.length < 10) {
+          nameSuggestion.style.display = 'none';
+          return;
+        }
+      } else {
+        if (!email || !licenseKey || licenseKey.length < 16) {
+          nameSuggestion.style.display = 'none';
+          return;
+        }
       }
 
       try {

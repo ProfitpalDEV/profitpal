@@ -945,60 +945,67 @@ async def get_stripe_key():
 
 
 @app.post('/validate-credentials')
-async def check_credentials(request: Request):
-    """Проверка email + license для подсветки имени + referral info"""
-    try:
-        body = await request.json()
-        email = body.get('email', '').strip()
-        license_key = body.get('license_key', '').strip().upper()
+    async def check_credentials(request: Request):
+        """Проверка email + license для подсветки имени + referral info"""
+        try:
+            body = await request.json()
+            email = body.get('email', '').strip()
+            license_key = body.get('license_key', '').strip().upper()
 
-        if not email or not license_key:
-            return JSONResponse(content={
-                "show_name": False,
-                "error": "Email and license key required"
-            },
-                                status_code=400)
+            # Check if admin mode
+            admin_email = os.getenv('ADMIN_EMAIL', '').lower()
+            is_admin = (email.lower() == admin_email)
 
-        result = validate_user_credentials(email, license_key)
+            # Admin keys can be any format starting with PP-
+            # Client keys must be PP-XXXX-XXXX-XXXX format
+            if not is_admin:
+                # Validate client key format only
+                if not re.match(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', license_key):
+                    return JSONResponse(content={
+                        "show_name": False,
+                        "error": "Invalid license key format. Should be: PP-XXXX-XXXX-XXXX"
+                    }, status_code=400)
 
-        if result['valid']:
-            response_data = {
-                "show_name": True,
-                "full_name": result['full_name'],
-                "email": result['email'],
-                "welcome_message": f"Welcome back, {result['full_name']}!"
-            }
+            if not email or not license_key:
+                return JSONResponse(content={
+                    "show_name": False,
+                    "error": "Email and license key required"
+                }, status_code=400)
 
-            referral_info = referral_mgr.get_user_referral_info(email)
-            if referral_info:
-                response_data.update({
-                    "referral_code":
-                    referral_info['referral_code'],
-                    "referral_link":
-                    referral_info['referral_link'],
-                    "free_months_balance":
-                    referral_info['free_months_balance'],
-                    "total_referrals":
-                    referral_info['total_referrals']
-                })
+            result = validate_user_credentials(email, license_key)
 
-            return JSONResponse(content=response_data)
-        else:
-            return JSONResponse(
-                content={
+            if result['valid']:
+                response_data = {
+                    "show_name": True,
+                    "full_name": result['full_name'],
+                    "email": result['email'],
+                    "welcome_message": f"Welcome back, {result['full_name']}!"
+                }
+
+                referral_info = referral_mgr.get_user_referral_info(email)
+                if referral_info:
+                    response_data.update({
+                        "referral_code": referral_info['referral_code'],
+                        "referral_link": referral_info['referral_link'],
+                        "free_months_balance": referral_info['free_months_balance'],
+                        "total_referrals": referral_info['total_referrals']
+                    })
+
+                return JSONResponse(content=response_data)
+            else:
+                return JSONResponse(content={
                     "show_name": False,
                     "error": result.get('error', 'Invalid credentials')
                 })
 
-    except Exception as e:
-        print(f"❌ Credentials validation error: {e}")
-        return JSONResponse(content={
-            "show_name": False,
-            "error": "Validation failed"
-        },
-                            status_code=500)
+        except Exception as e:
+            print(f"❌ Credentials validation error: {e}")
+            return JSONResponse(content={
+                "show_name": False,
+                "error": "Validation failed"
+            }, status_code=500)
 
-
+   
 @app.post('/api/check-admin-status')
 async def check_admin_status(request: Request):
     """API для проверки админского статуса пользователя"""
