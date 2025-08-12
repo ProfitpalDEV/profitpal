@@ -885,7 +885,7 @@ def serve_dashboard():
     """Dashboard page with stock analysis"""
     return FileResponse('dashboard.html')
 
-@app.get("/fake-dashboard")
+сь тольт@app.get("/fake-dashboard")
 def serve_fake_dashboard():
     """Serve fake dashboard for free trial users"""
     return FileResponse('fake-dashboard.html')
@@ -1389,9 +1389,18 @@ async def api_login(request: Request):
         if not email or not license_key:
             raise HTTPException(status_code=400, detail="Email and license key are required")
 
-        # Validate license key format
-        if not re.match(r'^PP-[A-Z0-9]{8}-[A-Z0-9]{8}$', license_key):
-            raise HTTPException(status_code=400, detail="Invalid license key format. Should be: PP-XXXXXXXX-XXXXXXXX")
+        # Validate license key format (different for admin vs client)
+        admin_email = os.getenv('ADMIN_EMAIL', '').lower()
+        is_admin = (email == admin_email)
+
+        if is_admin:
+            # Admin key: PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX or any PP- format
+            if not license_key.startswith('PP-') or len(license_key) < 10:
+                raise HTTPException(status_code=400, detail="Invalid admin license key format")
+        else:
+            # Client key: PP-XXXX-XXXX-XXXX
+            if not re.match(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', license_key):
+                raise HTTPException(status_code=400, detail="Invalid license key format. Should be: PP-XXXX-XXXX-XXXX")
 
         # Check if license exists and is valid
         if not validate_license_key(email, license_key):
@@ -1415,14 +1424,19 @@ async def api_login(request: Request):
 def validate_license_key(email: str, license_key: str) -> bool:
     """Validate if license key belongs to email"""
     try:
-        # TODO: Check your license database
-        # For now, accept any properly formatted key
-        # Later: query database to check if email + license_key combination exists
-
         print(f"🔐 Validating license: {email} -> {license_key}")
 
-        # Temporary validation - replace with real database check
-        return len(license_key) == 19 and license_key.startswith('PP-')
+        # Check if this is admin
+        admin_email = os.getenv('ADMIN_EMAIL', '').lower()
+        admin_key = os.getenv('ADMIN_LICENSE_KEY', '')
+
+        if email == admin_email and license_key == admin_key:
+            print(f"👑 Admin login successful!")
+            return True
+
+        # Client validation - check with auth_manager or database
+        # TODO: Replace with real database check
+        return len(license_key) == 16 and license_key.startswith('PP-')
 
     except Exception as e:
         print(f"❌ License validation error: {e}")
