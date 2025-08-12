@@ -826,7 +826,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 ProfitPal. A product of Denava OÜ. All rights reserved.</p>
+            <p>&copy; 2025 ProfitPal. A product of Denava LLC. All rights reserved.</p>
         </div>
     </footer>
 
@@ -1062,14 +1062,16 @@
             let analysisCount, remaining;
 
             if (isAdminUser) {
-                // 👑 АДМИН: Цикл 1-5, потом снова 1-5
-                analysisCount = ((trialStatus.used - 1) % 5) + 1;
+                // 👑 АДМИН: Показываем текущий анализ в цикле 1-5
+                const currentAnalysis = Math.max(1, trialStatus.used || 1);
+                analysisCount = ((currentAnalysis - 1) % 5) + 1;
                 remaining = 5 - analysisCount;
-                console.log('👑 ADMIN MODE: Showing analysis', analysisCount, 'remaining', remaining);
+                console.log('👑 ADMIN MODE: Current analysis', analysisCount, 'remaining', remaining);
             } else {
-                // 👤 ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
-                analysisCount = trialStatus.used || 1;
+                // 👤 ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ: Показываем текущий анализ
+                analysisCount = Math.max(1, trialStatus.used || 1);
                 remaining = Math.max(0, 5 - analysisCount);
+                console.log('👤 USER MODE: Analysis', analysisCount, 'remaining', remaining);
             }
 
             // Update counter displays
@@ -1093,8 +1095,8 @@
 
             // 🔥 ОБНОВЛЯЕМ КНОПКУ В ЗАВИСИМОСТИ ОТ ОСТАВШИХСЯ АНАЛИЗОВ
             const upgradeBtn = document.getElementById('upgrade-btn');
-            if (upgradeBtn && remaining <= 0) {
-                // Если анализы закончились - принудительно делаем кнопку "Upgrade Required"
+            if (upgradeBtn && !isAdminUser && remaining <= 0) {
+                // Если анализы закончились для обычного пользователя - принудительно upgrade
                 upgradeBtn.textContent = '🔒 Upgrade Required';
                 upgradeBtn.style.background = 'linear-gradient(135deg, #ff6b35, #f7931e)';
                 upgradeBtn.style.cursor = 'pointer';

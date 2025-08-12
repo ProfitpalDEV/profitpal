@@ -1714,6 +1714,9 @@ async def check_free_trial(request: FreeTrialRequest):
             f"🔍 Checking free trial for fingerprint: {request.fingerprint[:10]}..."
         )
 
+        # 🔥 ПРИНУДИТЕЛЬНО СОЗДАЕМ ТАБЛИЦУ ПЕРЕД ЗАПРОСОМ
+        create_free_trial_table()
+
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -1760,9 +1763,10 @@ async def check_free_trial(request: FreeTrialRequest):
 async def record_free_trial(request: FreeTrialRecordRequest):
     """Запись использования бесплатного анализа"""
     try:
-        print(
-            f"📝 Recording free trial usage: {request.fingerprint[:10]}... ticker: {request.ticker}"
-        )
+        print(f"📝 Recording free trial usage: {request.fingerprint[:10]}... ticker: {request.ticker}")
+
+        # 🔥 ПРИНУДИТЕЛЬНО СОЗДАЕМ ТАБЛИЦУ ПЕРЕД ЗАПИСЬЮ
+        create_free_trial_table()
 
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
