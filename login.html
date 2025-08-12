@@ -245,8 +245,18 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="licenseKey">License Key (PP-XXXX-XXXX-XXXX)</label>
+                <label class="form-label" for="licenseKey">License Key (<span id="keyFormatLabel">PP-XXXX-XXXX-XXXX</span>)</label>
                 <input type="text" id="licenseKey" class="form-input license-input" placeholder="PP-XXXX-XXXX-XXXX" maxlength="16" required>
+            </div>
+
+            <!-- Admin Mode Toggle -->
+            <div class="form-group" style="margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(44, 62, 80, 0.2); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 107, 53, 0.3);">
+                    <input type="checkbox" id="adminMode" style="transform: scale(1.2); accent-color: #ff6b35;">
+                    <label for="adminMode" style="color: #ff6b35; font-weight: 600; cursor: pointer;">
+                        👑 Admin Mode (Different key format)
+                    </label>
+                </div>
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
@@ -289,19 +299,48 @@
             };
         }
 
-        // License key formatting
+        // Admin mode toggle functionality
+        document.getElementById('adminMode').addEventListener('change', function(e) {
+            const licenseInput = document.getElementById('licenseKey');
+            const formatLabel = document.getElementById('keyFormatLabel');
+
+            if (e.target.checked) {
+                // Admin mode - длинный формат
+                licenseInput.placeholder = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
+                licenseInput.maxLength = 50; // Увеличиваем лимит для админа
+                formatLabel.textContent = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
+                licenseInput.value = ''; // Очищаем поле
+            } else {
+                // Client mode - обычный формат  
+                licenseInput.placeholder = 'PP-XXXX-XXXX-XXXX';
+                licenseInput.maxLength = 16;
+                formatLabel.textContent = 'PP-XXXX-XXXX-XXXX';
+                licenseInput.value = ''; // Очищаем поле
+            }
+        });
+
+        // License key formatting (обновленная логика)
         document.getElementById('licenseKey').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^A-Z0-9]/g, '');
-            if (value.length > 2) {
-                value = value.slice(0, 2) + '-' + value.slice(2);
+            const isAdminMode = document.getElementById('adminMode').checked;
+            let value = e.target.value.replace(/[^A-Z0-9-]/g, ''); // Разрешаем дефисы
+
+            if (isAdminMode) {
+                // Для админа - не форматируем автоматически, позволяем ввод как есть
+                e.target.value = value.toUpperCase();
+            } else {
+                // Для клиентов - автоформатирование PP-XXXX-XXXX-XXXX
+                value = value.replace(/[^A-Z0-9]/g, '');
+                if (value.length > 2) {
+                    value = value.slice(0, 2) + '-' + value.slice(2);
+                }
+                if (value.length > 7) {
+                    value = value.slice(0, 7) + '-' + value.slice(7);
+                }
+                if (value.length > 12) {
+                    value = value.slice(0, 12) + '-' + value.slice(12, 16);
+                }
+                e.target.value = value;
             }
-            if (value.length > 7) {
-                value = value.slice(0, 7) + '-' + value.slice(7);
-            }
-            if (value.length > 12) {
-                value = value.slice(0, 12) + '-' + value.slice(12, 16);
-            }
-            e.target.value = value;
         });
 
         // Form submission
@@ -320,9 +359,21 @@
                 return;
             }
 
-            if (!/^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(licenseKey)) {
-                showError('License key format should be: PP-XXXX-XXXX-XXXX');
-                return;
+            // Validation - проверяем режим
+            const isAdminMode = document.getElementById('adminMode').checked;
+
+            if (isAdminMode) {
+                // Админский ключ - проверяем что начинается с PP- и достаточно длинный
+                if (!licenseKey.startsWith('PP-') || licenseKey.length < 10) {
+                    showError('Admin license key must start with PP- and be longer than 10 characters');
+                    return;
+                }
+            } else {
+                // Клиентский ключ - строгая проверка формата
+                if (!/^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(licenseKey)) {
+                    showError('License key format should be: PP-XXXX-XXXX-XXXX');
+                    return;
+                }
             }
 
             // Show loading
