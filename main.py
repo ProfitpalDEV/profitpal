@@ -875,6 +875,15 @@ def serve_analysis():
     """Serve analysis page for payments"""
     return FileResponse('analysis.html')
 
+@app.get('/login')
+def login_page():
+    """Login page for existing users"""
+    return FileResponse('login.html')
+
+@app.get('/dashboard')
+def serve_dashboard():
+    """Dashboard page with stock analysis"""
+    return FileResponse('dashboard.html')
 
 @app.get("/fake-dashboard")
 def serve_fake_dashboard():
@@ -1363,6 +1372,87 @@ async def get_user_referral_link(email: str):
         return JSONResponse(content={'error': 'Failed to get referral link'},
                             status_code=500)
 
+# =================================================
+# LOGIN API ENDPOINTS 
+# =================================================
+
+@app.post('/api/login')
+async def api_login(request: Request):
+    """Validate license key and fingerprint"""
+    try:
+        data = await request.json()
+        email = data.get('email', '').strip().lower()
+        license_key = data.get('license_key', '').strip().upper()
+        fingerprint = data.get('fingerprint', {})
+
+        # Validate input
+        if not email or not license_key:
+            raise HTTPException(status_code=400, detail="Email and license key are required")
+
+        # Validate license key format
+        if not re.match(r'^PP-[A-Z0-9]{8}-[A-Z0-9]{8}$', license_key):
+            raise HTTPException(status_code=400, detail="Invalid license key format. Should be: PP-XXXXXXXX-XXXXXXXX")
+
+        # Check if license exists and is valid
+        if not validate_license_key(email, license_key):
+            raise HTTPException(status_code=401, detail="Invalid license key or email address")
+
+        # Record fingerprint and login
+        record_user_login(email, license_key, fingerprint, request)
+
+        return JSONResponse(content={
+            "status": "success", 
+            "message": "Login successful",
+            "redirect": "/dashboard"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed. Please try again.")
+
+def validate_license_key(email: str, license_key: str) -> bool:
+    """Validate if license key belongs to email"""
+    try:
+        # TODO: Check your license database
+        # For now, accept any properly formatted key
+        # Later: query database to check if email + license_key combination exists
+
+        print(f"🔐 Validating license: {email} -> {license_key}")
+
+        # Temporary validation - replace with real database check
+        return len(license_key) == 19 and license_key.startswith('PP-')
+
+    except Exception as e:
+        print(f"❌ License validation error: {e}")
+        return False
+
+def record_user_login(email: str, license_key: str, fingerprint: dict, request: Request):
+    """Record user login with fingerprint for tracking"""
+    try:
+        client_ip = request.client.host if hasattr(request, 'client') else 'unknown'
+
+        login_data = {
+            'email': email,
+            'license_key': license_key,
+            'fingerprint': fingerprint,
+            'login_time': datetime.now().isoformat(),
+            'ip_address': client_ip,
+            'user_agent': request.headers.get('user-agent', 'unknown')
+        }
+
+        # TODO: Save to database for tracking
+        # auth_mgr.record_login(login_data) or similar
+
+        print(f"🔐 User login recorded:")
+        print(f"   📧 Email: {email}")
+        print(f"   🔑 License: {license_key}")
+        print(f"   📱 Device: {fingerprint.get('platform', 'unknown')}")
+        print(f"   🌍 IP: {client_ip}")
+
+    except Exception as e:
+        print(f"❌ Error recording login: {e}")
 
 @app.post('/api/monthly-billing/{email}')
 async def process_monthly_billing(email: str):

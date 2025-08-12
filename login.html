@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfitPal Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .login-title {
+            color: #32cd32;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .login-subtitle {
+            color: #95a5a6;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            color: #32cd32;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(44, 62, 80, 0.3);
+            border: 2px solid rgba(34, 139, 34, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #32cd32;
+            box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
+        }
+
+        .license-input {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(50, 205, 50, 0.3);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .security-info {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #95a5a6;
+            opacity: 0.8;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(139, 0, 0, 0.1));
+            border: 2px solid #e74c3c;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #e74c3c;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            color: #32cd32;
+            margin-top: 15px;
+        }
+
+        .spinner {
+            border: 2px solid rgba(50, 205, 50, 0.3);
+            border-top: 2px solid #32cd32;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .header-logo {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .back-link {
+            color: #32cd32;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: 2px solid rgba(50, 205, 50, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: rgba(50, 205, 50, 0.1);
+            border-color: #32cd32;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                position: static;
+                margin-bottom: 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .login-container {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+
+            .footer {
+                position: static;
+                margin-top: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-logo">💎 ProfitPal</div>
+        <a href="/" class="back-link">← Back to Home</a>
+    </div>
+
+    <div class="login-container">
+        <h1 class="login-title">🔑 Already have ProfitPal? Sign In</h1>
+        <p class="login-subtitle">
+            Enter your email and license key from the welcome email to access your dashboard.
+        </p>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <input type="email" id="email" class="form-input" placeholder="Enter your email address" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="licenseKey">License Key (PP-XXXX-XXXX-XXXX)</label>
+                <input type="text" id="licenseKey" class="form-input license-input" placeholder="PP-XXXX-XXXX-XXXX" maxlength="16" required>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                Access ProfitPal Dashboard →
+            </button>
+
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+                Validating your license key...
+            </div>
+        </form>
+
+        <div class="security-info">
+            🔒 Your license key is validated securely and tied to your device fingerprint
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
+    </div>
+
+    <script>
+        // Device fingerprinting
+        function generateFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('Device fingerprint', 2, 2);
+
+            return {
+                screen: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language,
+                platform: navigator.platform,
+                userAgent: navigator.userAgent,
+                canvas: canvas.toDataURL(),
+                timestamp: Date.now()
+            };
+        }
+
+        // License key formatting
+        document.getElementById('licenseKey').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^A-Z0-9]/g, '');
+            if (value.length > 2) {
+                value = value.slice(0, 2) + '-' + value.slice(2);
+            }
+            if (value.length > 7) {
+                value = value.slice(0, 7) + '-' + value.slice(7);
+            }
+            if (value.length > 12) {
+                value = value.slice(0, 12) + '-' + value.slice(12, 16);
+            }
+            e.target.value = value;
+        });
+
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const licenseKey = document.getElementById('licenseKey').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const loadingDiv = document.getElementById('loadingState');
+            const loginBtn = document.getElementById('loginBtn');
+
+            // Validation
+            if (!email || !licenseKey) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            if (!/^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(licenseKey)) {
+                showError('License key format should be: PP-XXXX-XXXX-XXXX');
+                return;
+            }
+
+            // Show loading
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            loginBtn.disabled = true;
+
+            try {
+                const fingerprint = generateFingerprint();
+
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        license_key: licenseKey,
+                        fingerprint: fingerprint
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Success - redirect to dashboard
+                    console.log('Login successful:', data);
+                    window.location.href = '/dashboard';
+                } else {
+                    // Error
+                    showError(data.detail || 'Login failed');
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Connection error. Please try again.');
+            } finally {
+                loadingDiv.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Auto-focus email field
+        document.getElementById('email').focus();
+    </script>
+</body>
+</html>
