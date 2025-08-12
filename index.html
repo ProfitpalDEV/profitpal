@@ -168,9 +168,9 @@
       box-shadow: none;
     }
 
-    /* Sign In Section */
+    /* Sign In Section - UPDATED LIKE LOGIN.HTML */
     .sign-in-section {
-      background: linear-gradient(135deg, rgba(30, 58, 95, 0.6), rgba(15, 35, 65, 0.8));
+      background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
       backdrop-filter: blur(20px);
       border-radius: 20px;
       padding: 40px;
@@ -184,76 +184,86 @@
       color: #32cd32;
       font-size: 24px;
       font-weight: 700;
-      margin-bottom: 25px;
+      margin-bottom: 15px;
+    }
+
+    .login-subtitle {
+      color: #95a5a6;
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.6;
     }
 
     .sign-in-form {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 25px;
     }
 
-    .sign-in-input {
-      padding: 15px 20px;
+    /* Form Groups like LOGIN.HTML */
+    .form-group {
+      text-align: left;
+    }
+
+    .form-label {
+      display: block;
+      color: #32cd32;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 15px;
       background: rgba(44, 62, 80, 0.3);
       border: 2px solid rgba(34, 139, 34, 0.2);
-      border-radius: 12px;
+      border-radius: 10px;
       color: #ffffff;
       font-size: 16px;
-      font-family: inherit;
+      box-sizing: border-box;
     }
 
-    .sign-in-input:focus {
+    .form-input:focus {
       outline: none;
       border-color: #32cd32;
       box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
     }
 
-    .sign-in-input::placeholder {
+    .form-input::placeholder {
       color: #87ceeb;
     }
 
-    .sign-in-btn {
+    .form-input:read-only {
+      background: rgba(50, 205, 50, 0.1);
+      border-color: rgba(50, 205, 50, 0.3);
+      color: #32cd32;
+      font-weight: 600;
+    }
+
+    .license-input {
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .login-btn {
       background: linear-gradient(135deg, #32cd32, #228b22);
       color: white;
       border: none;
-      padding: 18px 30px;
+      padding: 15px 30px;
+      border-radius: 12px;
       font-size: 18px;
       font-weight: 600;
-      border-radius: 12px;
       cursor: pointer;
+      width: 100%;
       transition: all 0.3s ease;
       margin-top: 10px;
     }
 
-    .sign-in-btn:hover {
+    .login-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(50, 205, 50, 0.3);
-    }
-
-    /* Name Suggestion Styles */
-    .name-suggestion {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(50, 205, 50, 0.1));
-      border: 2px solid #ffd700;
-      border-radius: 12px;
-      padding: 15px 20px;
-      margin: 10px 0;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: none;
-      text-align: center;
-    }
-
-    .name-suggestion:hover {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(50, 205, 50, 0.2));
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
-    }
-
-    .suggestion-text {
-      color: #ffd700;
-      font-weight: 600;
-      font-size: 16px;
     }
 
     .container {
@@ -563,56 +573,6 @@
       border: 1px solid #ffd700;
     }
 
-    /* Footer */
-    .footer {
-      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95), rgba(15, 35, 65, 0.9));
-      border-top: 2px solid rgba(34, 139, 34, 0.3);
-      padding: 60px 20px 30px;
-      margin-top: 80px;
-    }
-
-    .footer-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 40px;
-    }
-
-    .footer-section h4 {
-      color: #32cd32;
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 20px;
-    }
-
-    .footer-section p {
-      color: #87ceeb;
-      margin-bottom: 10px;
-      line-height: 1.6;
-    }
-
-    .footer-section a {
-      color: #87ceeb;
-      text-decoration: none;
-      display: block;
-      margin-bottom: 8px;
-      transition: color 0.3s ease;
-    }
-
-    .footer-section a:hover {
-      color: #32cd32;
-    }
-
-    .footer-bottom {
-      text-align: center;
-      margin-top: 40px;
-      padding-top: 30px;
-      border-top: 1px solid rgba(34, 139, 34, 0.2);
-      color: #87ceeb;
-      font-size: 14px;
-    }
-
     /* QR Code Popup Styles */
     .qr-overlay {
       position: fixed;
@@ -722,6 +682,56 @@
       font-size: 14px;
     }
 
+    /* Footer */
+    .footer {
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95), rgba(15, 35, 65, 0.9));
+      border-top: 2px solid rgba(34, 139, 34, 0.3);
+      padding: 60px 20px 30px;
+      margin-top: 80px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 40px;
+    }
+
+    .footer-section h4 {
+      color: #32cd32;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .footer-section p {
+      color: #87ceeb;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .footer-section a {
+      color: #87ceeb;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 8px;
+      transition: color 0.3s ease;
+    }
+
+    .footer-section a:hover {
+      color: #32cd32;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid rgba(34, 139, 34, 0.2);
+      color: #87ceeb;
+      font-size: 14px;
+    }
+
     @media (max-width: 768px) {
       .logo-header {
         padding: 10px 20px;
@@ -798,24 +808,40 @@
   <div class="container">
     <div class="sign-in-section" id="signin">
       <h3>🔑 Already have ProfitPal? Sign In</h3>
+      <p class="login-subtitle">
+        Enter your email and license key from the welcome email to access your dashboard.
+      </p>
+
       <form class="sign-in-form" onsubmit="handleSignIn(event)">
-        <input type="email" id="signin-email" class="sign-in-input" placeholder="Email Address" required>
-        <input type="text" id="signin-license" class="sign-in-input" placeholder="License Key" required>
+        <!-- Дырка 1: Email -->
+        <div class="form-group">
+          <label class="form-label" for="signin-email">Email Address</label>
+          <input type="email" id="signin-email" class="form-input" placeholder="Enter your email address" required>
+        </div>
+
+        <!-- Дырка 2: Full Name (Auto-filled) -->
+        <div class="form-group">
+          <label class="form-label" for="signin-fullname">Full Name (Auto-filled from database)</label>
+          <input type="text" id="signin-fullname" class="form-input" placeholder="Will auto-fill when email is recognized" readonly>
+        </div>
+
+        <!-- Дырка 3: License Key -->
+        <div class="form-group">
+          <label class="form-label" for="signin-license">License Key (<span id="keyFormatLabel">PP-XXXX-XXXX-XXXX</span>)</label>
+          <input type="text" id="signin-license" class="form-input license-input" placeholder="PP-XXXX-XXXX-XXXX" maxlength="16" required>
+        </div>
 
         <!-- Admin Mode Toggle -->
-        <div style="display: flex; align-items: center; gap: 10px; margin: 15px 0; background: rgba(44, 62, 80, 0.2); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 107, 53, 0.3);">
-          <input type="checkbox" id="admin-mode-index" style="transform: scale(1.2); accent-color: #ff6b35;">
-          <label for="admin-mode-index" style="color: #ff6b35; font-weight: 600; cursor: pointer;">
-            👑 Admin Mode (Different key format)
-          </label>
+        <div class="form-group">
+          <div style="display: flex; align-items: center; gap: 10px; background: rgba(44, 62, 80, 0.2); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 107, 53, 0.3);">
+            <input type="checkbox" id="admin-mode-index" style="transform: scale(1.2); accent-color: #ff6b35;">
+            <label for="admin-mode-index" style="color: #ff6b35; font-weight: 600; cursor: pointer;">
+              👑 Admin Mode (Different key format)
+            </label>
+          </div>
         </div>
 
-        <!-- Name suggestion появляется здесь -->
-        <div id="name-suggestion" class="name-suggestion" onclick="selectSuggestedName()">
-          <div class="suggestion-text">Welcome back, <span id="suggested-name">Your Name</span>! Click to sign in →</div>
-        </div>
-
-        <button type="submit" class="sign-in-btn" id="signin-btn">Access ProfitPal Dashboard →</button>
+        <button type="submit" class="login-btn" id="signin-btn">Access ProfitPal Dashboard →</button>
       </form>
     </div>
   </div>
@@ -852,6 +878,7 @@
     </div>
   </div>
 
+  <!-- Demo Section -->
   <div class="container">
     <div class="section" id="demo">
       <h2>Live Demo - See ProfitPal in Action</h2>
@@ -901,6 +928,7 @@
       </div>
     </div>
 
+    <!-- How It Works Section -->
     <div class="section" id="how-it-works">
       <h2>How ProfitPal Works</h2>
       <div class="process-steps">
@@ -928,6 +956,7 @@
       </div>
     </div>
 
+    <!-- Pricing Section -->
     <div class="section" id="pricing">
       <h2>Simple ProfitPal Pricing</h2>
       <div class="pricing-note">
@@ -1073,7 +1102,7 @@
     let analysisCount = 0;
     let hasAnalyzed = false;
 
-    // 🔍 BROWSER FINGERPRINT SYSTEM
+    // Generate fingerprint
     function generateFingerprint() {
       const data = {
         screen: `${screen.width}x${screen.height}`,
@@ -1081,15 +1110,9 @@
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         language: navigator.language,
         platform: navigator.platform,
-        userAgent: navigator.userAgent.substring(0, 100),
-        cookieEnabled: navigator.cookieEnabled,
-        doNotTrack: navigator.doNotTrack || 'unknown',
-        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown'
+        userAgent: navigator.userAgent.substring(0, 100)
       };
-
-      console.log('📊 Fingerprint data collected:', data);
       const fingerprint = hashCode(JSON.stringify(data));
-      console.log('🔐 Generated fingerprint:', fingerprint);
       return fingerprint;
     }
 
@@ -1111,7 +1134,6 @@
           body: JSON.stringify({ fingerprint: fingerprint })
         });
         const data = await response.json();
-        console.log('🎯 Free trial status:', data);
         return data;
       } catch (error) {
         console.error('❌ Error checking free trial:', error);
@@ -1127,25 +1149,16 @@
           body: JSON.stringify({ fingerprint: fingerprint, ticker: ticker })
         });
         const data = await response.json();
-        console.log('📝 Free trial recorded:', data);
       } catch (error) {
         console.error('❌ Error recording free trial:', error);
       }
     }
 
-    // DOM Ready Event Listener
+    // DOM Ready
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('🔥 ProfitPal loaded!');
-
-      // Generate fingerprint on page load
-      const userFingerprint = generateFingerprint();
-      console.log('🎯 User fingerprint ready:', userFingerprint);
-
-      // Attach event listeners
       const analyzeBtn = document.getElementById('analyze-button');
       const continueBtn = document.getElementById('continue-button');
       const signinEmail = document.getElementById('signin-email');
-      const signinLicense = document.getElementById('signin-license');
 
       if (analyzeBtn) {
         analyzeBtn.addEventListener('click', analyzeStock);
@@ -1155,33 +1168,26 @@
         continueBtn.addEventListener('click', continueToFullAnalysis);
       }
 
-      // Sign In credentials validation
-      if (signinEmail && signinLicense) {
-        signinEmail.addEventListener('input', validateCredentials);
-        signinLicense.addEventListener('input', validateCredentials);
+      // Email validation only
+      if (signinEmail) {
+        signinEmail.addEventListener('input', validateEmail);
       }
 
-      // Auto-blur effect on page load
       setTimeout(() => {
         showInitialBlurredData();
       }, 1000);
     });
 
-    // Show initial blurred data
     function showInitialBlurredData() {
-      console.log('📊 Showing initial blurred data');
       const analysisResult = document.getElementById('analysis-result');
       if (analysisResult) {
         analysisResult.style.display = 'block';
-
-        // Set initial AAPL data but blurred
         document.getElementById('price').textContent = '$185.64';
         document.getElementById('pe-ratio').textContent = '28.7x';
         document.getElementById('market-cap').textContent = '$2.85T';
         document.getElementById('intrinsic-value').textContent = '$195.32';
         document.getElementById('verdict').textContent = '💎 QUALITY STOCK';
 
-        // Make sure all values are blurred
         const metricValues = document.querySelectorAll('.metric-value');
         metricValues.forEach(value => {
           value.classList.add('blurred');
@@ -1189,12 +1195,8 @@
       }
     }
 
-    // Main Analysis Function - THE MAGIC HAPPENS HERE!
     async function analyzeStock() {
-      console.log('🚀 Analyze Stock clicked!');
-
       const ticker = document.getElementById('ticker-input').value.toUpperCase().trim();
-      const resultDiv = document.getElementById('analysis-result');
       const continueSection = document.getElementById('continue-section');
 
       if (!ticker) {
@@ -1202,7 +1204,6 @@
         return;
       }
 
-      // 🔍 CHECK FINGERPRINT BEFORE ANALYSIS
       const userFingerprint = generateFingerprint();
       const trialStatus = await checkFreeTrial(userFingerprint);
 
@@ -1212,12 +1213,8 @@
         return;
       }
 
-      console.log(`📊 Analyzing ${ticker}... (${trialStatus.remaining} free analyses remaining)`);
-
-      // Show loading state
       document.getElementById('verdict').textContent = '⏳ PROFITPAL ANALYZING...';
 
-      // Mock data with more tickers
       const mockData = {
         'AAPL': { price: 185.64, pe: 28.7, mcap: 2.85, intrinsic: 195.32, verdict: '💎 QUALITY STOCK' },
         'TSLA': { price: 248.50, pe: 75.2, mcap: 789.1, intrinsic: 180.25, verdict: '⚠️ OVERVALUED' },
@@ -1229,32 +1226,24 @@
         'OSCR': { price: 48.75, pe: 15.2, mcap: 0.85, intrinsic: 52.30, verdict: '💎 HIDDEN GEM' }
       };
 
-      // Get data for ticker or use default
       const data = mockData[ticker] || mockData['AAPL'];
 
-      // Simulate analysis delay
       await new Promise(resolve => setTimeout(resolve, 1200));
-
-      // 📝 RECORD FINGERPRINT USAGE
       await recordFreeTrial(userFingerprint, ticker);
 
-      // Update the data
       document.getElementById('price').textContent = `${data.price}`;
       document.getElementById('pe-ratio').textContent = `${data.pe}x`;
       document.getElementById('market-cap').textContent = `${data.mcap}T`;
       document.getElementById('intrinsic-value').textContent = `${data.intrinsic}`;
       document.getElementById('verdict').textContent = data.verdict;
 
-      // 🔥 THE MAGIC MOMENT - UNBLUR THE DATA!
       setTimeout(() => {
-        console.log('✨ UNBLURRING DATA - MAGIC MOMENT!');
         const metricValues = document.querySelectorAll('.metric-value');
         metricValues.forEach(value => {
           value.classList.remove('blurred');
           value.classList.add('revealed');
         });
 
-        // Show continue section after unblur
         setTimeout(() => {
           continueSection.style.display = 'block';
           continueSection.classList.add('show');
@@ -1266,94 +1255,151 @@
       analysisCount++;
     }
 
-    // Continue to Full Analysis
     async function continueToFullAnalysis() {
-      console.log('🎯 Continue to Full Analysis clicked!');
       const ticker = document.getElementById('ticker-input').value.toUpperCase().trim() || 'AAPL';
-
-      // 📝 ЗАПИСАТЬ ИСПОЛЬЗОВАНИЕ FINGERPRINT (-1 анализ) ПРИ ПЕРЕХОДЕ
       const userFingerprint = generateFingerprint();
       await recordFreeTrial(userFingerprint, ticker);
-      console.log('✅ Continue button usage recorded - first paid analysis');
-
       window.location.href = `/fake-dashboard?ticker=${ticker}`;
     }
 
-    async function validateCredentials() {
-      const email = document.getElementById('signin-email').value.trim();
-      const licenseKey = document.getElementById('signin-license').value.trim().toUpperCase();
-      const isAdminMode = document.getElementById('admin-mode-index').checked;
-      const nameSuggestion = document.getElementById('name-suggestion');
-      const suggestedName = document.getElementById('suggested-name');
+    // Admin mode toggle
+    document.getElementById('admin-mode-index').addEventListener('change', function(e) {
+      const licenseInput = document.getElementById('signin-license');
+      const formatLabel = document.getElementById('keyFormatLabel');
 
-      // Базовая проверка - email должен быть всегда
+      if (e.target.checked) {
+        licenseInput.placeholder = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
+        licenseInput.maxLength = 50;
+        formatLabel.textContent = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
+        licenseInput.value = '';
+      } else {
+        licenseInput.placeholder = 'PP-XXXX-XXXX-XXXX';
+        licenseInput.maxLength = 16;
+        formatLabel.textContent = 'PP-XXXX-XXXX-XXXX';
+        licenseInput.value = '';
+      }
+    });
+
+    // License key formatting
+    document.getElementById('signin-license').addEventListener('input', function(e) {
+      const isAdminMode = document.getElementById('admin-mode-index').checked;
+      let value = e.target.value.replace(/[^A-Z0-9-]/g, '');
+
+      if (isAdminMode) {
+        e.target.value = value.toUpperCase();
+      } else {
+        value = value.replace(/[^A-Z0-9]/g, '');
+        if (value.length > 2) {
+          value = value.slice(0, 2) + '-' + value.slice(2);
+        }
+        if (value.length > 7) {
+          value = value.slice(0, 7) + '-' + value.slice(7);
+        }
+        if (value.length > 12) {
+          value = value.slice(0, 12) + '-' + value.slice(12, 16);
+        }
+        e.target.value = value;
+      }
+    });
+
+    // VALIDATE EMAIL ONLY - показывает имя когда находит email в базе
+    async function validateEmail() {
+      const email = document.getElementById('signin-email').value.trim();
+      const fullnameInput = document.getElementById('signin-fullname');
+
       if (!email) {
-        nameSuggestion.style.display = 'none';
+        fullnameInput.value = '';
+        fullnameInput.placeholder = 'Will auto-fill when email is recognized';
         return;
       }
 
-      // Валидация ключа в зависимости от режима
-      if (isAdminMode) {
-        // Admin: минимальная проверка
-        if (!licenseKey.startsWith('PP-') || licenseKey.length < 10) {
-          nameSuggestion.style.display = 'none';
-          return;
+      try {
+        // Вызываем API только с email для поиска имени
+        const response = await fetch('/validate-credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, license_key: 'PP-TEST-TEST-TEST' }) // Временный ключ
+        });
+
+        const data = await response.json();
+
+        if (data.show_name && data.full_name) {
+          // Заполняем имя автоматически
+          fullnameInput.value = data.full_name;
+          fullnameInput.style.color = '#32cd32';
+          console.log(`✨ Name auto-filled: ${data.full_name}`);
+        } else {
+          fullnameInput.value = '';
+          fullnameInput.placeholder = 'Email not found in database';
+          fullnameInput.style.color = '#e74c3c';
         }
-      } else {
-        // Client: строгая проверка
-        if (!licenseKey || licenseKey.length < 16) {
-          nameSuggestion.style.display = 'none';
-          return;
-        }
+      } catch (error) {
+        console.error('❌ Email validation error:', error);
+        fullnameInput.value = '';
+        fullnameInput.placeholder = 'Error checking email';
+      }
+    }
+
+    // Handle Sign In Form
+    async function handleSignIn(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('signin-email').value.trim();
+      const licenseKey = document.getElementById('signin-license').value.trim().toUpperCase();
+      const fullName = document.getElementById('signin-fullname').value.trim();
+      const isAdminMode = document.getElementById('admin-mode-index').checked;
+
+      if (!email || !licenseKey) {
+        alert('Please fill in all fields');
+        return;
       }
 
-      // ПРОДОЛЖАЕМ ВЫПОЛНЕНИЕ - отправляем на API
-      try {
-        console.log('🔍 Validating credentials:', email, licenseKey);
+      if (!fullName && !isAdminMode) {
+        alert('Please enter a valid email to auto-fill your name');
+        return;
+      }
 
-        const response = await fetch('/validate-credentials', {
+      // Прямой вход для админа
+      if (isAdminMode) {
+        try {
+          const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, license_key: licenseKey })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            alert(`Welcome admin! Redirecting to dashboard...`);
+            window.location.href = '/dashboard';
+          } else {
+            alert('Invalid admin credentials');
+          }
+        } catch (error) {
+          alert('Login failed - check console for details');
+        }
+        return;
+      }
+
+      // Для обычных пользователей
+      try {
+        const response = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, license_key: licenseKey })
         });
 
         const data = await response.json();
-        console.log('📊 API Response:', data);
 
-        if (data.show_name && data.full_name) {
-          suggestedName.textContent = data.full_name;
-          nameSuggestion.style.display = 'block';
-          console.log(`✨ Name revealed: ${data.full_name}`);
+        if (data.success) {
+          alert(`Welcome back ${fullName}! Redirecting to dashboard...`);
+          window.location.href = '/dashboard';
         } else {
-          nameSuggestion.style.display = 'none';
+          alert('Invalid credentials');
         }
       } catch (error) {
-        console.error('❌ Credentials validation error:', error);
-        nameSuggestion.style.display = 'none';
-      }
-    }
-
-    // Select Suggested Name and Sign In
-    function selectSuggestedName() {
-      console.log('✅ Name selected - signing in!');
-      const name = document.getElementById('suggested-name').textContent;
-      const email = document.getElementById('signin-email').value;
-
-      alert(`Welcome back ${name}! Redirecting to ProfitPal Dashboard...`);
-      // In real version, this would authenticate and redirect
-      window.location.href = '/dashboard';
-    }
-
-    // Handle Sign In Form
-    function handleSignIn(event) {
-      event.preventDefault();
-
-      // Check if name suggestion is visible
-      const nameSuggestion = document.getElementById('name-suggestion');
-      if (nameSuggestion.style.display === 'block') {
-        selectSuggestedName();
-      } else {
-        alert('Please enter valid credentials to see your name suggestion.');
+        alert('Login failed');
       }
     }
 
@@ -1384,7 +1430,7 @@
       }
     });
 
-    // Smooth scrolling for navigation
+    // Smooth scrolling
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
         e.preventDefault();

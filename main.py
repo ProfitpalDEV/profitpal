@@ -971,6 +971,19 @@ async def check_credentials(request: Request):
                     "show_name": False,
                     "error": "Email and license key required"
                 }, status_code=400)
+   
+            # 👑 ДОБАВИТЬ ЭТОТ БЛОК ЗДЕСЬ:
+            # Check if admin login
+            admin_key = os.getenv('ADMIN_LICENSE_KEY', '')
+            if is_admin and license_key == admin_key:
+                admin_full_name = os.getenv('ADMIN_FULL_NAME', 'Administrator')
+                response_data = {
+                    "show_name": True,
+                    "full_name": admin_full_name,
+                    "email": email,
+                    "welcome_message": f"Welcome back, {admin_full_name}!"
+                }
+                return JSONResponse(content=response_data)
 
             result = validate_user_credentials(email, license_key)
 

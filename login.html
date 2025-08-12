@@ -86,6 +86,17 @@
             box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
         }
 
+        .form-input::placeholder {
+            color: #87ceeb;
+        }
+
+        .form-input:read-only {
+            background: rgba(50, 205, 50, 0.1);
+            border-color: rgba(50, 205, 50, 0.3);
+            color: #32cd32;
+            font-weight: 600;
+        }
+
         .license-input {
             font-family: 'Courier New', monospace;
             letter-spacing: 1px;
@@ -239,11 +250,19 @@
         <div id="errorMessage" class="error-message"></div>
 
         <form id="loginForm">
+            <!-- Дырка 1: Email Address -->
             <div class="form-group">
                 <label class="form-label" for="email">Email Address</label>
                 <input type="email" id="email" class="form-input" placeholder="Enter your email address" required>
             </div>
 
+            <!-- Дырка 2: Full Name (Auto-filled) -->
+            <div class="form-group">
+                <label class="form-label" for="fullName">Full Name (Auto-filled from database)</label>
+                <input type="text" id="fullName" class="form-input" placeholder="Will auto-fill when email is recognized" readonly>
+            </div>
+
+            <!-- Дырка 3: License Key -->
             <div class="form-group">
                 <label class="form-label" for="licenseKey">License Key (<span id="keyFormatLabel">PP-XXXX-XXXX-XXXX</span>)</label>
                 <input type="text" id="licenseKey" class="form-input license-input" placeholder="PP-XXXX-XXXX-XXXX" maxlength="16" required>
@@ -299,6 +318,44 @@
             };
         }
 
+        // Email validation - автозаполнение имени
+        document.getElementById('email').addEventListener('input', async function() {
+            const email = this.value.trim();
+            const fullNameInput = document.getElementById('fullName');
+
+            if (!email) {
+                fullNameInput.value = '';
+                fullNameInput.placeholder = 'Will auto-fill when email is recognized';
+                return;
+            }
+
+            try {
+                // Вызываем API только с email для поиска имени
+                const response = await fetch('/validate-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, license_key: 'PP-TEST-TEST-TEST' }) // Временный ключ
+                });
+
+                const data = await response.json();
+
+                if (data.show_name && data.full_name) {
+                    // Заполняем имя автоматически
+                    fullNameInput.value = data.full_name;
+                    fullNameInput.style.color = '#32cd32';
+                    console.log(`✨ Name auto-filled: ${data.full_name}`);
+                } else {
+                    fullNameInput.value = '';
+                    fullNameInput.placeholder = 'Email not found in database';
+                    fullNameInput.style.color = '#e74c3c';
+                }
+            } catch (error) {
+                console.error('❌ Email validation error:', error);
+                fullNameInput.value = '';
+                fullNameInput.placeholder = 'Error checking email';
+            }
+        });
+
         // Admin mode toggle functionality
         document.getElementById('adminMode').addEventListener('change', function(e) {
             const licenseInput = document.getElementById('licenseKey');
@@ -349,6 +406,7 @@
 
             const email = document.getElementById('email').value;
             const licenseKey = document.getElementById('licenseKey').value;
+            const fullName = document.getElementById('fullName').value.trim();
             const errorDiv = document.getElementById('errorMessage');
             const loadingDiv = document.getElementById('loadingState');
             const loginBtn = document.getElementById('loginBtn');
@@ -361,6 +419,11 @@
 
             // Validation - проверяем режим
             const isAdminMode = document.getElementById('adminMode').checked;
+
+            if (!fullName && !isAdminMode) {
+                showError('Please enter a valid email to auto-fill your name');
+                return;
+            }
 
             if (isAdminMode) {
                 // Админский ключ - проверяем что начинается с PP- и достаточно длинный
@@ -401,6 +464,11 @@
                 if (response.ok) {
                     // Success - redirect to dashboard
                     console.log('Login successful:', data);
+                    if (isAdminMode) {
+                        alert(`Welcome admin! Redirecting to dashboard...`);
+                    } else {
+                        alert(`Welcome back ${fullName}! Redirecting to dashboard...`);
+                    }
                     window.location.href = '/dashboard';
                 } else {
                     // Error
