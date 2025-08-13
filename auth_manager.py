@@ -536,7 +536,7 @@ def authenticate_user_login(
             return {"authenticated": False, "success": False, "error": "Admin key mismatch"}
 
     # -------- обычный пользователь --------
-    return auth_manager.authenticate_user(
+    return authenticate_user(
         email=email,
         license_key=license_key,
         full_name=full_name,
