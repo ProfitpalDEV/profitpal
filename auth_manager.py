@@ -463,30 +463,62 @@ def validate_user_credentials(email: str, license_key: str) -> Dict[str, Any]:
     """🎯 ГЛАВНАЯ ФУНКЦИЯ: Email + License → Name для подсветки"""
     return auth_manager.validate_credentials(email, license_key)
 
-def authenticate_user_login(email: str, license_key: str,
-                          full_name: str = None,
-                          ip_address: str = None, user_agent: str = None) -> Dict[str, Any]:
-    """Полная аутентификация с созданием сессии"""
+def authenticate_user_login(
+    email: str,
+    license_key: str,
+    full_name: str = None,
+    ip_address: str = None,
+    user_agent: str = None,
+) -> Dict[str, Any]:
+    """Полная аутентификация с созданием сессии (с надёжной проверкой админа)"""
 
-    # --- Admin fast-path via ENV ---
-    admin_email = os.getenv("ADMIN_EMAIL", "").lower()
-    admin_key = os.getenv("ADMIN_LICENSE_KEY", "")
-    admin_name = os.getenv("ADMIN_FULL_NAME", "Administrator")
+    # --- Нормализация входных значений
+    req_email = (email or "").strip().lower()
+    # ключ приводим к upper и убираем пробелы
+    req_key   = (license_key or "").strip().upper().replace(" ", "")
+    req_key_nohyphen = req_key.replace("-", "")
 
-    if email.lower() == admin_email and license_key == admin_key:
-        import secrets
+    # --- Читаем ENV для админа и тоже нормализуем
+    admin_email = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
+    admin_key   = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip().upper().replace(" ", "")
+    admin_key_nohyphen = admin_key.replace("-", "")
+
+    # --- Диагностика (поможет в Railway Logs понять, что не сошлось)
+    def _mask(s: str) -> str:
+        if not s:
+            return "∅"
+        s = str(s)
+        return (s[:3] + "…***…" + s[-3:]) if len(s) > 6 else "***"
+
+    email_ok = (req_email == admin_email)
+    key_eq   = (req_key == admin_key)
+    key_nh   = (req_key_nohyphen == admin_key_nohyphen)
+
+    print(f"🧪 Admin check: email_ok={email_ok} | req={req_email} | env={admin_email}")
+    print(f"🧪 Admin key:   eq={key_eq}, nohyphen={key_nh} | req={_mask(req_key)} | env={_mask(admin_key)}")
+
+    # --- Быстрый вход для админа
+    if email_ok and (key_eq or key_nh):
         token = secrets.token_urlsafe(32)
+        admin_name = os.getenv("ADMIN_FULL_NAME", "Administrator")
+        print(f"👑 Admin login OK: {req_email}")
         return {
             "authenticated": True,
             "success": True,
             "session_token": token,
             "user": {"email": admin_email, "full_name": admin_name, "role": "admin"},
-            "message": "Welcome, admin"
+            "message": "Welcome, admin",
         }
 
-    # Обычная проверка пользователя из БД
-    return auth_manager.authenticate_user(email, license_key,
-                                        full_name, ip_address, user_agent)
+    # --- Обычный пользователь (делегируем менеджеру)
+    return auth_manager.authenticate_user(
+        email=email,
+        license_key=license_key,
+        full_name=full_name,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
 
 def check_session_validity(session_token: str) -> Optional[Dict[str, Any]]:
     """Проверка валидности сессии"""

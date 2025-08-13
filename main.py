@@ -1072,21 +1072,19 @@ async def full_authentication(request: Request):
                                        ip_address=ip_address,
                                        user_agent=user_agent)
 
-        if result['authenticated']:
-            return JSONResponse(
-                content={
-                    "success": True,
-                    "session_token": result['session_token'],
-                    "user": result['user'],
-                    "user_role": result['user'].get('role', 'client'),
-                    "message": result['message']
-                })
-        else:
+        if result.get('authenticated'):
             return JSONResponse(content={
-                "success": False,
-                "error": result['error']
-            },
-            status_code=401)
+                "success": True,
+                "session_token": result['session_token'],
+                "user": result['user'],
+                "user_role": result['user'].get('role', 'client'),
+                "message": result.get('message', 'Authenticated'),
+            })
+        else:
+            err = result.get('error', 'Invalid credentials')  # <-- безопаснее
+            print(f"❌ Auth failed for {email}: {err}")
+            return JSONResponse(content={"success": False, "error": err}, status_code=401)
+
 
     except Exception as e:
         print(f"❌ Authentication error: {e}")
