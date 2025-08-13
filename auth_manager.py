@@ -464,8 +464,13 @@ def validate_user_credentials(email: str, license_key: str) -> Dict[str, Any]:
     """🎯 ГЛАВНАЯ ФУНКЦИЯ: Email + License → Name для подсветки"""
     return auth_manager.validate_credentials(email, license_key)
 
-def authenticate_user_login(...):
-    ...
+def authenticate_user_login(
+        email: str,
+        license_key: str,
+        full_name: str = None,
+        ip_address: str = None,
+        user_agent: str = None,
+    ) -> Dict[str, Any]:
     def normalize_key(s: str) -> str:
         """UPPER + вычищаем кавычки/пробелы/невидимые пробелы, приводим все тире к '-'"""
         if s is None:
