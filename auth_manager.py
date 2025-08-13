@@ -465,27 +465,33 @@ def validate_user_credentials(email: str, license_key: str) -> Dict[str, Any]:
     return auth_manager.validate_credentials(email, license_key)
 
 def authenticate_user_login(
-        email: str,
-        license_key: str,
-        full_name: str = None,
-        ip_address: str = None,
-        user_agent: str = None,
-    ) -> Dict[str, Any]:
+    email: str,
+    license_key: str,
+    full_name: str = None,
+    ip_address: str = None,
+    user_agent: str = None,
+) -> Dict[str, Any]:
+    # --- локальные хелперы (чтобы не было NameError) ---
+    def normalize_email(s: str) -> str:
+        return (s or "").strip().lower()
+
     def normalize_key(s: str) -> str:
         """UPPER + вычищаем кавычки/пробелы/невидимые пробелы, приводим все тире к '-'"""
         if s is None:
             s = ""
-        s = re.sub(r"[\u00A0\u200B\u200C\u200D]", "", str(s))  # NBSP/zero-width
+        # NBSP/zero-width
+        s = re.sub(r"[\u00A0\u200B\u200C\u200D]", "", str(s))
         s = s.strip()
+        # срезаем обрамляющие кавычки
         if (len(s) >= 2) and (s[0] == s[-1]) and s[0] in ["'", '"']:
             s = s[1:-1]
         s = s.upper()
-        s = s.replace("–", "-").replace("—", "-")  # все тире → '-'
-        s = re.sub(r"\s+", "", s)                 # убираем пробелы
+        s = s.replace("–", "-").replace("—", "-")   # все тире -> "-"
+        s = re.sub(r"\s+", "", s)                   # убираем пробелы
         return s
 
     def to_strict(s: str) -> str:
-        """Оставляем только A-Z и 0-9 (всё остальное выбрасываем)"""
+        """Оставляем только A-Z и 0-9"""
         return re.sub(r"[^A-Z0-9]", "", s or "")
 
     def mask(s: str) -> str:
@@ -506,7 +512,7 @@ def authenticate_user_login(
     admin_key_strict   = to_strict(admin_key)
     admin_name  = os.getenv("ADMIN_FULL_NAME", "Administrator")
 
-    # диагностика
+    # диагностика (смотрим в Railway Logs)
     email_ok = (req_email == admin_email)
     key_eq   = (req_key == admin_key)
     key_nh   = (req_key_nohyphen == admin_key_nohyphen)
@@ -536,14 +542,23 @@ def authenticate_user_login(
             return {"authenticated": False, "success": False, "error": "Admin key mismatch"}
 
     # -------- обычный пользователь --------
-    return authenticate_user(
-        email=email,
-        license_key=license_key,
-        full_name=full_name,
-        ip_address=ip_address,
-        user_agent=user_agent,
-    )
-
+    try:
+        return authenticate_user(   # ВАЖНО: локальная функция, без auth_manager.
+            email=email,
+            license_key=license_key,
+            full_name=full_name,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except Exception as e:
+        import traceback
+        print(f"❌ fallback authenticate_user crashed: {type(e).__name__}: {e}")
+        print(traceback.format_exc())
+        return {
+            "authenticated": False,
+            "success": False,
+            "error": f"internal error: {type(e).__name__}"
+        }
 
 def check_session_validity(session_token: str) -> Optional[Dict[str, Any]]:
     """Проверка валидности сессии"""

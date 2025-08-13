@@ -1059,40 +1059,43 @@ async def full_authentication(request: Request):
     """Полная аутентификация пользователя с созданием сессии"""
     try:
         body = await request.json()
-        email = body.get('email', '').strip()
-        license_key = body.get('license_key', '').strip().upper()
-        full_name = body.get('full_name', '').strip()
+        email       = (body.get('email') or '').strip()
+        license_key = (body.get('license_key') or '').strip()
+        full_name   = (body.get('full_name') or '').strip() or None
 
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
 
-        result = authenticate_user_login(email=email,
-                                       license_key=license_key,
-                                       full_name=full_name,
-                                       ip_address=ip_address,
-                                       user_agent=user_agent)
+        result = authenticate_user_login(
+            email=email,
+            license_key=license_key,
+            full_name=full_name,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
 
         if result.get('authenticated'):
             return JSONResponse(content={
                 "success": True,
-                "session_token": result['session_token'],
-                "user": result['user'],
-                "user_role": result['user'].get('role', 'client'),
-                "message": result.get('message', 'Authenticated'),
-            })
-        else:
-            err = result.get('error', 'Invalid credentials')  # <-- безопаснее
-            print(f"❌ Auth failed for {email}: {err}")
-            return JSONResponse(content={"success": False, "error": err}, status_code=401)
+                "session_token": result.get("session_token"),
+                "user": result.get("user"),
+                "user_role": result.get("user", {}).get("role", "client"),
+                "message": result.get("message", "Authenticated"),
+            }, status_code=200)
 
+        # не прошла аутентификация (осознанный отказ, не 500)
+        err = result.get('error', 'Invalid credentials')
+        print(f"⚠️ Auth failed for {email}: {err}")
+        return JSONResponse(content={"success": False, "error": err}, status_code=401)
 
     except Exception as e:
-        print(f"❌ Authentication error: {e}")
-        return JSONResponse(content={
-            "success": False,
-            "error": "Authentication failed"
-        },
-        status_code=500)
+        import traceback
+        print(f"❌ Auth error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        return JSONResponse(
+            content={"success": False, "error": f"{type(e).__name__}: {e}"},
+            status_code=500
+        )
+
 
 
 # ==========================================
