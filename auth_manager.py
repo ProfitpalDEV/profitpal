@@ -4,6 +4,7 @@ import sqlite3
 import hashlib
 import secrets
 import os
+import re
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from cryptography.fernet import Fernet
@@ -470,47 +471,75 @@ def authenticate_user_login(
     ip_address: str = None,
     user_agent: str = None,
 ) -> Dict[str, Any]:
-    """Полная аутентификация с созданием сессии (с надёжной проверкой админа)"""
+    """Полная аутентификация с созданием сессии (с админ fast-path)"""
 
-    # --- Нормализация входных значений
-    req_email = (email or "").strip().lower()
-    # ключ приводим к upper и убираем пробелы
-    req_key   = (license_key or "").strip().upper().replace(" ", "")
-    req_key_nohyphen = req_key.replace("-", "")
+    # -------- helpers --------
+    def normalize_email(s: str) -> str:
+        return (s or "").strip().lower()
 
-    # --- Читаем ENV для админа и тоже нормализуем
-    admin_email = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
-    admin_key   = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip().upper().replace(" ", "")
-    admin_key_nohyphen = admin_key.replace("-", "")
+    def normalize_key(s: str) -> str:
+        """UPPER, убираем кавычки/все пробелы/невидимые пробелы, выравниваем дефисы"""
+        if s is None:
+            s = ""
+        # убираем \u00A0 (NBSP), \u200b (zero width) и прочие whitespace
+        s = re.sub(r"[\u00A0\u200B\u200C\u200D]", "", str(s))
+        s = s.strip()
+        # срезаем обрамляющие кавычки, если они есть
+        if (len(s) >= 2) and ((s[0] == s[-1]) and s[0] in ["'", '"']):
+            s = s[1:-1]
+        # приводим к верхнему регистру
+        s = s.upper()
+        # нормализуем дефисы (минус/длинные тире) к обычному '-'
+        s = s.replace("–", "-").replace("—", "-")
+        # убираем любые пробелы
+        s = re.sub(r"\s+", "", s)
+        return s
 
-    # --- Диагностика (поможет в Railway Logs понять, что не сошлось)
-    def _mask(s: str) -> str:
+    def mask(s: str) -> str:
         if not s:
             return "∅"
-        s = str(s)
         return (s[:3] + "…***…" + s[-3:]) if len(s) > 6 else "***"
 
+    # -------- inputs normalized --------
+    req_email = normalize_email(email)
+    req_key   = normalize_key(license_key)
+    req_key_nohyphen = req_key.replace("-", "")
+
+    # -------- admin ENV normalized --------
+    admin_email = normalize_email(os.getenv("ADMIN_EMAIL", ""))
+    admin_key   = normalize_key(os.getenv("ADMIN_LICENSE_KEY", ""))
+    admin_key_nohyphen = admin_key.replace("-", "")
+    admin_name  = os.getenv("ADMIN_FULL_NAME", "Administrator")
+
+    # диагностика
     email_ok = (req_email == admin_email)
     key_eq   = (req_key == admin_key)
     key_nh   = (req_key_nohyphen == admin_key_nohyphen)
 
     print(f"🧪 Admin check: email_ok={email_ok} | req={req_email} | env={admin_email}")
-    print(f"🧪 Admin key:   eq={key_eq}, nohyphen={key_nh} | req={_mask(req_key)} | env={_mask(admin_key)}")
+    print(f"🧪 Admin key:   eq={key_eq}, nohyphen={key_nh} | req={mask(req_key)} | env={mask(admin_key)}")
 
-    # --- Быстрый вход для админа
-    if email_ok and (key_eq or key_nh):
-        token = secrets.token_urlsafe(32)
-        admin_name = os.getenv("ADMIN_FULL_NAME", "Administrator")
-        print(f"👑 Admin login OK: {req_email}")
-        return {
-            "authenticated": True,
-            "success": True,
-            "session_token": token,
-            "user": {"email": admin_email, "full_name": admin_name, "role": "admin"},
-            "message": "Welcome, admin",
-        }
+    # -------- admin fast-path --------
+    if email_ok:
+        if key_eq or key_nh:
+            token = secrets.token_urlsafe(32)
+            print(f"👑 Admin login OK: {req_email}")
+            return {
+                "authenticated": True,
+                "success": True,
+                "session_token": token,
+                "user": {"email": admin_email, "full_name": admin_name, "role": "admin"},
+                "message": "Welcome, admin",
+            }
+        else:
+            # важное изменение: не падаем в БД, а честно говорим про mismatch
+            return {
+                "authenticated": False,
+                "success": False,
+                "error": "Admin key mismatch",
+            }
 
-    # --- Обычный пользователь (делегируем менеджеру)
+    # -------- обычный пользователь --------
     return auth_manager.authenticate_user(
         email=email,
         license_key=license_key,
