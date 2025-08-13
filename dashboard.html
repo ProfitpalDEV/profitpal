@@ -1518,21 +1518,48 @@
             }
         }
 
+        // 🔧 ИСПРАВЛЕННАЯ ФУНКЦИЯ showDemoData() - ADMIN ИЛИ DEMO ДАННЫЕ
         function showDemoData() {
-            // Демо данные для тестирования
-            userData = {
-                fullName: "DJ Investor",
-                email: "dj@profitpal.org", 
-                referralLink: "https://profitpal.org?ref=ABCDE12345fghij",
-                freeMonthsBalance: 3,
-                totalPaidReferrals: 3,
-                totalEarnedMonths: 3,
-                recentReferrals: [
-                    { new_user_email: "alex.smith@gmail.com", used_at: "2025-01-03" },
-                    { new_user_email: "sarah.jones@yahoo.com", used_at: "2025-01-01" },
-                    { new_user_email: "mike.wilson@gmail.com", used_at: "2024-12-28" }
-                ]
-            };
+            const userEmail = getUserEmail();
+            const userRole = localStorage.getItem('pp_user_role') || 'client';
+
+            // 👑 ПРОВЕРЯЕМ ЕСЛИ ЭТО ADMIN
+            const adminEmail = 'denava.business@gmail.com'; // Ваш admin email
+            const isAdmin = (userEmail.toLowerCase() === adminEmail.toLowerCase()) || (userRole === 'admin');
+
+            if (isAdmin) {
+                // 👑 ADMIN ДАННЫЕ
+                userData = {
+                    fullName: "System Administrator",
+                    email: adminEmail,
+                    referralLink: "https://profitpal.org?ref=ADMIN-SYSTEM-ACCESS",
+                    freeMonthsBalance: 999,        // Admin имеет неограниченный доступ
+                    totalPaidReferrals: 0,         // Admin не участвует в referral программе
+                    totalEarnedMonths: 0,          // Admin не зарабатывает месяцы
+                    recentReferrals: []            // Admin не имеет referrals
+                };
+
+                console.log('👑 Admin demo data loaded for:', adminEmail);
+            } else {
+                // 👤 ОБЫЧНЫЕ DEMO ДАННЫЕ ДЛЯ КЛИЕНТОВ
+                userData = {
+                    fullName: "DJ Investor",
+                    email: "dj@profitpal.org", 
+                    referralLink: "https://profitpal.org?ref=ABCDE12345fghij",
+                    freeMonthsBalance: 3,
+                    totalPaidReferrals: 3,
+                    totalEarnedMonths: 3,
+                    recentReferrals: [
+                        { new_user_email: "alex.smith@gmail.com", used_at: "2025-01-03" },
+                        { new_user_email: "sarah.jones@yahoo.com", used_at: "2025-01-01" },
+                        { new_user_email: "mike.wilson@gmail.com", used_at: "2024-12-28" }
+                    ]
+                };
+
+                console.log('👤 Client demo data loaded for:', userEmail);
+            }
+
+            // 🎨 Обновляем UI с правильными данными
             updateUI();
         }
 
@@ -1639,9 +1666,25 @@
             return months === 1 ? '1 month ago' : `${months} months ago`;
         }
 
+            // 🔧 ИСПРАВЛЕННАЯ ФУНКЦИЯ getUserEmail() - ЧИТАЕТ ИЗ ADMIN СЕССИИ
         function getUserEmail() {
-            // В реальности получаем из session/auth
-            // Пока возвращаем demo email
+            // 🎯 Сначала проверяем localStorage из admin логина
+            const sessionEmail = localStorage.getItem('pp_email');
+            if (sessionEmail) {
+                console.log('📧 Found admin email in session:', sessionEmail);
+                return sessionEmail;
+            }
+
+            // 🔍 Fallback: проверяем URL параметры
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlEmail = urlParams.get('email');
+            if (urlEmail) {
+                console.log('📧 Found email in URL:', urlEmail);
+                return urlEmail;
+            }
+
+            // 🚨 Последний fallback - demo данные
+            console.log('⚠️ No admin session found, using demo data');
             return 'dj@profitpal.org';
         }
 
