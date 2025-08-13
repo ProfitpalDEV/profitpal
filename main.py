@@ -1024,23 +1024,26 @@ async def check_admin_status(request: Request):
     """API для проверки админского статуса пользователя"""
     try:
         body = await request.json()
-        email = body.get('email', '').strip().lower()
+        email = (body.get('email', '') or '').strip().lower()
         fingerprint = body.get('fingerprint', '')
 
-        admin_email = os.getenv('ADMIN_EMAIL', '').lower()
+        admin_email = (os.getenv('ADMIN_EMAIL', '') or '').lower()
+        admin_name = os.getenv('ADMIN_FULL_NAME', 'Administrator')
         is_admin = (email == admin_email)
 
         print(
-            f"🎯 Admin status check: email={email}, admin_email={admin_email}, is_admin={is_admin}"
+            f"🔍 Admin status check: email={email}, admin_email={admin_email}, "
+            f"is_admin={is_admin}"
         )
 
         return JSONResponse(content={
             "is_admin": is_admin,
             "admin_email": admin_email,
+            "admin_full_name": admin_name,
             "fingerprint": fingerprint,
             "status": "success"
         },
-                            status_code=200)
+        status_code=200)
 
     except Exception as e:
         print(f"❌ Error in check_admin_status: {e}")
@@ -1048,7 +1051,7 @@ async def check_admin_status(request: Request):
             "is_admin": False,
             "error": str(e)
         },
-                            status_code=500)
+        status_code=500)
 
 
 @app.post('/authenticate-user')
@@ -1064,10 +1067,10 @@ async def full_authentication(request: Request):
         user_agent = request.headers.get("user-agent", "unknown")
 
         result = authenticate_user_login(email=email,
-                                         license_key=license_key,
-                                         full_name=full_name,
-                                         ip_address=ip_address,
-                                         user_agent=user_agent)
+                                       license_key=license_key,
+                                       full_name=full_name,
+                                       ip_address=ip_address,
+                                       user_agent=user_agent)
 
         if result['authenticated']:
             return JSONResponse(
@@ -1075,6 +1078,7 @@ async def full_authentication(request: Request):
                     "success": True,
                     "session_token": result['session_token'],
                     "user": result['user'],
+                    "user_role": result['user'].get('role', 'client'),
                     "message": result['message']
                 })
         else:
@@ -1082,7 +1086,7 @@ async def full_authentication(request: Request):
                 "success": False,
                 "error": result['error']
             },
-                                status_code=401)
+            status_code=401)
 
     except Exception as e:
         print(f"❌ Authentication error: {e}")
@@ -1090,7 +1094,7 @@ async def full_authentication(request: Request):
             "success": False,
             "error": "Authentication failed"
         },
-                            status_code=500)
+        status_code=500)
 
 
 # ==========================================

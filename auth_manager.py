@@ -463,10 +463,30 @@ def validate_user_credentials(email: str, license_key: str) -> Dict[str, Any]:
     """🎯 ГЛАВНАЯ ФУНКЦИЯ: Email + License → Name для подсветки"""
     return auth_manager.validate_credentials(email, license_key)
 
-def authenticate_user_login(email: str, license_key: str, full_name: str = None,
+def authenticate_user_login(email: str, license_key: str,
+                          full_name: str = None,
                           ip_address: str = None, user_agent: str = None) -> Dict[str, Any]:
     """Полная аутентификация с созданием сессии"""
-    return auth_manager.authenticate_user(email, license_key, full_name, ip_address, user_agent)
+
+    # --- Admin fast-path via ENV ---
+    admin_email = os.getenv("ADMIN_EMAIL", "").lower()
+    admin_key = os.getenv("ADMIN_LICENSE_KEY", "")
+    admin_name = os.getenv("ADMIN_FULL_NAME", "Administrator")
+
+    if email.lower() == admin_email and license_key == admin_key:
+        import secrets
+        token = secrets.token_urlsafe(32)
+        return {
+            "authenticated": True,
+            "success": True,
+            "session_token": token,
+            "user": {"email": admin_email, "full_name": admin_name, "role": "admin"},
+            "message": "Welcome, admin"
+        }
+
+    # Обычная проверка пользователя из БД
+    return auth_manager.authenticate_user(email, license_key,
+                                        full_name, ip_address, user_agent)
 
 def check_session_validity(session_token: str) -> Optional[Dict[str, Any]]:
     """Проверка валидности сессии"""
