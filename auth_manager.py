@@ -464,36 +464,24 @@ def validate_user_credentials(email: str, license_key: str) -> Dict[str, Any]:
     """🎯 ГЛАВНАЯ ФУНКЦИЯ: Email + License → Name для подсветки"""
     return auth_manager.validate_credentials(email, license_key)
 
-def authenticate_user_login(
-    email: str,
-    license_key: str,
-    full_name: str = None,
-    ip_address: str = None,
-    user_agent: str = None,
-) -> Dict[str, Any]:
-    """Полная аутентификация с созданием сессии (с админ fast-path)"""
-
-    # -------- helpers --------
-    def normalize_email(s: str) -> str:
-        return (s or "").strip().lower()
-
+def authenticate_user_login(...):
+    ...
     def normalize_key(s: str) -> str:
-        """UPPER, убираем кавычки/все пробелы/невидимые пробелы, выравниваем дефисы"""
+        """UPPER + вычищаем кавычки/пробелы/невидимые пробелы, приводим все тире к '-'"""
         if s is None:
             s = ""
-        # убираем \u00A0 (NBSP), \u200b (zero width) и прочие whitespace
-        s = re.sub(r"[\u00A0\u200B\u200C\u200D]", "", str(s))
+        s = re.sub(r"[\u00A0\u200B\u200C\u200D]", "", str(s))  # NBSP/zero-width
         s = s.strip()
-        # срезаем обрамляющие кавычки, если они есть
-        if (len(s) >= 2) and ((s[0] == s[-1]) and s[0] in ["'", '"']):
+        if (len(s) >= 2) and (s[0] == s[-1]) and s[0] in ["'", '"']:
             s = s[1:-1]
-        # приводим к верхнему регистру
         s = s.upper()
-        # нормализуем дефисы (минус/длинные тире) к обычному '-'
-        s = s.replace("–", "-").replace("—", "-")
-        # убираем любые пробелы
-        s = re.sub(r"\s+", "", s)
+        s = s.replace("–", "-").replace("—", "-")  # все тире → '-'
+        s = re.sub(r"\s+", "", s)                 # убираем пробелы
         return s
+
+    def to_strict(s: str) -> str:
+        """Оставляем только A-Z и 0-9 (всё остальное выбрасываем)"""
+        return re.sub(r"[^A-Z0-9]", "", s or "")
 
     def mask(s: str) -> str:
         if not s:
@@ -504,24 +492,32 @@ def authenticate_user_login(
     req_email = normalize_email(email)
     req_key   = normalize_key(license_key)
     req_key_nohyphen = req_key.replace("-", "")
+    req_key_strict   = to_strict(req_key)
 
     # -------- admin ENV normalized --------
     admin_email = normalize_email(os.getenv("ADMIN_EMAIL", ""))
     admin_key   = normalize_key(os.getenv("ADMIN_LICENSE_KEY", ""))
     admin_key_nohyphen = admin_key.replace("-", "")
+    admin_key_strict   = to_strict(admin_key)
     admin_name  = os.getenv("ADMIN_FULL_NAME", "Administrator")
 
     # диагностика
     email_ok = (req_email == admin_email)
     key_eq   = (req_key == admin_key)
     key_nh   = (req_key_nohyphen == admin_key_nohyphen)
+    key_str  = (req_key_strict == admin_key_strict)
 
     print(f"🧪 Admin check: email_ok={email_ok} | req={req_email} | env={admin_email}")
-    print(f"🧪 Admin key:   eq={key_eq}, nohyphen={key_nh} | req={mask(req_key)} | env={mask(admin_key)}")
+    print(
+        "🧪 Admin key cmp: "
+        f"eq={key_eq}, nohyphen={key_nh}, strict={key_str} | "
+        f"req={mask(req_key)} (len={len(req_key)}, nh={len(req_key_nohyphen)}, st={len(req_key_strict)}) | "
+        f"env={mask(admin_key)} (len={len(admin_key)}, nh={len(admin_key_nohyphen)}, st={len(admin_key_strict)})"
+    )
 
     # -------- admin fast-path --------
     if email_ok:
-        if key_eq or key_nh:
+        if key_eq or key_nh or key_str:
             token = secrets.token_urlsafe(32)
             print(f"👑 Admin login OK: {req_email}")
             return {
@@ -532,12 +528,7 @@ def authenticate_user_login(
                 "message": "Welcome, admin",
             }
         else:
-            # важное изменение: не падаем в БД, а честно говорим про mismatch
-            return {
-                "authenticated": False,
-                "success": False,
-                "error": "Admin key mismatch",
-            }
+            return {"authenticated": False, "success": False, "error": "Admin key mismatch"}
 
     # -------- обычный пользователь --------
     return auth_manager.authenticate_user(
