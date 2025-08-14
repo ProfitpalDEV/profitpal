@@ -19,7 +19,7 @@
             overflow-x: hidden;
         }
 
-        /* АНИМИРОВАННЫЙ ФОН КАК В DASHBOARD */
+        /* Background Animation */
         .background-animation {
             position: fixed;
             top: 0;
@@ -73,7 +73,7 @@
             background-clip: text;
         }
 
-        /* ТОЛЬКО ОДИН ADMIN BADGE */
+        /* Admin Badge - только один справа */
         .admin-badge {
             background: linear-gradient(135deg, #ff6b35, #e74c3c);
             color: white;
@@ -561,7 +561,7 @@
             margin: 0 auto;
         }
 
-        /* Footer - НЕНАВЯЗЧИВЫЙ */
+        /* Footer */
         footer {
             text-align: center;
             padding: 30px 20px;
@@ -594,7 +594,7 @@
     </style>
 </head>
 <body>
-    <!-- АНИМИРОВАННЫЙ ФОН КАК В DASHBOARD -->
+    <!-- Background Animation -->
     <div class="background-animation">
         <div class="floating-shape" style="width: 100px; height: 100px; top: 10%; left: 80%; animation-delay: 0s;"></div>
         <div class="floating-shape" style="width: 150px; height: 150px; top: 60%; left: 10%; animation-delay: 5s;"></div>
@@ -604,16 +604,16 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <div style="display: flex; align-items: center;">
-                <div class="logo">💎 ProfitPal</div>
-                <!-- ТОЛЬКО ОДИН ADMIN BADGE -->
+            <!-- Только один логотип без лишнего ADMIN MODE -->
+            <div class="logo">💎 ProfitPal</div>
+
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">👑</div>
+                <div class="user-greeting" id="userGreeting">Welcome back, Admin!</div>
+                <!-- Только один ADMIN BADGE здесь -->
                 <div class="admin-badge" id="adminBadge">
                     👑 ADMIN MODE
                 </div>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar" id="userAvatar">SA</div>
-                <div class="user-greeting" id="userGreeting">Welcome back, Admin!</div>
                 <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
             </div>
         </div>
@@ -712,7 +712,7 @@
         </div>
     </div>
 
-    <!-- Footer - НЕНАВЯЗЧИВЫЙ -->
+    <!-- Footer -->
     <footer>
         © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
     </footer>
@@ -748,16 +748,17 @@
             const urlParams = new URLSearchParams(window.location.search);
             const ticker = urlParams.get('ticker');
             if (ticker && tickerInput) {
-                tickerInput.value = ticker.toUpperCase();
+                const cleanTicker = ticker.replace(/[{}$]/g, '').toUpperCase(); // Убираем ${} символы
+                tickerInput.value = cleanTicker;
 
                 // ОБНОВЛЯЕМ SUBTITLE ДЛЯ КОНКРЕТНОЙ АКЦИИ
                 const analyzeSubtitle = document.getElementById('analyzeSubtitle');
-                if (analyzeSubtitle) {
-                    analyzeSubtitle.textContent = `Full analysis of ${ticker.toUpperCase()} with advanced metrics and insights`;
+                if (analyzeSubtitle && cleanTicker) {
+                    analyzeSubtitle.textContent = `Full analysis of ${cleanTicker} with advanced metrics and insights`;
                 }
 
                 // АВТОЗАПУСК АНАЛИЗА!
-                console.log(`🚀 Auto-analyzing ${ticker} from dashboard`);
+                console.log(`🚀 Auto-analyzing ${cleanTicker} from dashboard`);
                 setTimeout(() => {
                     performAnalysis();
                 }, 500);
@@ -767,7 +768,7 @@
             addSmoothTransitions();
         });
 
-        // 👑 ADMIN UI UPDATE FUNCTION (КОПИЯ ИЗ DASHBOARD)
+        // 👑 ADMIN UI UPDATE FUNCTION
         async function checkAndUpdateAdminUI() {
             const userRole = localStorage.getItem('pp_user_role') || 'client';
             const userEmail = localStorage.getItem('pp_email') || '';
@@ -781,11 +782,12 @@
                 // 👑 КОРОЛЕВСКИЙ ADMIN ИНТЕРФЕЙС
                 adminBadge.style.display = 'inline-block';
 
-                // Золотая корона avatar
+                // 💎 ЗОЛОТАЯ КОРОНА ВМЕСТО ИНИЦИАЛОВ - КАК В DASHBOARD
                 userAvatar.innerHTML = '👑';
                 userAvatar.style.background = 'linear-gradient(135deg, #ffd700, #ff6b35)';
                 userAvatar.style.border = '3px solid #ffd700';
                 userAvatar.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
+                userAvatar.style.fontSize = '20px';
 
                 // Королевское приветствие
                 userGreeting.innerHTML = '👑 <span style="color: #ffd700; font-size: 18px; font-weight: 800;">ADMIN MODE</span>';
@@ -813,7 +815,7 @@
             }
         }
 
-        // GET USER DATA FROM LOCALSTORAGE (КОПИЯ ИЗ DASHBOARD)
+        // GET USER DATA FROM LOCALSTORAGE
         function getUserData() {
             const email = localStorage.getItem('pp_email') || 'user@example.com';
 
@@ -888,7 +890,7 @@
             });
         }
 
-        // Perform stock analysis
+        // Perform stock analysis - ДЕМО ДАННЫЕ ДО НАСТРОЙКИ API
         async function performAnalysis() {
             const ticker = document.getElementById('tickerInput').value.toUpperCase().trim();
             const licenseKey = localStorage.getItem('pp_license_key') || '';
@@ -909,8 +911,14 @@
             // Scroll to loading state
             document.getElementById('loadingState').scrollIntoView({ behavior: 'smooth' });
 
+            // ДЕМО ДАННЫЕ (пока API не настроено)
+            setTimeout(() => {
+                showDemoData(ticker || 'AAPL', peMin, peMax, debtMax);
+            }, 2000);
+
+            // БУДУЩИЙ API ВЫЗОВ (закомментирован до готовности)
+            /*
             try {
-                // Call our backend API
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     headers: {
@@ -936,22 +944,12 @@
 
             } catch (error) {
                 console.error('Analysis error:', error);
-
-                // Show specific error message
-                document.getElementById('loadingState').style.display = 'none';
-
-                if (error.message.includes('Invalid or expired license key')) {
-                    alert('⌚ Invalid license key! Please check your subscription.');
-                } else if (error.message.includes('Stock data not found')) {
-                    alert(`⌚ Stock data not found for ${ticker}. Please check the ticker symbol and try again.`);
-                } else {
-                    // Show demo data if other error
-                    showDemoData(ticker || 'DEMO', peMin, peMax, debtMax);
-                }
+                showDemoData(ticker || 'DEMO', peMin, peMax, debtMax);
             }
+            */
         }
 
-        // Display analysis results (СОКРАЩЕННАЯ ВЕРСИЯ)
+        // Display analysis results
         function displayResults(data) {
             // Hide loading, show results
             document.getElementById('loadingState').style.display = 'none';
@@ -1023,16 +1021,16 @@
 
                     <div style="margin: 30px 0;">
                         <div style="font-size: 28px; font-weight: 900; color: #ffd700; margin-bottom: 15px;">
-                            🏆 OVERALL SCORE: 33/50
+                            🏆 OVERALL SCORE: ${data.diamond_score}/50
                         </div>
                         <div style="font-size: 36px; margin-bottom: 15px;">
-                            💎💎💎⭐⭐
+                            ${data.diamond_display}
                         </div>
                         <div style="font-size: 24px; font-weight: 700; color: #32cd32; margin-bottom: 20px;">
-                            MIXED SIGNALS
+                            ${data.diamond_rating}
                         </div>
                         <div style="color: #bdc3c7; font-size: 16px; max-width: 500px; margin: 0 auto; line-height: 1.6;">
-                            Strong financials and value potential, but requires careful analysis.
+                            ${data.diamond_description}
                         </div>
                     </div>
 
@@ -1043,7 +1041,7 @@
                             💎💎💎💎💎 ABSOLUTE DIAMOND (45-50 pts)<br>
                             💎💎💎💎⭐ STRONG DIAMOND (40-44 pts)<br>
                             💎💎💎⭐⭐ QUALITY STOCK (35-39 pts)<br>
-                            💎💎⭐⭐⭐ MIXED SIGNALS (25-34 pts) ← Current<br>
+                            💎💎⭐⭐⭐ MIXED SIGNALS (25-34 pts)<br>
                             💎⭐⭐⭐⭐ CAUTION (15-24 pts)<br>
                             ⭐⭐⭐⭐⭐ AVOID (0-14 pts)
                         </div>
@@ -1072,13 +1070,18 @@
                 'AAPL': 'Apple Inc.',
                 'MSFT': 'Microsoft Corporation',
                 'GOOGL': 'Alphabet Inc.',
+                'GOOG': 'Alphabet Inc.',
                 'TSLA': 'Tesla Inc.',
                 'AMZN': 'Amazon.com Inc.',
                 'NVDA': 'NVIDIA Corporation',
                 'META': 'Meta Platforms Inc.',
                 'NFLX': 'Netflix Inc.',
                 'CRM': 'Salesforce Inc.',
-                'ORCL': 'Oracle Corporation'
+                'ORCL': 'Oracle Corporation',
+                'IBM': 'International Business Machines',
+                'ADBE': 'Adobe Inc.',
+                'PYPL': 'PayPal Holdings Inc.',
+                'INTC': 'Intel Corporation'
             };
 
             return companies[ticker] || `${ticker} Corporation`;
@@ -1086,30 +1089,25 @@
 
         // Generate filter results HTML
         function generateFilterResults(data) {
-            const verdictFactors = data.analysis_details?.verdict_factors || [];
             let filterHTML = '';
 
-            verdictFactors.forEach(factor => {
-                if (factor.includes('P/E')) {
-                    const pePass = factor.includes('✅');
-                    filterHTML += `
-                        <div class="filter-item ${pePass ? 'pass' : 'fail'}">
-                            <div class="filter-label">P/E Ratio: ${data.pe_ratio?.toFixed(1)}x (Target: 5-30)</div>
-                            <div class="filter-status ${pePass ? 'pass' : 'fail'}">${pePass ? 'PASS' : 'FAIL'}</div>
-                        </div>
-                    `;
-                }
+            // P/E Filter
+            const pePass = data.pe_ratio >= data.pe_min && data.pe_ratio <= data.pe_max;
+            filterHTML += `
+                <div class="filter-item ${pePass ? 'pass' : 'fail'}">
+                    <div class="filter-label">P/E Ratio: ${data.pe_ratio?.toFixed(1)}x (Target: ${data.pe_min}-${data.pe_max})</div>
+                    <div class="filter-status ${pePass ? 'pass' : 'fail'}">${pePass ? 'PASS' : 'FAIL'}</div>
+                </div>
+            `;
 
-                if (factor.includes('DEBT')) {
-                    const debtPass = factor.includes('✅');
-                    filterHTML += `
-                        <div class="filter-item ${debtPass ? 'pass' : 'fail'}">
-                            <div class="filter-label">Debt Ratio: ${data.debt_ratio?.toFixed(1)}% (Max: 50%)</div>
-                            <div class="filter-status ${debtPass ? 'pass' : 'fail'}">${debtPass ? 'PASS' : 'FAIL'}</div>
-                        </div>
-                    `;
-                }
-            });
+            // Debt Filter
+            const debtPass = data.debt_ratio <= data.debt_max;
+            filterHTML += `
+                <div class="filter-item ${debtPass ? 'pass' : 'fail'}">
+                    <div class="filter-label">Debt Ratio: ${data.debt_ratio?.toFixed(1)}% (Max: ${data.debt_max}%)</div>
+                    <div class="filter-status ${debtPass ? 'pass' : 'fail'}">${debtPass ? 'PASS' : 'FAIL'}</div>
+                </div>
+            `;
 
             return filterHTML;
         }
@@ -1133,19 +1131,24 @@
             return 'Analysis complete based on your filter criteria.';
         }
 
+        // ДЕМО ДАННЫЕ ДЛЯ ТЕСТИРОВАНИЯ
         function showDemoData(ticker, peMin, peMax, debtMax) {
             const demoData = {
                 ticker: ticker,
-                current_price: 14.20,
+                current_price: 174.50,
                 pe_ratio: 28.9,
-                debt_ratio: 0.0,
-                market_cap: 3600000000,
-                intrinsic_value: 10.61,
-                valuation_gap: -25.3,
-                final_verdict: '[!] OVERVALUED [!]',
-                analysis_details: {
-                    verdict_factors: ['⌚ P/E FAIL', '✅ DEBT PASS']
-                }
+                debt_ratio: 15.2,
+                market_cap: 2700000000000, // 2.7T
+                intrinsic_value: 185.20,
+                valuation_gap: 6.1,
+                pe_min: peMin,
+                pe_max: peMax,
+                debt_max: debtMax,
+                diamond_score: 38,
+                diamond_display: '💎💎💎⭐⭐',
+                diamond_rating: 'QUALITY STOCK',
+                diamond_description: 'Strong fundamentals with good value potential.',
+                final_verdict: '💎 QUALITY INVESTMENT OPPORTUNITY 💎'
             };
 
             displayResults(demoData);
