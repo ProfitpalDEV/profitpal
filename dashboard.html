@@ -1187,7 +1187,7 @@
 
     <!-- Footer -->
     <footer style="text-align: center; padding: 30px 20px; margin-top: 50px; border-top: 1px solid rgba(34, 139, 34, 0.2); color: #95a5a6; font-size: 14px;">
-        © 2025 ProfitPal. A product of Denava OÜ. All rights reserved.
+        © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
     </footer>
 
     <script>
@@ -1569,11 +1569,26 @@
             const paidFriends = userData.totalPaidReferrals;
             const moneySaved = userData.totalEarnedMonths * 9.99; // NEW PRICING
 
-            // 👑 ПРОВЕРКА ADMIN РОЛИ
+            // 👑 ПРОВЕРКА ADMIN РОЛИ С КОРОЛЕВСКИМ ИНТЕРФЕЙСОМ
             const userRole = localStorage.getItem('pp_user_role') || 'client';
-            if (userRole === 'admin') {
-                document.getElementById('user-greeting').innerHTML = 
-                    '👑 Admin Mode Active <span style="color: #ff6b35; font-size: 12px;">(System Administrator)</span>';
+            const userEmail = localStorage.getItem('pp_email') || '';
+            const isAdmin = (userRole === 'admin') || (userEmail.toLowerCase() === 'denava.business@gmail.com');
+
+            if (isAdmin) {
+                // 👑 КОРОЛЕВСКИЙ ADMIN ИНТЕРФЕЙС
+                const userAvatar = document.getElementById('user-avatar');
+                const userGreeting = document.getElementById('user-greeting');
+
+                // 💎 ЗОЛОТАЯ КОРОНА ВМЕСТО ИНИЦИАЛОВ
+                userAvatar.innerHTML = '👑';
+                userAvatar.style.background = 'linear-gradient(135deg, #ffd700, #ff6b35)';
+                userAvatar.style.border = '3px solid #ffd700';
+                userAvatar.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
+
+                // 🔥 КОРОЛЕВСКОЕ ПРИВЕТСТВИЕ
+                userGreeting.innerHTML = '👑 <span style="color: #ffd700; font-size: 18px; font-weight: 800;">ADMIN MODE</span>';
+
+                console.log('👑 Royal Admin interface activated');
             }
 
             // Обновляем основные счетчики
@@ -1582,13 +1597,15 @@
             document.getElementById('paid-friends-count').textContent = paidFriends;
             document.getElementById('money-saved').textContent = `$${moneySaved.toFixed(2)}`;
 
-            // Обновляем информацию о пользователе
-            const initials = userData.fullName.split(' ').map(n => n[0]).join('');
-            document.getElementById('user-avatar').textContent = initials;
-            document.getElementById('user-greeting').textContent = `Welcome back, ${userData.fullName.split(' ')[0]}!`;
+            // Обновляем информацию о пользователе (ТОЛЬКО ДЛЯ НЕ-АДМИНОВ)
+            if (!isAdmin) {
+                const initials = userData.fullName.split(' ').map(n => n[0]).join('');
+                document.getElementById('user-avatar').textContent = initials;
+                document.getElementById('user-greeting').textContent = `Welcome back, ${userData.fullName.split(' ')[0]}!`;
+            }
 
             // Обновляем заголовок
-            updateGreeting(userData.fullName.split(' ')[0]);
+            updateGreeting(isAdmin ? 'Admin' : userData.fullName.split(' ')[0]);
 
             // Показываем friends section только если есть referrals
             if (paidFriends > 0) {
@@ -1770,13 +1787,23 @@
         function updateGreeting(firstName = 'Investor') {
             const hour = new Date().getHours();
             const welcomeTitle = document.getElementById('welcome-title');
+            const isAdmin = firstName === 'Admin';
 
+            let timeGreeting;
             if (hour < 12) {
-                welcomeTitle.textContent = `Good morning, ${firstName}! 💎`;
+                timeGreeting = 'Good morning';
             } else if (hour < 18) {
-                welcomeTitle.textContent = `Good afternoon, ${firstName}! 💎`;
+                timeGreeting = 'Good afternoon';
             } else {
-                welcomeTitle.textContent = `Good evening, ${firstName}! 💎`;
+                timeGreeting = 'Good evening';
+            }
+
+            if (isAdmin) {
+                // 👑 КОРОЛЕВСКОЕ ПРИВЕТСТВИЕ ДЛЯ АДМИНА
+                welcomeTitle.innerHTML = `${timeGreeting}, <span style="color: #ffd700;">Admin</span>! 👑💎`;
+            } else {
+                // 👤 ОБЫЧНОЕ ПРИВЕТСТВИЕ ДЛЯ КЛИЕНТОВ
+                welcomeTitle.textContent = `${timeGreeting}, ${firstName}! 💎`;
             }
         }
 
