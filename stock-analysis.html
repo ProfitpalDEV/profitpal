@@ -73,25 +73,6 @@
             background-clip: text;
         }
 
-        /* Admin Badge - только один справа */
-        .admin-badge {
-            background: linear-gradient(135deg, #ff6b35, #e74c3c);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 12px;
-            margin-left: 15px;
-            display: none;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        /* User Info */
         .user-info {
             display: flex;
             align-items: center;
@@ -381,6 +362,7 @@
             opacity: 0;
             transform: translateY(20px);
             animation: slideIn 0.5s ease-out forwards;
+            position: relative;
         }
 
         .analysis-section:hover {
@@ -604,16 +586,11 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <!-- Только один логотип без лишнего ADMIN MODE -->
             <div class="logo">💎 ProfitPal</div>
 
             <div class="user-info">
                 <div class="user-avatar" id="userAvatar">👑</div>
                 <div class="user-greeting" id="userGreeting">Welcome back, Admin!</div>
-                <!-- Только один ADMIN BADGE здесь -->
-                <div class="admin-badge" id="adminBadge">
-                    👑 ADMIN MODE
-                </div>
                 <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
             </div>
         </div>
@@ -774,13 +751,11 @@
             const userEmail = localStorage.getItem('pp_email') || '';
             const isAdmin = (userRole === 'admin') || (userEmail.toLowerCase() === 'denava.business@gmail.com');
 
-            const adminBadge = document.getElementById('adminBadge');
             const userAvatar = document.getElementById('userAvatar');
             const userGreeting = document.getElementById('userGreeting');
 
             if (isAdmin) {
                 // 👑 КОРОЛЕВСКИЙ ADMIN ИНТЕРФЕЙС
-                adminBadge.style.display = 'inline-block';
 
                 // 💎 ЗОЛОТАЯ КОРОНА ВМЕСТО ИНИЦИАЛОВ - КАК В DASHBOARD
                 userAvatar.innerHTML = '👑';
@@ -795,7 +770,6 @@
                 console.log('👑 Royal Admin interface activated in stock analysis');
             } else {
                 // 👤 ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
-                adminBadge.style.display = 'none';
 
                 // Get user data
                 const userData = getUserData();
@@ -1010,6 +984,188 @@
                     </div>
                     <div class="filter-results">
                         ${generateFilterResults(data)}
+                    </div>
+                </div>
+
+                <!-- Valuation Metrics -->
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> VALUATION METRICS <<<</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">Total Debt:</div>
+                            <div class="data-value">$109.6B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Annual Revenue:</div>
+                            <div class="data-value">$394.3B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Net Income:</div>
+                            <div class="data-value highlight">$97.0B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Free Cash Flow:</div>
+                            <div class="data-value">$84.7B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Book Value:</div>
+                            <div class="data-value">$4.25</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">ROE:</div>
+                            <div class="data-value highlight">28.2%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">EPS:</div>
+                            <div class="data-value">$6.43</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Price/Book:</div>
+                            <div class="data-value">43.7x</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ownership Analysis -->
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> OWNERSHIP ANALYSIS <<<</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">Private Equity Check:</div>
+                            <div class="data-value highlight">✅ CLEAN</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Institutional Holdings:</div>
+                            <div class="data-value">61.8%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Insider Ownership:</div>
+                            <div class="data-value">0.07%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Ownership Score:</div>
+                            <div class="data-value highlight">8/10</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Scoring Breakdown -->
+                <div class="analysis-section" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(30, 58, 95, 0.6)); border: 3px solid #ffd700;">
+                    <div style="position: absolute; top: -12px; left: 20px; background: linear-gradient(135deg, #ffd700, #ffed4a); color: #0a0e27; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;">
+                        ⭐ PREMIUM ANALYSIS
+                    </div>
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> DETAILED SCORING BREAKDOWN <<<</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">📈 Financial Health:</div>
+                            <div class="data-value highlight">9/10 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">🚀 Growth Potential:</div>
+                            <div class="data-value highlight">8/10 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">💰 Value Score:</div>
+                            <div class="data-value">6/10 🟡</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">⚠️ Risk Assessment:</div>
+                            <div class="data-value highlight">9/10 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">👥 Management Quality:</div>
+                            <div class="data-value highlight">10/10 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">🌍 Market Position:</div>
+                            <div class="data-value highlight">10/10 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">💪 Competitive Advantage:</div>
+                            <div class="data-value highlight">9/10 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">🔮 Future Outlook:</div>
+                            <div class="data-value highlight">8/10 💚</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technical Indicators -->
+                <div class="analysis-section" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(30, 58, 95, 0.6)); border: 3px solid #ffd700;">
+                    <div style="position: absolute; top: -12px; left: 20px; background: linear-gradient(135deg, #ffd700, #ffed4a); color: #0a0e27; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;">
+                        ⭐ PREMIUM ANALYSIS
+                    </div>
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> TECHNICAL INDICATORS <<<</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">RSI (14-day):</div>
+                            <div class="data-value">58.2 📈</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">MACD Signal:</div>
+                            <div class="data-value highlight">BULLISH 🚀</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Moving Avg (50d):</div>
+                            <div class="data-value highlight">Above 📈</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Volume Trend:</div>
+                            <div class="data-value highlight">STRONG 💪</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Support Level:</div>
+                            <div class="data-value">$175.20</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Resistance Level:</div>
+                            <div class="data-value">$195.80</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Industry Comparison -->
+                <div class="analysis-section" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(30, 58, 95, 0.6)); border: 3px solid #ffd700;">
+                    <div style="position: absolute; top: -12px; left: 20px; background: linear-gradient(135deg, #ffd700, #ffed4a); color: #0a0e27; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;">
+                        ⭐ PREMIUM ANALYSIS
+                    </div>
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> INDUSTRY COMPARISON <<<</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">Industry P/E Average:</div>
+                            <div class="data-value">32.1x</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">AAPL vs Industry P/E:</div>
+                            <div class="data-value highlight">10.6% BETTER 💚</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Sector Ranking:</div>
+                            <div class="data-value highlight">#2 of 67 🏆</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Market Share:</div>
+                            <div class="data-value highlight">23.4% 👑</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Revenue Growth vs Sector:</div>
+                            <div class="data-value highlight">+15.8% 📈</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Profit Margins vs Sector:</div>
+                            <div class="data-value highlight">+8.2% 💰</div>
+                        </div>
                     </div>
                 </div>
 
