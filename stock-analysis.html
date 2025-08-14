@@ -16,56 +16,32 @@
             background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
             min-height: 100vh;
             color: #ffffff;
-            position: relative;
             overflow-x: hidden;
         }
 
-        /* Animated Background Elements */
-        .bg-elements {
+        /* АНИМИРОВАННЫЙ ФОН КАК В DASHBOARD */
+        .background-animation {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
-            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
         }
 
         .floating-shape {
             position: absolute;
-            border-radius: 50%;
             background: linear-gradient(135deg, rgba(50, 205, 50, 0.1), rgba(255, 215, 0, 0.05));
-            animation: float 15s infinite ease-in-out;
-        }
-
-        .floating-shape:nth-child(1) {
-            width: 300px;
-            height: 300px;
-            top: 10%;
-            left: -100px;
-            animation-delay: 0s;
-        }
-
-        .floating-shape:nth-child(2) {
-            width: 200px;
-            height: 200px;
-            top: 60%;
-            right: -80px;
-            animation-delay: 7s;
-        }
-
-        .floating-shape:nth-child(3) {
-            width: 150px;
-            height: 150px;
-            bottom: 20%;
-            left: 50%;
-            animation-delay: 3s;
+            border-radius: 50%;
+            animation: float 20s infinite ease-in-out;
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            33% { transform: translateY(-30px) rotate(120deg); }
-            66% { transform: translateY(20px) rotate(240deg); }
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(100px, -100px) rotate(90deg); }
+            50% { transform: translate(-50px, -200px) rotate(180deg); }
+            75% { transform: translate(-150px, -50px) rotate(270deg); }
         }
 
         /* Header */
@@ -80,7 +56,7 @@
         }
 
         .header-content {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -97,7 +73,7 @@
             background-clip: text;
         }
 
-        /* Admin Badge - ТОЛЬКО ОДИН! */
+        /* ТОЛЬКО ОДИН ADMIN BADGE */
         .admin-badge {
             background: linear-gradient(135deg, #ff6b35, #e74c3c);
             color: white;
@@ -119,28 +95,25 @@
         .user-info {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
         }
 
         .user-avatar {
             width: 40px;
             height: 40px;
+            background: linear-gradient(135deg, #32cd32, #228b22);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
+            font-weight: bold;
             font-size: 16px;
-            background: linear-gradient(135deg, #32cd32, #228b22);
-            color: white;
-            border: 2px solid rgba(50, 205, 50, 0.3);
             transition: all 0.3s ease;
         }
 
         .user-greeting {
-            color: #87ceeb;
-            font-size: 14px;
-            font-weight: 600;
+            color: #ecf0f1;
+            font-weight: 500;
         }
 
         .back-btn {
@@ -162,10 +135,11 @@
 
         /* Main Container */
         .main-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 30px;
-            min-height: calc(100vh - 140px);
+            z-index: 10;
+            position: relative;
         }
 
         /* Analysis Modes */
@@ -178,6 +152,7 @@
 
         .mode-btn {
             background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
             border: 2px solid rgba(34, 139, 34, 0.3);
             color: #ffffff;
             padding: 15px 30px;
@@ -207,12 +182,14 @@
             padding: 30px;
             margin-bottom: 30px;
             border: 2px solid rgba(34, 139, 34, 0.3);
-            animation: slideIn 0.5s ease-out;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .analysis-input-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(50, 205, 50, 0.1);
         }
 
         .section-title {
@@ -341,6 +318,7 @@
 
         .toggle-btn:hover {
             background: rgba(50, 205, 50, 0.2);
+            transform: translateY(-1px);
         }
 
         .filter-content {
@@ -399,7 +377,20 @@
             padding: 25px;
             margin-bottom: 20px;
             border: 2px solid rgba(34, 139, 34, 0.3);
-            animation: slideIn 0.5s ease-out;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.5s ease-out forwards;
+        }
+
+        .analysis-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(50, 205, 50, 0.1);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .section-header {
@@ -445,6 +436,7 @@
         .data-item:hover {
             transform: translateY(-2px);
             border-color: rgba(34, 139, 34, 0.5);
+            box-shadow: 0 5px 15px rgba(50, 205, 50, 0.1);
         }
 
         .data-label {
@@ -482,7 +474,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            animation: slideIn 0.5s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .filter-item:hover {
+            transform: translateX(5px);
         }
 
         .filter-item.pass {
@@ -525,7 +521,11 @@
             border-radius: 15px;
             border: 3px solid;
             margin-top: 20px;
-            animation: slideIn 0.7s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .final-verdict:hover {
+            transform: scale(1.02);
         }
 
         .final-verdict.diamond {
@@ -561,18 +561,13 @@
             margin: 0 auto;
         }
 
-        /* Footer - НЕНАВЯЗЧИВЫЙ! */
-        .footer {
-            background: transparent;
-            padding: 40px 20px 20px;
-            margin-top: 60px;
+        /* Footer - НЕНАВЯЗЧИВЫЙ */
+        footer {
             text-align: center;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            color: rgba(135, 206, 235, 0.6);
+            padding: 30px 20px;
+            margin-top: 50px;
+            border-top: 1px solid rgba(34, 139, 34, 0.2);
+            color: rgba(149, 165, 166, 0.6);
             font-size: 12px;
             opacity: 0.7;
         }
@@ -599,11 +594,11 @@
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
-    <div class="bg-elements">
-        <div class="floating-shape"></div>
-        <div class="floating-shape"></div>
-        <div class="floating-shape"></div>
+    <!-- АНИМИРОВАННЫЙ ФОН КАК В DASHBOARD -->
+    <div class="background-animation">
+        <div class="floating-shape" style="width: 100px; height: 100px; top: 10%; left: 80%; animation-delay: 0s;"></div>
+        <div class="floating-shape" style="width: 150px; height: 150px; top: 60%; left: 10%; animation-delay: 5s;"></div>
+        <div class="floating-shape" style="width: 80px; height: 80px; top: 30%; left: 60%; animation-delay: 10s;"></div>
     </div>
 
     <!-- Header -->
@@ -611,7 +606,7 @@
         <div class="header-content">
             <div style="display: flex; align-items: center;">
                 <div class="logo">💎 ProfitPal</div>
-                <!-- ТОЛЬКО ОДИН ADMIN BADGE! -->
+                <!-- ТОЛЬКО ОДИН ADMIN BADGE -->
                 <div class="admin-badge" id="adminBadge">
                     👑 ADMIN MODE
                 </div>
@@ -718,10 +713,8 @@
     </div>
 
     <!-- Footer - НЕНАВЯЗЧИВЫЙ -->
-    <footer class="footer">
-        <div class="footer-content">
-            © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
-        </div>
+    <footer>
+        © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
     </footer>
 
     <script>
@@ -751,22 +744,30 @@
                 tickerInput.focus();
             }
 
-            // Get ticker from URL if provided (ПЕРЕДАЧА С DASHBOARD)
+            // ПЕРЕДАЧА ТИКЕРА С DASHBOARD - ГЛАВНОЕ ИСПРАВЛЕНИЕ!
             const urlParams = new URLSearchParams(window.location.search);
             const ticker = urlParams.get('ticker');
             if (ticker && tickerInput) {
                 tickerInput.value = ticker.toUpperCase();
-                // Update subtitle for specific stock
+
+                // ОБНОВЛЯЕМ SUBTITLE ДЛЯ КОНКРЕТНОЙ АКЦИИ
                 const analyzeSubtitle = document.getElementById('analyzeSubtitle');
                 if (analyzeSubtitle) {
                     analyzeSubtitle.textContent = `Full analysis of ${ticker.toUpperCase()} with advanced metrics and insights`;
                 }
-                // Auto-focus on analyze button since ticker is pre-filled
-                document.getElementById('analyzeBtn').focus();
+
+                // АВТОЗАПУСК АНАЛИЗА!
+                console.log(`🚀 Auto-analyzing ${ticker} from dashboard`);
+                setTimeout(() => {
+                    performAnalysis();
+                }, 500);
             }
+
+            // Add smooth transitions for elements
+            addSmoothTransitions();
         });
 
-        // 👑 ADMIN UI UPDATE FUNCTION
+        // 👑 ADMIN UI UPDATE FUNCTION (КОПИЯ ИЗ DASHBOARD)
         async function checkAndUpdateAdminUI() {
             const userRole = localStorage.getItem('pp_user_role') || 'client';
             const userEmail = localStorage.getItem('pp_email') || '';
@@ -777,24 +778,24 @@
             const userGreeting = document.getElementById('userGreeting');
 
             if (isAdmin) {
-                // 👑 ADMIN INTERFACE
+                // 👑 КОРОЛЕВСКИЙ ADMIN ИНТЕРФЕЙС
                 adminBadge.style.display = 'inline-block';
 
-                // Golden crown avatar
+                // Золотая корона avatar
                 userAvatar.innerHTML = '👑';
                 userAvatar.style.background = 'linear-gradient(135deg, #ffd700, #ff6b35)';
                 userAvatar.style.border = '3px solid #ffd700';
                 userAvatar.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
 
-                // Admin greeting
-                userGreeting.innerHTML = '👑 <span style="color: #ffd700;">Admin Mode</span>';
+                // Королевское приветствие
+                userGreeting.innerHTML = '👑 <span style="color: #ffd700; font-size: 18px; font-weight: 800;">ADMIN MODE</span>';
 
-                console.log('👑 Admin interface activated in stock analysis');
+                console.log('👑 Royal Admin interface activated in stock analysis');
             } else {
-                // 👤 REGULAR USER INTERFACE
+                // 👤 ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
                 adminBadge.style.display = 'none';
 
-                // Get user data from localStorage or dashboard
+                // Get user data
                 const userData = getUserData();
 
                 // User initials avatar
@@ -812,7 +813,7 @@
             }
         }
 
-        // GET USER DATA FROM LOCALSTORAGE OR DEFAULTS
+        // GET USER DATA FROM LOCALSTORAGE (КОПИЯ ИЗ DASHBOARD)
         function getUserData() {
             const email = localStorage.getItem('pp_email') || 'user@example.com';
 
@@ -870,6 +871,21 @@
             } else {
                 filterContent.classList.remove('active');
             }
+        }
+
+        // SMOOTH TRANSITIONS LIKE DASHBOARD
+        function addSmoothTransitions() {
+            const elements = document.querySelectorAll('.analysis-input-section, .analysis-modes');
+            elements.forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(20px)';
+
+                setTimeout(() => {
+                    element.style.transition = 'all 0.6s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
         }
 
         // Perform stock analysis
@@ -935,18 +951,21 @@
             }
         }
 
-        // Display analysis results
+        // Display analysis results (СОКРАЩЕННАЯ ВЕРСИЯ)
         function displayResults(data) {
             // Hide loading, show results
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('analysisResults').style.display = 'block';
+
+            // ПОЛУЧАЕМ НАЗВАНИЕ КОМПАНИИ
+            const companyName = getCompanyName(data.ticker);
 
             // Create results HTML
             const resultsHTML = `
                 <!-- Live Analysis Header -->
                 <div class="analysis-section">
                     <div class="section-header">
-                        <h2 class="section-header-title">*** LIVE ANALYSIS FOR: ${data.ticker} ***</h2>
+                        <h2 class="section-header-title">*** LIVE ANALYSIS FOR: ${companyName} (${data.ticker}) ***</h2>
                         <span class="ticker-badge">${data.ticker}</span>
                     </div>
                 </div>
@@ -993,39 +1012,6 @@
                     </div>
                     <div class="filter-results">
                         ${generateFilterResults(data)}
-                    </div>
-                </div>
-
-                <!-- Valuation Metrics -->
-                <div class="analysis-section">
-                    <div class="section-header">
-                        <h3 class="section-header-title">>>> VALUATION METRICS <<<</h3>
-                    </div>
-                    <div class="data-grid">
-                        <div class="data-item">
-                            <div class="data-label">Total Debt:</div>
-                            <div class="data-value">$1.8B</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Annual Revenue:</div>
-                            <div class="data-value">$10.2B</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Net Income:</div>
-                            <div class="data-value highlight">$850M</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Free Cash Flow:</div>
-                            <div class="data-value">$1.2B</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">ROE:</div>
-                            <div class="data-value highlight">15.2%</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">EPS:</div>
-                            <div class="data-value">$3.36</div>
-                        </div>
                     </div>
                 </div>
 
@@ -1080,6 +1066,24 @@
             });
         }
 
+        // ПОЛУЧЕНИЕ НАЗВАНИЯ КОМПАНИИ
+        function getCompanyName(ticker) {
+            const companies = {
+                'AAPL': 'Apple Inc.',
+                'MSFT': 'Microsoft Corporation',
+                'GOOGL': 'Alphabet Inc.',
+                'TSLA': 'Tesla Inc.',
+                'AMZN': 'Amazon.com Inc.',
+                'NVDA': 'NVIDIA Corporation',
+                'META': 'Meta Platforms Inc.',
+                'NFLX': 'Netflix Inc.',
+                'CRM': 'Salesforce Inc.',
+                'ORCL': 'Oracle Corporation'
+            };
+
+            return companies[ticker] || `${ticker} Corporation`;
+        }
+
         // Generate filter results HTML
         function generateFilterResults(data) {
             const verdictFactors = data.analysis_details?.verdict_factors || [];
@@ -1110,7 +1114,7 @@
             return filterHTML;
         }
 
-        // Get verdict CSS class
+        // Helper functions
         function getVerdictClass(verdict) {
             if (verdict.includes('DIAMOND')) return 'diamond';
             if (verdict.includes('OVERVALUED')) return 'overvalued';
@@ -1118,7 +1122,6 @@
             return 'quality';
         }
 
-        // Get verdict description
         function getVerdictDescription(verdict) {
             if (verdict.includes('DIAMOND')) {
                 return 'Exceptional opportunity! Strong fundamentals with significant undervaluation.';
@@ -1130,7 +1133,6 @@
             return 'Analysis complete based on your filter criteria.';
         }
 
-        // Show demo data if API fails
         function showDemoData(ticker, peMin, peMax, debtMax) {
             const demoData = {
                 ticker: ticker,
@@ -1149,7 +1151,6 @@
             displayResults(demoData);
         }
 
-        // Format market cap
         function formatMarketCap(marketCap) {
             if (!marketCap) return 'N/A';
 
