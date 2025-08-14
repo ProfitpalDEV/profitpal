@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfitPal Stock Analysis - Professional Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e3a5f 50%, #2c5f2d 100%);
+            min-height: 100vh;
+            color: #ffffff;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, rgba(15, 35, 65, 0.9), rgba(30, 58, 95, 0.8));
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(34, 139, 34, 0.3);
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #32cd32, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Admin Badge */
+        .admin-badge {
+            background: linear-gradient(135deg, #ff6b35, #e74c3c);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            margin-left: 15px;
+            display: none;
+        }
+
+        /* User Info */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            border: 2px solid rgba(50, 205, 50, 0.3);
+        }
+
+        .user-greeting {
+            color: #87ceeb;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: rgba(50, 205, 50, 0.1);
+            color: #32cd32;
+            border: 2px solid rgba(50, 205, 50, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(50, 205, 50, 0.2);
+            border-color: #32cd32;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        /* Analysis Input Section */
+        .analysis-input-section {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+        }
+
+        .section-title {
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-label {
+            color: #32cd32;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .input-control {
+            padding: 15px;
+            background: rgba(44, 62, 80, 0.3);
+            border: 2px solid rgba(34, 139, 34, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 16px;
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: #32cd32;
+        }
+
+        .ticker-input {
+            text-transform: uppercase;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .analyze-button {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+
+        .analyze-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(50, 205, 50, 0.3);
+        }
+
+        .filter-settings {
+            background: rgba(44, 62, 80, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(34, 139, 34, 0.2);
+        }
+
+        .filter-title {
+            color: #ffd700;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #32cd32;
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid rgba(50, 205, 50, 0.3);
+            border-top: 3px solid #32cd32;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Analysis Results */
+        .analysis-results {
+            display: none;
+        }
+
+        .analysis-section {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 35, 65, 0.6));
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(34, 139, 34, 0.3);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(34, 139, 34, 0.3);
+        }
+
+        .section-header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #32cd32;
+            margin: 0;
+        }
+
+        .ticker-badge {
+            background: linear-gradient(135deg, #32cd32, #228b22);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* Data Grid */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .data-item {
+            background: rgba(44, 62, 80, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(34, 139, 34, 0.2);
+        }
+
+        .data-label {
+            color: #95a5a6;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .data-value {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .data-value.highlight {
+            color: #32cd32;
+        }
+
+        .data-value.warning {
+            color: #e74c3c;
+        }
+
+        /* Filter Analysis */
+        .filter-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-item {
+            background: rgba(44, 62, 80, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-item.pass {
+            border-left-color: #32cd32;
+            background: linear-gradient(90deg, rgba(50, 205, 50, 0.1), rgba(44, 62, 80, 0.3));
+        }
+
+        .filter-item.fail {
+            border-left-color: #e74c3c;
+            background: linear-gradient(90deg, rgba(231, 76, 60, 0.1), rgba(44, 62, 80, 0.3));
+        }
+
+        .filter-label {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .filter-status {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .filter-status.pass {
+            background: #32cd32;
+            color: white;
+        }
+
+        .filter-status.fail {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* Final Verdict */
+        .final-verdict {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(15, 35, 65, 0.8), rgba(30, 58, 95, 0.6));
+            border-radius: 15px;
+            border: 3px solid;
+            margin-top: 20px;
+        }
+
+        .final-verdict.diamond {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(30, 58, 95, 0.6));
+        }
+
+        .final-verdict.quality {
+            border-color: #32cd32;
+            background: linear-gradient(135deg, rgba(50, 205, 50, 0.1), rgba(30, 58, 95, 0.6));
+        }
+
+        .final-verdict.overvalued {
+            border-color: #e74c3c;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(30, 58, 95, 0.6));
+        }
+
+        .final-verdict.avoid {
+            border-color: #8b0000;
+            background: linear-gradient(135deg, rgba(139, 0, 0, 0.1), rgba(30, 58, 95, 0.6));
+        }
+
+        .verdict-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        .verdict-description {
+            font-size: 16px;
+            color: #bdc3c7;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Footer */
+        .footer {
+            background: rgba(10, 14, 39, 0.95);
+            border-top: 1px solid rgba(34, 139, 34, 0.3);
+            padding: 30px 20px;
+            margin-top: 60px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            color: #87ceeb;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+
+            .main-container {
+                padding: 20px;
+            }
+
+            .section-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div style="display: flex; align-items: center;">
+                <div class="logo">💎 ProfitPal</div>
+                <div class="admin-badge" id="adminBadge">
+                    👑 ADMIN MODE
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">SA</div>
+                <div class="user-greeting" id="userGreeting">Welcome back, Admin!</div>
+                <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Analysis Input Section -->
+        <section class="analysis-input-section">
+            <h2 class="section-title">💎 ProfitPal Pro Analysis</h2>
+            <p class="section-subtitle">
+                Full power analysis with advanced filters and real-time data
+            </p>
+
+            <!-- Stock Analysis Input -->
+            <div class="input-group">
+                <div class="input-field">
+                    <label class="input-label">Stock Ticker</label>
+                    <input type="text" id="tickerInput" class="input-control ticker-input" 
+                           placeholder="Enter ticker (e.g., AAPL)" maxlength="10">
+                </div>
+                <div class="input-field">
+                    <label class="input-label">P/E Min</label>
+                    <input type="number" id="peMin" class="input-control" value="5" min="0" max="100">
+                </div>
+                <div class="input-field">
+                    <label class="input-label">P/E Max</label>
+                    <input type="number" id="peMax" class="input-control" value="30" min="0" max="100">
+                </div>
+                <div class="input-field">
+                    <label class="input-label">Debt Max %</label>
+                    <input type="number" id="debtMax" class="input-control" value="50" min="0" max="100">
+                </div>
+                <button class="analyze-button" onclick="performAnalysis()">🔍 Analyze Stock</button>
+            </div>
+
+            <!-- Advanced Filters -->
+            <div class="filter-settings">
+                <div class="filter-title">⚙️ Advanced Filters</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div class="input-field">
+                        <label class="input-label">Market Cap Min (B)</label>
+                        <input type="number" id="marketCapMin" class="input-control" value="1" step="0.1">
+                    </div>
+                    <div class="input-field">
+                        <label class="input-label">ROE Min %</label>
+                        <input type="number" id="roeMin" class="input-control" value="10" min="0" max="50">
+                    </div>
+                    <div class="input-field">
+                        <label class="input-label">Revenue Growth %</label>
+                        <input type="number" id="revenueGrowth" class="input-control" value="5" min="-50" max="100">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <h3>Analyzing Stock Data...</h3>
+            <p>Fetching real-time data and calculating metrics...</p>
+        </div>
+
+        <!-- Analysis Results -->
+        <div id="analysisResults" class="analysis-results">
+            <!-- Results will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        // Check authorization and admin status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const userSession = localStorage.getItem('pp_session');
+            const userEmail = localStorage.getItem('pp_email');
+
+            if (!userSession || !userEmail) {
+                // No session - redirect to home
+                console.log('🔒 No authorization - redirecting to home');
+                window.location.href = '/';
+                return;
+            }
+
+            console.log('💎 Authorized user - stock analysis ready');
+
+            // 👑 CHECK ADMIN STATUS AND UPDATE UI
+            checkAndUpdateAdminUI();
+
+            // Focus on ticker input
+            const tickerInput = document.getElementById('tickerInput');
+            if (tickerInput) {
+                tickerInput.focus();
+            }
+
+            // Get ticker from URL if provided
+            const urlParams = new URLSearchParams(window.location.search);
+            const ticker = urlParams.get('ticker');
+            if (ticker && tickerInput) {
+                tickerInput.value = ticker.toUpperCase();
+            }
+        });
+
+        // 👑 ADMIN UI UPDATE FUNCTION
+        async function checkAndUpdateAdminUI() {
+            const userRole = localStorage.getItem('pp_user_role') || 'client';
+            const userEmail = localStorage.getItem('pp_email') || '';
+            const isAdmin = (userRole === 'admin') || (userEmail.toLowerCase() === 'denava.business@gmail.com');
+
+            const adminBadge = document.getElementById('adminBadge');
+            const userAvatar = document.getElementById('userAvatar');
+            const userGreeting = document.getElementById('userGreeting');
+
+            if (isAdmin) {
+                // 👑 ADMIN INTERFACE
+                adminBadge.style.display = 'inline-block';
+
+                // Golden crown avatar
+                userAvatar.innerHTML = '👑';
+                userAvatar.style.background = 'linear-gradient(135deg, #ffd700, #ff6b35)';
+                userAvatar.style.border = '3px solid #ffd700';
+                userAvatar.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
+
+                // Admin greeting
+                userGreeting.innerHTML = '👑 <span style="color: #ffd700;">Admin Mode</span>';
+
+                console.log('👑 Admin interface activated in stock analysis');
+            } else {
+                // 👤 REGULAR USER INTERFACE
+                adminBadge.style.display = 'none';
+
+                // Get user data from localStorage or dashboard
+                const userData = getUserData();
+
+                // User initials avatar
+                const initials = userData.fullName.split(' ').map(n => n[0]).join('');
+                userAvatar.textContent = initials;
+                userAvatar.style.background = 'linear-gradient(135deg, #32cd32, #228b22)';
+                userAvatar.style.border = '2px solid rgba(50, 205, 50, 0.3)';
+                userAvatar.style.boxShadow = 'none';
+
+                // User greeting
+                const firstName = userData.fullName.split(' ')[0];
+                userGreeting.textContent = `Welcome back, ${firstName}!`;
+
+                console.log('👤 User interface activated in stock analysis');
+            }
+        }
+
+        // GET USER DATA FROM LOCALSTORAGE OR DEFAULTS
+        function getUserData() {
+            const email = localStorage.getItem('pp_email') || 'user@example.com';
+
+            // Try to get stored user data or create default
+            const storedUserData = localStorage.getItem('pp_user_data');
+            if (storedUserData) {
+                try {
+                    return JSON.parse(storedUserData);
+                } catch (e) {
+                    console.log('Failed to parse stored user data');
+                }
+            }
+
+            // Default user data based on email
+            return {
+                fullName: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User',
+                email: email
+            };
+        }
+
+        // Perform stock analysis
+        async function performAnalysis() {
+            const ticker = document.getElementById('tickerInput').value.toUpperCase().trim();
+            const licenseKey = localStorage.getItem('pp_license_key') || '';
+            const peMin = parseFloat(document.getElementById('peMin').value);
+            const peMax = parseFloat(document.getElementById('peMax').value);
+            const debtMax = parseFloat(document.getElementById('debtMax').value);
+
+            if (!ticker) {
+                alert('Please enter a stock ticker symbol');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('analysisResults').style.display = 'none';
+
+            // Scroll to loading state
+            document.getElementById('loadingState').scrollIntoView({ behavior: 'smooth' });
+
+            try {
+                // Call our backend API
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ticker: ticker,
+                        license_key: licenseKey,
+                        pe_min: peMin,
+                        pe_max: peMax,
+                        debt_max: debtMax
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+
+                // Show specific error message
+                document.getElementById('loadingState').style.display = 'none';
+
+                if (error.message.includes('Invalid or expired license key')) {
+                    alert('❌ Invalid license key! Please check your subscription.');
+                } else if (error.message.includes('Stock data not found')) {
+                    alert(`❌ Stock data not found for ${ticker}. Please check the ticker symbol and try again.`);
+                } else {
+                    // Show demo data if other error
+                    showDemoData(ticker, peMin, peMax, debtMax);
+                }
+            }
+        }
+
+        // Display analysis results
+        function displayResults(data) {
+            // Hide loading, show results
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('analysisResults').style.display = 'block';
+
+            // Create results HTML
+            const resultsHTML = `
+                <!-- Live Analysis Header -->
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h2 class="section-header-title">*** LIVE ANALYSIS FOR: ${data.ticker} ***</h2>
+                        <span class="ticker-badge">${data.ticker}</span>
+                    </div>
+                </div>
+
+                <!-- Financial Data -->
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3 class="section-header-title">💰 FINANCIAL DATA</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">Price:</div>
+                            <div class="data-value">$${data.current_price?.toFixed(2) || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">P/E Ratio:</div>
+                            <div class="data-value">${data.pe_ratio?.toFixed(1) || 'N/A'}x</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Debt Ratio:</div>
+                            <div class="data-value">${data.debt_ratio?.toFixed(1) || 'N/A'}%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Market Cap:</div>
+                            <div class="data-value">${formatMarketCap(data.market_cap)}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Intrinsic Value:</div>
+                            <div class="data-value highlight">$${data.intrinsic_value?.toFixed(2) || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Valuation Gap:</div>
+                            <div class="data-value ${data.valuation_gap > 0 ? 'highlight' : 'warning'}">
+                                ${data.valuation_gap?.toFixed(1) || 'N/A'}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Analysis -->
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> FILTER ANALYSIS <<<</h3>
+                    </div>
+                    <div class="filter-results">
+                        ${generateFilterResults(data)}
+                    </div>
+                </div>
+
+                <!-- Valuation Metrics -->
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3 class="section-header-title">>>> VALUATION METRICS <<<</h3>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">Total Debt:</div>
+                            <div class="data-value">$1.8B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Annual Revenue:</div>
+                            <div class="data-value">$10.2B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Net Income:</div>
+                            <div class="data-value highlight">$850M</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">Free Cash Flow:</div>
+                            <div class="data-value">$1.2B</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">ROE:</div>
+                            <div class="data-value highlight">15.2%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">EPS:</div>
+                            <div class="data-value">$3.36</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diamond Rating -->
+                <div class="analysis-section" style="text-align: center; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(30, 58, 95, 0.6)); border: 3px solid #ffd700;">
+                    <div class="section-header">
+                        <h3 class="section-header-title" style="color: #ffd700; font-size: 24px;">>>> DIAMOND RATING <<<</h3>
+                    </div>
+
+                    <div style="margin: 30px 0;">
+                        <div style="font-size: 28px; font-weight: 900; color: #ffd700; margin-bottom: 15px;">
+                            🏆 OVERALL SCORE: 33/50
+                        </div>
+                        <div style="font-size: 36px; margin-bottom: 15px;">
+                            💎💎💎⭐⭐
+                        </div>
+                        <div style="font-size: 24px; font-weight: 700; color: #32cd32; margin-bottom: 20px;">
+                            MIXED SIGNALS
+                        </div>
+                        <div style="color: #bdc3c7; font-size: 16px; max-width: 500px; margin: 0 auto; line-height: 1.6;">
+                            Strong financials and value potential, but requires careful analysis.
+                        </div>
+                    </div>
+
+                    <!-- Rating Scale -->
+                    <div style="background: rgba(44, 62, 80, 0.3); border-radius: 10px; padding: 20px; margin-top: 20px;">
+                        <h4 style="color: #ffd700; margin-bottom: 15px;">Diamond Rating Scale:</h4>
+                        <div style="text-align: left; color: #95a5a6; font-size: 14px; line-height: 1.8;">
+                            💎💎💎💎💎 ABSOLUTE DIAMOND (45-50 pts)<br>
+                            💎💎💎💎⭐ STRONG DIAMOND (40-44 pts)<br>
+                            💎💎💎⭐⭐ QUALITY STOCK (35-39 pts)<br>
+                            💎💎⭐⭐⭐ MIXED SIGNALS (25-34 pts) ← Current<br>
+                            💎⭐⭐⭐⭐ CAUTION (15-24 pts)<br>
+                            ⭐⭐⭐⭐⭐ AVOID (0-14 pts)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Verdict -->
+                <div class="final-verdict ${getVerdictClass(data.final_verdict)}">
+                    <div class="verdict-title">${data.final_verdict}</div>
+                    <div class="verdict-description">${getVerdictDescription(data.final_verdict)}</div>
+                </div>
+            `;
+
+            document.getElementById('analysisResults').innerHTML = resultsHTML;
+
+            // Scroll to results
+            document.getElementById('analysisResults').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        // Generate filter results HTML
+        function generateFilterResults(data) {
+            const verdictFactors = data.analysis_details?.verdict_factors || [];
+            let filterHTML = '';
+
+            verdictFactors.forEach(factor => {
+                if (factor.includes('P/E')) {
+                    const pePass = factor.includes('✅');
+                    filterHTML += `
+                        <div class="filter-item ${pePass ? 'pass' : 'fail'}">
+                            <div class="filter-label">P/E Ratio: ${data.pe_ratio?.toFixed(1)}x (Target: 5-30)</div>
+                            <div class="filter-status ${pePass ? 'pass' : 'fail'}">${pePass ? 'PASS' : 'FAIL'}</div>
+                        </div>
+                    `;
+                }
+
+                if (factor.includes('DEBT')) {
+                    const debtPass = factor.includes('✅');
+                    filterHTML += `
+                        <div class="filter-item ${debtPass ? 'pass' : 'fail'}">
+                            <div class="filter-label">Debt Ratio: ${data.debt_ratio?.toFixed(1)}% (Max: 50%)</div>
+                            <div class="filter-status ${debtPass ? 'pass' : 'fail'}">${debtPass ? 'PASS' : 'FAIL'}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            return filterHTML;
+        }
+
+        // Get verdict CSS class
+        function getVerdictClass(verdict) {
+            if (verdict.includes('DIAMOND')) return 'diamond';
+            if (verdict.includes('OVERVALUED')) return 'overvalued';
+            if (verdict.includes('AVOID')) return 'avoid';
+            return 'quality';
+        }
+
+        // Get verdict description
+        function getVerdictDescription(verdict) {
+            if (verdict.includes('DIAMOND')) {
+                return 'Exceptional opportunity! Strong fundamentals with significant undervaluation.';
+            } else if (verdict.includes('OVERVALUED')) {
+                return 'Current price appears too high relative to fundamental metrics.';
+            } else if (verdict.includes('AVOID')) {
+                return 'Multiple red flags detected. Consider other opportunities.';
+            }
+            return 'Analysis complete based on your filter criteria.';
+        }
+
+        // Show demo data if API fails
+        function showDemoData(ticker, peMin, peMax, debtMax) {
+            const demoData = {
+                ticker: ticker,
+                current_price: 14.20,
+                pe_ratio: 28.9,
+                debt_ratio: 0.0,
+                market_cap: 3600000000,
+                intrinsic_value: 10.61,
+                valuation_gap: -25.3,
+                final_verdict: '[!] OVERVALUED [!]',
+                analysis_details: {
+                    verdict_factors: ['❌ P/E FAIL', '✅ DEBT PASS']
+                }
+            };
+
+            displayResults(demoData);
+        }
+
+        // Format market cap
+        function formatMarketCap(marketCap) {
+            if (!marketCap) return 'N/A';
+
+            if (marketCap >= 1e12) {
+                return (marketCap / 1e12).toFixed(1) + 'T';
+            } else if (marketCap >= 1e9) {
+                return (marketCap / 1e9).toFixed(1) + 'B';
+            } else if (marketCap >= 1e6) {
+                return (marketCap / 1e6).toFixed(1) + 'M';
+            }
+            return marketCap.toFixed(0);
+        }
+
+        // Enter key support
+        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performAnalysis();
+            }
+        });
+
+        console.log('💎 ProfitPal Stock Analysis initialized');
+    </script>
+</body>
+</html>

@@ -880,6 +880,11 @@ def login_page():
     """Login page for existing users"""
     return FileResponse('login.html')
 
+@app.get("/stock-analysis")
+def serve_stock_analysis():
+    """Serve stock analysis page for authorized users"""
+    return FileResponse('stock-analysis.html')
+
 @app.get('/dashboard')
 def serve_dashboard():
     """Dashboard page with stock analysis"""
