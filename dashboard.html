@@ -1074,7 +1074,7 @@
                 </div>
 
                 <div class="action-buttons">
-                    <a href="/stock-analysis?ticker=${ticker}" class="action-btn">Full Analysis</a>
+                    <a href="javascript:goToFullAnalysis()" class="action-btn">Full Analysis</a>
                     <a href="#" class="action-btn primary">Add to Portfolio</a>
                 </div>
             </div>
@@ -1219,6 +1219,18 @@
                 banner.querySelector('.boost-expand-hint').textContent = 'Click to expand upgrade options →';
             }
         }
+
+        // 🚀 ФУНКЦИЯ ПЕРЕХОДА НА ПОЛНЫЙ АНАЛИЗ С ТИКЕРОМ  
+        function goToFullAnalysis() {
+            const ticker = document.getElementById('quickTicker').value.toUpperCase().trim();
+            if (!ticker) {
+                alert('Please enter a ticker first');
+                return;
+            }
+            console.log('🎯 Going to full analysis with ticker:', ticker);
+            window.location.href = `/stock-analysis?ticker=${ticker}`;
+        }
+
 
         function toggleDowngradeOptions() {
             const options = document.getElementById('downgradeOptions');
