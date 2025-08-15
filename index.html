@@ -200,6 +200,13 @@
       gap: 25px;
     }
 
+    /* Зеленая подсветка auto-fill имени (как на /login) */
+    .sign-in-form input#signin-fullname.name-ok,
+    #signin-fullname.name-ok {
+      color: #32cd32 !important;
+      -webkit-text-fill-color: #32cd32 !important; /* на всякий случай для WebKit */
+    }
+
     /* Form Groups like LOGIN.HTML */
     .form-group {
       text-align: left;
@@ -1153,6 +1160,7 @@
       const continueBtn    = document.getElementById('continue-button');
       const signinForm     = document.getElementById('signin-form') || document.querySelector('#signin-btn')?.closest('form');
       const signinBtn      = document.getElementById('signin-btn');
+
       const signinEmail    = document.getElementById('signin-email');
       const signinLicense  = document.getElementById('signin-license');
       const fullNameInput  = document.getElementById('signin-fullname');
@@ -1162,16 +1170,7 @@
       if (analyzeBtn)  analyzeBtn.addEventListener('click', analyzeStock);
       if (continueBtn) continueBtn.addEventListener('click', continueToFullAnalysis);
 
-      // Умные обработчики (как на /login)
-      if (signinEmail) {
-        signinEmail.addEventListener('blur', tryAutofillName);
-        signinEmail.addEventListener('blur', adminAutofill);
-      }
-      if (signinLicense) {
-        signinLicense.addEventListener('blur', tryAutofillName);
-      }
-
-      // --- Admin/client mode ---
+      // --- Admin / Client mode ---
       function applyMode(isAdmin) {
         if (!signinLicense || !keyLabel) return;
         if (isAdmin) {
@@ -1180,14 +1179,17 @@
           keyLabel.textContent      = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
           signinLicense.value = '';
         } else {
+          // В HTML у инпута должно быть maxlength="17"
           signinLicense.placeholder = 'PP-XXXX-XXXX-XXXX';
-          signinLicense.maxLength   = 17; // важно
+          signinLicense.maxLength   = 17;
           keyLabel.textContent      = 'PP-XXXX-XXXX-XXXX';
           signinLicense.value = '';
         }
+        // при смене режима пересчитать подсветку имени
+        adminAutofill();
       }
       applyMode(!!adminToggle?.checked);
-      adminToggle?.addEventListener('change', e => applyMode(e.target.checked));
+      adminToggle?.addEventListener('change', () => applyMode(adminToggle.checked));
 
       // Автоформат ключа (клиент — PP-XXXX-XXXX-XXXX; админ — просто UPPER)
       signinLicense?.addEventListener('input', (e) => {
@@ -1207,10 +1209,15 @@
         try { e.target.setSelectionRange(caret, caret); } catch {}
       });
 
+      // Умные обработчики как на /login
+      signinEmail?.addEventListener('input', adminAutofill);
+      signinEmail?.addEventListener('blur',  adminAutofill);
+      signinEmail?.addEventListener('blur',  tryAutofillName);
+      signinLicense?.addEventListener('blur', tryAutofillName);
+
       // Вход: submit на форму и на кнопку
       signinForm?.addEventListener('submit', handleSignIn);
       signinBtn?.addEventListener('click', (e) => {
-        // гарантируем вызов handleSignIn даже если кнопка вне form
         if (signinForm) {
           e.preventDefault();
           if (signinForm.requestSubmit) signinForm.requestSubmit();
@@ -1220,6 +1227,8 @@
 
       // Демо-данные на главной
       setTimeout(showInitialBlurredData, 1000);
+      // первичное автозаполнение админа
+      adminAutofill();
     });
 
     // ---------- Главная: демо-анализ ----------
@@ -1315,30 +1324,42 @@
           const fullnameInput = document.getElementById('signin-fullname');
           if (r.ok && d.show_name && d.full_name) {
             fullnameInput.value = d.full_name;
-            fullnameInput.style.color = '#32cd32';
+            fullnameInput.classList.add('name-ok'); // зелёная подсветка
           } else {
             fullnameInput.value = '';
-            fullnameInput.style.color = '';
+            fullnameInput.classList.remove('name-ok');
           }
         } catch {}
       }, 250);
     }
 
-    async function adminAutofill() {
-      const adminToggle = document.getElementById('admin-mode-index');
-      if (!adminToggle?.checked) return;
-      const emailInput = document.getElementById('signin-email');
+    // --- Admin autofill (как на /login) ---
+    function adminAutofill() {
+      const adminToggle   = document.getElementById('admin-mode-index');
+      const emailInput    = document.getElementById('signin-email');
       const fullNameInput = document.getElementById('signin-fullname');
+
+      if (!adminToggle?.checked) {
+        fullNameInput?.classList.remove('name-ok');
+        return;
+      }
+
       const email = (emailInput?.value || '').trim().toLowerCase();
-      if (!email) return;
+      if (!email) {
+        fullNameInput.value = '';
+        fullNameInput.classList.remove('name-ok');
+        return;
+      }
+
       const ADMIN_EMAIL = 'denava.business@gmail.com';
       const ADMIN_NAME  = 'System Administrator';
+
       if (email === ADMIN_EMAIL) {
         fullNameInput.value = ADMIN_NAME;
-        fullNameInput.style.color = '#32cd32';
+        fullNameInput.classList.add('name-ok');
       } else {
         fullNameInput.value = '';
-        fullNameInput.style.color = '';
+        fullNameInput.classList.remove('name-ok');
       }
     }
 
@@ -1346,9 +1367,9 @@
     async function handleSignIn(event) {
       if (event) event.preventDefault();
 
-      const email      = (document.getElementById('signin-email')?.value || '').trim();
-      const licenseKey = (document.getElementById('signin-license')?.value || '').trim().toUpperCase();
-      const fullName   = (document.getElementById('signin-fullname')?.value || '').trim();
+      const email       = (document.getElementById('signin-email')?.value || '').trim();
+      const licenseKey  = (document.getElementById('signin-license')?.value || '').trim().toUpperCase();
+      const fullName    = (document.getElementById('signin-fullname')?.value || '').trim();
       const isAdminMode = !!document.getElementById('admin-mode-index')?.checked;
 
       if (!email || !licenseKey) {
