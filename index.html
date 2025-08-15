@@ -1173,6 +1173,13 @@
         signinEmail.addEventListener('input', validateEmail);
       }
 
+      // 🔥 НОВЫЙ КОД - подсветка при вводе лицензионного ключа
+      const signinLicense = document.getElementById('signin-license');
+      if (signinLicense) {
+        signinLicense.addEventListener('input', validateEmail);
+        signinLicense.addEventListener('blur', validateEmail);
+      }
+
       setTimeout(() => {
         showInitialBlurredData();
       }, 1000);
@@ -1314,12 +1321,23 @@
       }
 
       try {
-        // Вызываем API только с email для поиска имени
-        const response = await fetch('/validate-credentials', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, license_key: 'PP-TEST-TEST-TEST' }) // Временный ключ
-        });
+      // Проверяем админский режим  
+      const isAdminMode = document.getElementById('admin-mode-index').checked;
+      if (isAdminMode) {
+        // Вызываем админскую функцию вместо обычной
+        adminAutofill();
+        return;
+      }
+
+      // Вызываем API только с email для поиска имени
+      const response = await fetch('/validate-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          license_key: (document.getElementById('signin-license').value.trim() || 'PP-TEST-TEST-TEST')
+        })
+      });
 
         const data = await response.json();
 
@@ -1362,21 +1380,33 @@
       // Прямой вход для админа
       if (isAdminMode) {
         try {
-          const response = await fetch('/api/login', {
+          const response = await fetch('/authenticate-user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, license_key: licenseKey })
+            body: JSON.stringify({ 
+              email: email, 
+              license_key: licenseKey, 
+              full_name: fullName || 'Administrator' 
+            })
           });
 
           const data = await response.json();
 
           if (data.success) {
-            alert(`Welcome admin! Redirecting to dashboard...`);
+            // Сохраняем сессию
+            if (data.session_token) {
+              localStorage.setItem('pp_session', data.session_token);
+              localStorage.setItem('pp_email', email);
+              localStorage.setItem('pp_user_role', data.user_role || 'admin');
+            }
+
+            alert('👑 Welcome back, Admin! Redirecting to dashboard...');
             window.location.href = '/dashboard';
           } else {
             alert('Invalid admin credentials');
           }
         } catch (error) {
+          console.error('Admin login error:', error);
           alert('Login failed - check console for details');
         }
         return;
@@ -1384,24 +1414,36 @@
 
       // Для обычных пользователей
       try {
-        const response = await fetch('/api/login', {
+        const response = await fetch('/authenticate-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, license_key: licenseKey })
+          body: JSON.stringify({ 
+            email: email, 
+            license_key: licenseKey, 
+            full_name: fullName 
+          })
         });
 
         const data = await response.json();
 
         if (data.success) {
-          alert(`Welcome back ${fullName}! Redirecting to dashboard...`);
+          // Сохраняем сессию
+          if (data.session_token) {
+            localStorage.setItem('pp_session', data.session_token);
+            localStorage.setItem('pp_email', email);
+            localStorage.setItem('pp_user_role', data.user_role || 'client');
+          }
+
+          const userName = data.user?.full_name || fullName;
+          alert(`Welcome back ${userName}! Redirecting to dashboard...`);
           window.location.href = '/dashboard';
         } else {
           alert('Invalid credentials');
         }
       } catch (error) {
+        console.error('Login error:', error);
         alert('Login failed');
       }
-    }
 
     // Pricing Button Functions
     function goToPayment() {
