@@ -729,32 +729,12 @@
             <div style="height: 2px; background: linear-gradient(90deg, transparent, rgba(50, 205, 50, 0.5), transparent); margin: 20px 0;"></div>
         </div>
 
-        <!-- Analysis Modes -->
-        <div class="analysis-modes">
-            <button class="mode-btn active" id="analyzeMode" onclick="setMode('analyze')">
-                🔍 Analyze Stock
-            </button>
-            <button class="mode-btn" id="findMode" onclick="setMode('find')">
-                🔎 Find Stocks
-            </button>
-        </div>
-
         <!-- Analysis Input Section -->
         <section class="analysis-input-section">
-            <!-- Dynamic Titles -->
-            <div class="mode-title active" id="analyzeTitle">
-                <h2 class="section-title">🎯 Analyze Specific Stock</h2>
-                <p class="section-subtitle" id="analyzeSubtitle">
-                    Deep dive analysis of a specific stock with optional custom filters
-                </p>
-            </div>
-
-            <div class="mode-title" id="findTitle">
-                <h2 class="section-title">🔎 Find Stocks by Criteria</h2>
-                <p class="section-subtitle">
-                    Discover stocks that match your investment criteria and filters
-                </p>
-            </div>
+            <h2 class="section-title">🎯 Analyze Specific Stock</h2>
+            <p class="section-subtitle" id="analyzeSubtitle">
+                Deep dive analysis of a specific stock with optional custom filters
+            </p>
 
             <!-- Stock Analysis Input -->
             <div class="input-group">
@@ -870,7 +850,6 @@
 
     <script>
         // Global state
-        let currentMode = 'analyze';
         let filtersExpanded = false;
         let screenerExpanded = false;
 
@@ -1013,60 +992,6 @@
             window.location.href = `/stock-screener-results?${params.toString()}`;
         }
 
-        // MODE SWITCHING
-        function setMode(mode) {
-            currentMode = mode;
-
-            // Update buttons
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(mode + 'Mode').classList.add('active');
-
-            // Update titles
-            document.querySelectorAll('.mode-title').forEach(title => title.classList.remove('active'));
-            document.getElementById(mode + 'Title').classList.add('active');
-
-            // Update button text and behavior
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            const tickerInput = document.getElementById('tickerInput');
-
-            if (mode === 'analyze') {
-                analyzeBtn.innerHTML = '🔍 Analyze Stock';
-                tickerInput.placeholder = 'Enter ticker (e.g., AAPL)';
-                tickerInput.required = true;
-            } else {
-                analyzeBtn.innerHTML = '🔎 Find Stocks';
-                tickerInput.placeholder = 'Optional: Specific ticker';
-                tickerInput.required = false;
-            }
-        }
-
-        // TOGGLE ADVANCED FILTERS
-        function toggleFilters() {
-            filtersExpanded = !filtersExpanded;
-            const filterContent = document.getElementById('filterContent');
-
-            if (filtersExpanded) {
-                filterContent.classList.add('active');
-            } else {
-                filterContent.classList.remove('active');
-            }
-        }
-
-        // SMOOTH TRANSITIONS LIKE DASHBOARD
-        function addSmoothTransitions() {
-            const elements = document.querySelectorAll('.analysis-input-section, .analysis-modes');
-            elements.forEach((element, index) => {
-                element.style.opacity = '0';
-                element.style.transform = 'translateY(20px)';
-
-                setTimeout(() => {
-                    element.style.transition = 'all 0.6s ease';
-                    element.style.opacity = '1';
-                    element.style.transform = 'translateY(0)';
-                }, index * 200);
-            });
-        }
-
         // Perform stock analysis - ДЕМО ДАННЫЕ ДО НАСТРОЙКИ API
         async function performAnalysis() {
             const ticker = document.getElementById('tickerInput').value.toUpperCase().trim();
@@ -1075,8 +1000,8 @@
             const peMax = parseFloat(document.getElementById('peMax').value);
             const debtMax = parseFloat(document.getElementById('debtMax').value);
 
-            // Validation based on mode
-            if (currentMode === 'analyze' && !ticker) {
+            // Validation
+            if (!ticker) {
                 alert('Please enter a stock ticker symbol for analysis');
                 return;
             }
