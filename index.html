@@ -828,7 +828,7 @@
         <!-- Дырка 3: License Key -->
         <div class="form-group">
           <label class="form-label" for="signin-license">License Key (<span id="keyFormatLabel">PP-XXXX-XXXX-XXXX</span>)</label>
-          <input type="text" id="signin-license" class="form-input license-input" placeholder="PP-XXXX-XXXX-XXXX" maxlength="16" required>
+          <input type="text" id="signin-license" class="form-input license-input" placeholder="PP-XXXX-XXXX-XXXX" maxlength="17" required>
         </div>
 
         <!-- Admin Mode Toggle -->
@@ -1099,10 +1099,11 @@
   </footer>
 
   <script>
+  (() => {
     let analysisCount = 0;
     let hasAnalyzed = false;
 
-    // Generate fingerprint
+    // ---------- Fingerprint ----------
     function generateFingerprint() {
       const data = {
         screen: `${screen.width}x${screen.height}`,
@@ -1112,10 +1113,8 @@
         platform: navigator.platform,
         userAgent: navigator.userAgent.substring(0, 100)
       };
-      const fingerprint = hashCode(JSON.stringify(data));
-      return fingerprint;
+      return hashCode(JSON.stringify(data));
     }
-
     function hashCode(str) {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -1128,120 +1127,143 @@
 
     async function checkFreeTrial(fingerprint) {
       try {
-        const response = await fetch('/api/check-free-trial', {
+        const r = await fetch('/api/check-free-trial', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fingerprint: fingerprint })
+          body: JSON.stringify({ fingerprint })
         });
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        console.error('❌ Error checking free trial:', error);
+        return await r.json();
+      } catch {
         return { allowed: true, remaining: 5 };
       }
     }
-
     async function recordFreeTrial(fingerprint, ticker) {
       try {
-        const response = await fetch('/api/record-free-trial', {
+        await fetch('/api/record-free-trial', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fingerprint: fingerprint, ticker: ticker })
+          body: JSON.stringify({ fingerprint, ticker })
         });
-        const data = await response.json();
-      } catch (error) {
-        console.error('❌ Error recording free trial:', error);
-      }
+      } catch {}
     }
 
-    // DOM Ready
-    document.addEventListener('DOMContentLoaded', function() {
-      const analyzeBtn = document.getElementById('analyze-button');
-      const continueBtn = document.getElementById('continue-button');
-      const signinEmail = document.getElementById('signin-email');
+    // ---------- DOM READY ----------
+    document.addEventListener('DOMContentLoaded', () => {
+      const analyzeBtn     = document.getElementById('analyze-button');
+      const continueBtn    = document.getElementById('continue-button');
+      const signinForm     = document.getElementById('signin-form') || document.querySelector('#signin-btn')?.closest('form');
+      const signinBtn      = document.getElementById('signin-btn');
+      const signinEmail    = document.getElementById('signin-email');
+      const signinLicense  = document.getElementById('signin-license');
+      const fullNameInput  = document.getElementById('signin-fullname');
+      const adminToggle    = document.getElementById('admin-mode-index');
+      const keyLabel       = document.getElementById('keyFormatLabel');
 
-      if (analyzeBtn) {
-        analyzeBtn.addEventListener('click', analyzeStock);
-      }
+      if (analyzeBtn)  analyzeBtn.addEventListener('click', analyzeStock);
+      if (continueBtn) continueBtn.addEventListener('click', continueToFullAnalysis);
 
-      if (continueBtn) {
-        continueBtn.addEventListener('click', continueToFullAnalysis);
-      }
-
-      // 🔥 УМНЫЕ ОБРАБОТЧИКИ как в login.html
-      const signinLicense = document.getElementById('signin-license');
-      if (signinEmail && signinLicense) {
+      // Умные обработчики (как на /login)
+      if (signinEmail) {
         signinEmail.addEventListener('blur', tryAutofillName);
+        signinEmail.addEventListener('blur', adminAutofill);
+      }
+      if (signinLicense) {
         signinLicense.addEventListener('blur', tryAutofillName);
       }
 
-      // ðŸ'' Админские обработчики как в login.html
-      if (signinEmail) {
-        signinEmail.addEventListener('blur', adminAutofill);
+      // --- Admin/client mode ---
+      function applyMode(isAdmin) {
+        if (!signinLicense || !keyLabel) return;
+        if (isAdmin) {
+          signinLicense.placeholder = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
+          signinLicense.maxLength   = 50;
+          keyLabel.textContent      = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
+          signinLicense.value = '';
+        } else {
+          signinLicense.placeholder = 'PP-XXXX-XXXX-XXXX';
+          signinLicense.maxLength   = 17; // важно
+          keyLabel.textContent      = 'PP-XXXX-XXXX-XXXX';
+          signinLicense.value = '';
+        }
       }
+      applyMode(!!adminToggle?.checked);
+      adminToggle?.addEventListener('change', e => applyMode(e.target.checked));
 
-      const adminToggle = document.getElementById('admin-mode-index');
-      if (adminToggle) {
-        adminToggle.addEventListener('change', adminAutofill);
-      }
+      // Автоформат ключа (клиент — PP-XXXX-XXXX-XXXX; админ — просто UPPER)
+      signinLicense?.addEventListener('input', (e) => {
+        if (adminToggle?.checked) {
+          e.target.value = e.target.value.toUpperCase();
+          return;
+        }
+        const caret = e.target.selectionStart;
+        const v     = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+        const pref  = v.startsWith('PP') ? v : ('PP' + v);
+        const body  = pref.slice(2, 14);
+        let out = 'PP';
+        if (body.length > 0) out += '-' + body.slice(0,4);
+        if (body.length > 4) out += '-' + body.slice(4,8);
+        if (body.length > 8) out += '-' + body.slice(8,12);
+        e.target.value = out;
+        try { e.target.setSelectionRange(caret, caret); } catch {}
+      });
 
-      setTimeout(() => {
-        showInitialBlurredData();
-      }, 1000);
+      // Вход: submit на форму и на кнопку
+      signinForm?.addEventListener('submit', handleSignIn);
+      signinBtn?.addEventListener('click', (e) => {
+        // гарантируем вызов handleSignIn даже если кнопка вне form
+        if (signinForm) {
+          e.preventDefault();
+          if (signinForm.requestSubmit) signinForm.requestSubmit();
+          else handleSignIn(e);
+        }
+      });
+
+      // Демо-данные на главной
+      setTimeout(showInitialBlurredData, 1000);
     });
 
+    // ---------- Главная: демо-анализ ----------
     function showInitialBlurredData() {
       const analysisResult = document.getElementById('analysis-result');
-      if (analysisResult) {
-        analysisResult.style.display = 'block';
-        document.getElementById('price').textContent = '$185.64';
-        document.getElementById('pe-ratio').textContent = '28.7x';
-        document.getElementById('market-cap').textContent = '$2.85T';
-        document.getElementById('intrinsic-value').textContent = '$195.32';
-        document.getElementById('verdict').textContent = '💎 QUALITY STOCK';
-
-        const metricValues = document.querySelectorAll('.metric-value');
-        metricValues.forEach(value => {
-          value.classList.add('blurred');
-        });
-      }
+      if (!analysisResult) return;
+      analysisResult.style.display = 'block';
+      document.getElementById('price').textContent = '$185.64';
+      document.getElementById('pe-ratio').textContent = '28.7x';
+      document.getElementById('market-cap').textContent = '$2.85T';
+      document.getElementById('intrinsic-value').textContent = '$195.32';
+      document.getElementById('verdict').textContent = '💎 QUALITY STOCK';
+      document.querySelectorAll('.metric-value').forEach(v => v.classList.add('blurred'));
     }
 
     async function analyzeStock() {
-      const ticker = document.getElementById('ticker-input').value.toUpperCase().trim();
+      const ticker = (document.getElementById('ticker-input')?.value || '').toUpperCase().trim();
       const continueSection = document.getElementById('continue-section');
+      if (!ticker) { alert('Please enter a ticker symbol for ProfitPal analysis'); return; }
 
-      if (!ticker) {
-        alert('Please enter a ticker symbol for ProfitPal analysis');
-        return;
-      }
-
-      const userFingerprint = generateFingerprint();
-      const trialStatus = await checkFreeTrial(userFingerprint);
-
+      const fp = generateFingerprint();
+      const trialStatus = await checkFreeTrial(fp);
       if (!trialStatus.allowed) {
         alert(`Free trial limit reached (${trialStatus.used}/${trialStatus.max_analyses}). Please sign up for full access!`);
-        setTimeout(() => { continueToFullAnalysis(); }, 2000);
+        setTimeout(continueToFullAnalysis, 2000);
         return;
       }
 
       document.getElementById('verdict').textContent = '⏳ PROFITPAL ANALYZING...';
 
       const mockData = {
-        'AAPL': { price: 185.64, pe: 28.7, mcap: 2.85, intrinsic: 195.32, verdict: '💎 QUALITY STOCK' },
-        'TSLA': { price: 248.50, pe: 75.2, mcap: 789.1, intrinsic: 180.25, verdict: '⚠️ OVERVALUED' },
-        'MSFT': { price: 374.58, pe: 32.1, mcap: 2.78, intrinsic: 385.20, verdict: '💎 DIAMOND FOUND' },
-        'NVDA': { price: 875.28, pe: 65.4, mcap: 2.16, intrinsic: 692.15, verdict: '⚠️ RISKY BUY' },
-        'GOOGL': { price: 138.21, pe: 24.8, mcap: 1.75, intrinsic: 165.50, verdict: '💎 UNDERVALUED' },
-        'AMZN': { price: 178.25, pe: 45.2, mcap: 1.88, intrinsic: 195.80, verdict: '📊 MIXED SIGNALS' },
-        'META': { price: 425.65, pe: 22.3, mcap: 1.10, intrinsic: 450.15, verdict: '💎 QUALITY STOCK' },
-        'OSCR': { price: 48.75, pe: 15.2, mcap: 0.85, intrinsic: 52.30, verdict: '💎 HIDDEN GEM' }
+        AAPL:{ price:185.64, pe:28.7, mcap:2.85, intrinsic:195.32, verdict:'💎 QUALITY STOCK' },
+        TSLA:{ price:248.50, pe:75.2, mcap:0.789, intrinsic:180.25, verdict:'⚠️ OVERVALUED' },
+        MSFT:{ price:374.58, pe:32.1, mcap:2.78, intrinsic:385.20, verdict:'💎 DIAMOND FOUND' },
+        NVDA:{ price:875.28, pe:65.4, mcap:2.16, intrinsic:692.15, verdict:'⚠️ RISKY BUY' },
+        GOOGL:{ price:138.21, pe:24.8, mcap:1.75, intrinsic:165.50, verdict:'💎 UNDERVALUED' },
+        AMZN:{ price:178.25, pe:45.2, mcap:1.88, intrinsic:195.80, verdict:'📊 MIXED SIGNALS' },
+        META:{ price:425.65, pe:22.3, mcap:1.10, intrinsic:450.15, verdict:'💎 QUALITY STOCK' },
+        OSCR:{ price:48.75,  pe:15.2, mcap:0.85, intrinsic:52.30,  verdict:'💎 HIDDEN GEM' }
       };
-
       const data = mockData[ticker] || mockData['AAPL'];
 
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      await recordFreeTrial(userFingerprint, ticker);
+      await new Promise(r => setTimeout(r, 1200));
+      await recordFreeTrial(fp, ticker);
 
       document.getElementById('price').textContent = `${data.price}`;
       document.getElementById('pe-ratio').textContent = `${data.pe}x`;
@@ -1250,16 +1272,12 @@
       document.getElementById('verdict').textContent = data.verdict;
 
       setTimeout(() => {
-        const metricValues = document.querySelectorAll('.metric-value');
-        metricValues.forEach(value => {
-          value.classList.remove('blurred');
-          value.classList.add('revealed');
+        document.querySelectorAll('.metric-value').forEach(v => {
+          v.classList.remove('blurred'); v.classList.add('revealed');
         });
-
         setTimeout(() => {
-          continueSection.style.display = 'block';
-          continueSection.classList.add('show');
-          continueSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          const cont = continueSection;
+          if (cont) { cont.style.display = 'block'; cont.classList.add('show'); cont.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
         }, 1000);
       }, 300);
 
@@ -1268,94 +1286,24 @@
     }
 
     async function continueToFullAnalysis() {
-      const ticker = document.getElementById('ticker-input').value.toUpperCase().trim() || 'AAPL';
-      const userFingerprint = generateFingerprint();
-      await recordFreeTrial(userFingerprint, ticker);
+      const ticker = (document.getElementById('ticker-input')?.value || 'AAPL').toUpperCase().trim();
+      const fp = generateFingerprint();
+      await recordFreeTrial(fp, ticker);
       window.location.href = `/fake-dashboard?ticker=${ticker}`;
     }
 
-   // Переключение режимов (КАК В LOGIN.HTML)
-    function applyMode(isAdmin) {
-      const licenseInput = document.getElementById('signin-license');
-      const formatLabel = document.getElementById('keyFormatLabel');
-
-      if (isAdmin) {
-        licenseInput.placeholder = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
-        licenseInput.maxLength = 50;
-        formatLabel.textContent = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
-        licenseInput.value = '';
-      } else {
-        licenseInput.placeholder = 'PP-XXXX-XXXX-XXXX';
-        licenseInput.maxLength = 17;
-        formatLabel.textContent = 'PP-XXXX-XXXX-XXXX';
-        licenseInput.value = '';
-      }
-    }
-
-    const adminToggle = document.getElementById('admin-mode-index');
-    applyMode(adminToggle.checked);
-    adminToggle.addEventListener('change', e => applyMode(e.target.checked));
-
-    // Автоформат клиентского ключа (КАК В LOGIN.HTML)
-    document.getElementById('signin-license').addEventListener('input', function(e) {
-      if (adminToggle.checked) {
-        e.target.value = e.target.value.toUpperCase();
-        return;
-      }
-
-      const caret = e.target.selectionStart;
-      const before = e.target.value;
-
-      // Форматирование PP-XXXX-XXXX-XXXX
-      const v = before.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const pref = v.startsWith('PP') ? v : ('PP' + v);
-      const body = pref.slice(2, 14);
-      let out = 'PP';
-      if (body.length > 0) out += '-' + body.slice(0, 4);
-      if (body.length > 4) out += '-' + body.slice(4, 8);
-      if (body.length > 8) out += '-' + body.slice(8, 12);
-
-      e.target.value = out;
-      try { e.target.setSelectionRange(caret, caret); } catch {}
-    });
-
-    // License key formatting
-    document.getElementById('signin-license').addEventListener('input', function(e) {
-      const isAdminMode = document.getElementById('admin-mode-index').checked;
-      let value = e.target.value.replace(/[^A-Z0-9-]/g, '');
-
-      if (isAdminMode) {
-        e.target.value = value.toUpperCase();
-      } else {
-        value = value.replace(/[^A-Z0-9]/g, '');
-        if (value.length > 2) {
-          value = value.slice(0, 2) + '-' + value.slice(2);
-        }
-        if (value.length > 7) {
-          value = value.slice(0, 7) + '-' + value.slice(7);
-        }
-        if (value.length > 12) {
-          value = value.slice(0, 12) + '-' + value.slice(12, 16);
-        }
-        e.target.value = value;
-      }
-    });
-
-    // УМНАЯ подстановка ФИО: только когда email+ключ валидны (КАК В LOGIN.HTML)
+    // ---------- Autofill name ----------
     let lookupTimer = null;
     function tryAutofillName() {
       clearTimeout(lookupTimer);
       lookupTimer = setTimeout(async () => {
-        const email = (document.getElementById('signin-email').value || '').trim();
-        const key = (document.getElementById('signin-license').value || '').trim().toUpperCase();
+        const email = (document.getElementById('signin-email')?.value || '').trim();
+        const key   = (document.getElementById('signin-license')?.value || '').trim().toUpperCase();
+        const isAdminMode = !!document.getElementById('admin-mode-index')?.checked;
 
-        // Проверяем только валидные ключи для клиентов
+        // Валидируем только клиентский ключ
         const CLIENT_KEY_RE = /^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-        const isAdminMode = document.getElementById('admin-mode-index').checked;
-
-        if (!email || !CLIENT_KEY_RE.test(key) || isAdminMode) { 
-          return; 
-        }
+        if (!email || !CLIENT_KEY_RE.test(key) || isAdminMode) return;
 
         try {
           const r = await fetch('/validate-credentials', {
@@ -1364,180 +1312,129 @@
             body: JSON.stringify({ email, license_key: key })
           });
           const d = await r.json();
-
           const fullnameInput = document.getElementById('signin-fullname');
           if (r.ok && d.show_name && d.full_name) {
             fullnameInput.value = d.full_name;
             fullnameInput.style.color = '#32cd32';
-            console.log(`✨ Name auto-filled: ${d.full_name}`);
           } else {
             fullnameInput.value = '';
             fullnameInput.style.color = '';
           }
-        } catch (e) { 
-          console.error('❌ Autofill error:', e);
-        }
+        } catch {}
       }, 250);
     }
 
-    // ðŸ'' ADMIN AUTOFILL - точно как в login.html
     async function adminAutofill() {
       const adminToggle = document.getElementById('admin-mode-index');
+      if (!adminToggle?.checked) return;
       const emailInput = document.getElementById('signin-email');
       const fullNameInput = document.getElementById('signin-fullname');
-
-      if (!adminToggle.checked) return;
-      const email = (emailInput.value || '').trim().toLowerCase();
+      const email = (emailInput?.value || '').trim().toLowerCase();
       if (!email) return;
-
-      // Используем те же данные что и в login.html
       const ADMIN_EMAIL = 'denava.business@gmail.com';
-      const ADMIN_NAME = 'System Administrator';
-
+      const ADMIN_NAME  = 'System Administrator';
       if (email === ADMIN_EMAIL) {
         fullNameInput.value = ADMIN_NAME;
         fullNameInput.style.color = '#32cd32';
-        console.log(`ðŸ'' Admin name auto-filled: ${ADMIN_NAME}`);
       } else {
         fullNameInput.value = '';
         fullNameInput.style.color = '';
       }
     }
 
-
-    // Handle Sign In Form
+    // ---------- Sign In ----------
     async function handleSignIn(event) {
-      event.preventDefault();
+      if (event) event.preventDefault();
 
-      const email = document.getElementById('signin-email').value.trim();
-      const licenseKey = document.getElementById('signin-license').value.trim().toUpperCase();
-      const fullName = document.getElementById('signin-fullname').value.trim();
-      const isAdminMode = document.getElementById('admin-mode-index').checked;
+      const email      = (document.getElementById('signin-email')?.value || '').trim();
+      const licenseKey = (document.getElementById('signin-license')?.value || '').trim().toUpperCase();
+      const fullName   = (document.getElementById('signin-fullname')?.value || '').trim();
+      const isAdminMode = !!document.getElementById('admin-mode-index')?.checked;
 
       if (!email || !licenseKey) {
         alert('Please fill in all fields');
         return;
       }
 
-      if (!fullName && !isAdminMode) {
-        alert('Please enter a valid email to auto-fill your name');
-        return;
-      }
-
-      // Проверка формата ключа для клиентов
       const CLIENT_KEY_RE = /^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-
       if (!isAdminMode && !CLIENT_KEY_RE.test(licenseKey)) {
         alert('License key format should be PP-XXXX-XXXX-XXXX.');
         return;
       }
 
-
-      // Прямой вход для админа
+      // Admin
       if (isAdminMode) {
         try {
-          const response = await fetch('/authenticate-user', {
+          const r = await fetch('/authenticate-user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              email: email, 
-              license_key: licenseKey, 
-              full_name: fullName || 'Administrator' 
-            })
+            body: JSON.stringify({ email, license_key: licenseKey, full_name: fullName || 'Administrator' })
           });
-
-          const data = await response.json();
-
-          if (data.success) {
-            // Сохраняем сессию
-            if (data.session_token) {
-              localStorage.setItem('pp_session', data.session_token);
+          const d = await r.json();
+          if (d.success) {
+            if (d.session_token) {
+              localStorage.setItem('pp_session', d.session_token);
               localStorage.setItem('pp_email', email);
-              localStorage.setItem('pp_user_role', data.user_role || 'admin');
+              localStorage.setItem('pp_user_role', d.user_role || 'admin');
             }
-
             alert('👑 Welcome back, Admin! Redirecting to dashboard...');
             window.location.href = '/dashboard';
           } else {
             alert('Invalid admin credentials');
           }
-        } catch (error) {
-          console.error('Admin login error:', error);
+        } catch (e) {
+          console.error('Admin login error:', e);
           alert('Login failed - check console for details');
         }
         return;
       }
 
-      // Для обычных пользователей
+      // Client
       try {
-        const response = await fetch('/authenticate-user', {
+        const r = await fetch('/authenticate-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email: email, 
-            license_key: licenseKey, 
-            full_name: fullName 
-          })
+          body: JSON.stringify({ email, license_key: licenseKey, full_name: fullName })
         });
-
-        const data = await response.json();
-
-        if (data.success) {
-          // Сохраняем сессию
-          if (data.session_token) {
-            localStorage.setItem('pp_session', data.session_token);
+        const d = await r.json();
+        if (d.success) {
+          if (d.session_token) {
+            localStorage.setItem('pp_session', d.session_token);
             localStorage.setItem('pp_email', email);
-            localStorage.setItem('pp_user_role', data.user_role || 'client');
+            localStorage.setItem('pp_user_role', d.user_role || 'client');
           }
-
-          const userName = data.user?.full_name || fullName;
+          const userName = d.user?.full_name || fullName || '';
           alert(`Welcome back ${userName}! Redirecting to dashboard...`);
           window.location.href = '/dashboard';
         } else {
           alert('Invalid credentials');
         }
-      } catch (error) {
-        console.error('Login error:', error);
+      } catch (e) {
+        console.error('Login error:', e);
         alert('Login failed');
       }
-
-    // Pricing Button Functions
-    function goToPayment() {
-      console.log('💳 Redirecting to payment page');
-      window.location.href = '/analysis';
     }
 
-    // QR Code Popup Functions
+    // ---------- Misc (вне handleSignIn!) ----------
+    function goToPayment() { window.location.href = '/analysis'; }
     function showQR() {
-      console.log('📱 Showing QR code');
       document.getElementById('qr-overlay').style.display = 'flex';
       document.body.style.overflow = 'hidden';
     }
-
     function closeQR(event) {
       if (event && event.target !== event.currentTarget) return;
-      console.log('❌ Closing QR code');
       document.getElementById('qr-overlay').style.display = 'none';
       document.body.style.overflow = 'auto';
     }
-
-    // Close QR with Escape key
-    document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape') {
-        closeQR();
-      }
-    });
-
-    // Smooth scrolling
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeQR(); });
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+  })();
   </script>
 </body>
 </html>
