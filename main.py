@@ -901,6 +901,10 @@ async def serve_introduction():
     """Serve introduction page with calligraphy letter"""
     return FileResponse("introduction.html")
 
+@app.get("/test-fail")
+async def test_fail_page():
+    return FileResponse('test-fail.html')
+
 
 @app.get("/success")
 def serve_success():
