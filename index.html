@@ -1168,16 +1168,21 @@
         continueBtn.addEventListener('click', continueToFullAnalysis);
       }
 
-      // Email validation only
-      if (signinEmail) {
-        signinEmail.addEventListener('input', validateEmail);
+      // 🔥 УМНЫЕ ОБРАБОТЧИКИ как в login.html
+      const signinLicense = document.getElementById('signin-license');
+      if (signinEmail && signinLicense) {
+        signinEmail.addEventListener('blur', tryAutofillName);
+        signinLicense.addEventListener('blur', tryAutofillName);
       }
 
-      // 🔥 НОВЫЙ КОД - подсветка при вводе лицензионного ключа
-      const signinLicense = document.getElementById('signin-license');
-      if (signinLicense) {
-        signinLicense.addEventListener('input', validateEmail);
-        signinLicense.addEventListener('blur', validateEmail);
+      // ðŸ'' Админские обработчики как в login.html
+      if (signinEmail) {
+        signinEmail.addEventListener('blur', adminAutofill);
+      }
+
+      const adminToggle = document.getElementById('admin-mode-index');
+      if (adminToggle) {
+        adminToggle.addEventListener('change', adminAutofill);
       }
 
       setTimeout(() => {
@@ -1269,22 +1274,49 @@
       window.location.href = `/fake-dashboard?ticker=${ticker}`;
     }
 
-    // Admin mode toggle
-    document.getElementById('admin-mode-index').addEventListener('change', function(e) {
+   // Переключение режимов (КАК В LOGIN.HTML)
+    function applyMode(isAdmin) {
       const licenseInput = document.getElementById('signin-license');
       const formatLabel = document.getElementById('keyFormatLabel');
 
-      if (e.target.checked) {
+      if (isAdmin) {
         licenseInput.placeholder = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
         licenseInput.maxLength = 50;
         formatLabel.textContent = 'PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX';
         licenseInput.value = '';
       } else {
         licenseInput.placeholder = 'PP-XXXX-XXXX-XXXX';
-        licenseInput.maxLength = 16;
+        licenseInput.maxLength = 17;
         formatLabel.textContent = 'PP-XXXX-XXXX-XXXX';
         licenseInput.value = '';
       }
+    }
+
+    const adminToggle = document.getElementById('admin-mode-index');
+    applyMode(adminToggle.checked);
+    adminToggle.addEventListener('change', e => applyMode(e.target.checked));
+
+    // Автоформат клиентского ключа (КАК В LOGIN.HTML)
+    document.getElementById('signin-license').addEventListener('input', function(e) {
+      if (adminToggle.checked) {
+        e.target.value = e.target.value.toUpperCase();
+        return;
+      }
+
+      const caret = e.target.selectionStart;
+      const before = e.target.value;
+
+      // Форматирование PP-XXXX-XXXX-XXXX
+      const v = before.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const pref = v.startsWith('PP') ? v : ('PP' + v);
+      const body = pref.slice(2, 14);
+      let out = 'PP';
+      if (body.length > 0) out += '-' + body.slice(0, 4);
+      if (body.length > 4) out += '-' + body.slice(4, 8);
+      if (body.length > 8) out += '-' + body.slice(8, 12);
+
+      e.target.value = out;
+      try { e.target.setSelectionRange(caret, caret); } catch {}
     });
 
     // License key formatting
@@ -1309,54 +1341,69 @@
       }
     });
 
-    // VALIDATE EMAIL ONLY - показывает имя когда находит email в базе
-    async function validateEmail() {
-      const email = document.getElementById('signin-email').value.trim();
-      const fullnameInput = document.getElementById('signin-fullname');
+    // УМНАЯ подстановка ФИО: только когда email+ключ валидны (КАК В LOGIN.HTML)
+    let lookupTimer = null;
+    function tryAutofillName() {
+      clearTimeout(lookupTimer);
+      lookupTimer = setTimeout(async () => {
+        const email = (document.getElementById('signin-email').value || '').trim();
+        const key = (document.getElementById('signin-license').value || '').trim().toUpperCase();
 
-      if (!email) {
-        fullnameInput.value = '';
-        fullnameInput.placeholder = 'Will auto-fill when email is recognized';
-        return;
-      }
+        // Проверяем только валидные ключи для клиентов
+        const CLIENT_KEY_RE = /^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+        const isAdminMode = document.getElementById('admin-mode-index').checked;
 
-      try {
-      // Проверяем админский режим  
-      const isAdminMode = document.getElementById('admin-mode-index').checked;
-      if (isAdminMode) {
-        // Вызываем админскую функцию вместо обычной
-        adminAutofill();
-        return;
-      }
-
-      // Вызываем API только с email для поиска имени
-      const response = await fetch('/validate-credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          license_key: (document.getElementById('signin-license').value.trim() || 'PP-TEST-TEST-TEST')
-        })
-      });
-
-        const data = await response.json();
-
-        if (data.show_name && data.full_name) {
-          // Заполняем имя автоматически
-          fullnameInput.value = data.full_name;
-          fullnameInput.style.color = '#32cd32';
-          console.log(`✨ Name auto-filled: ${data.full_name}`);
-        } else {
-          fullnameInput.value = '';
-          fullnameInput.placeholder = 'Email not found in database';
-          fullnameInput.style.color = '#e74c3c';
+        if (!email || !CLIENT_KEY_RE.test(key) || isAdminMode) { 
+          return; 
         }
-      } catch (error) {
-        console.error('❌ Email validation error:', error);
-        fullnameInput.value = '';
-        fullnameInput.placeholder = 'Error checking email';
+
+        try {
+          const r = await fetch('/validate-credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, license_key: key })
+          });
+          const d = await r.json();
+
+          const fullnameInput = document.getElementById('signin-fullname');
+          if (r.ok && d.show_name && d.full_name) {
+            fullnameInput.value = d.full_name;
+            fullnameInput.style.color = '#32cd32';
+            console.log(`✨ Name auto-filled: ${d.full_name}`);
+          } else {
+            fullnameInput.value = '';
+            fullnameInput.style.color = '';
+          }
+        } catch (e) { 
+          console.error('❌ Autofill error:', e);
+        }
+      }, 250);
+    }
+
+    // ðŸ'' ADMIN AUTOFILL - точно как в login.html
+    async function adminAutofill() {
+      const adminToggle = document.getElementById('admin-mode-index');
+      const emailInput = document.getElementById('signin-email');
+      const fullNameInput = document.getElementById('signin-fullname');
+
+      if (!adminToggle.checked) return;
+      const email = (emailInput.value || '').trim().toLowerCase();
+      if (!email) return;
+
+      // Используем те же данные что и в login.html
+      const ADMIN_EMAIL = 'denava.business@gmail.com';
+      const ADMIN_NAME = 'System Administrator';
+
+      if (email === ADMIN_EMAIL) {
+        fullNameInput.value = ADMIN_NAME;
+        fullNameInput.style.color = '#32cd32';
+        console.log(`ðŸ'' Admin name auto-filled: ${ADMIN_NAME}`);
+      } else {
+        fullNameInput.value = '';
+        fullNameInput.style.color = '';
       }
     }
+
 
     // Handle Sign In Form
     async function handleSignIn(event) {
@@ -1376,6 +1423,15 @@
         alert('Please enter a valid email to auto-fill your name');
         return;
       }
+
+      // Проверка формата ключа для клиентов
+      const CLIENT_KEY_RE = /^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+      if (!isAdminMode && !CLIENT_KEY_RE.test(licenseKey)) {
+        alert('License key format should be PP-XXXX-XXXX-XXXX.');
+        return;
+      }
+
 
       // Прямой вход для админа
       if (isAdminMode) {
