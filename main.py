@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTML
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user
 import re
 
 # ==========================================
@@ -846,31 +847,27 @@ def send_upgrade_confirmation_email(email: str, old_plan: str, new_plan: str,
 
 # ---- Stripe helpers for donations / billing ----
 def ensure_stripe_customer_for_user(user_id: int):
-    """Найти/создать Stripe Customer; вернуть (customer_id, email)."""
+    """Найти/создать Stripe Customer; вернуть (customer_id, None). Email не трогаем."""
     from security import _db
     with _db() as con:
         row = con.execute(
-            "SELECT email, stripe_customer_id FROM users WHERE id = ?",
+            "SELECT stripe_customer_id FROM users WHERE id = ?",
             (user_id,)
         ).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
 
-    email = row["email"]
     cust_id = row["stripe_customer_id"]
-
     if not cust_id:
-        customer = stripe.Customer.create(
-            email=email,
-            metadata={"user_id": str(user_id)}
-        )
+        # email не обязателен; создаём без него
+        customer = stripe.Customer.create(metadata={"user_id": str(user_id)})
         cust_id = customer["id"]
         with _db() as con:
             con.execute(
                 "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
                 (cust_id, user_id)
             )
-    return cust_id, email
+    return cust_id, None  # второе значение нам не нужно
 
 
 def get_customer_default_payment_method(customer_id: str) -> str | None:
@@ -1284,7 +1281,7 @@ async def full_authentication(request: Request, response: Response):
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
 
-        # твоя функция из auth_manager
+        # твоя авторизация
         result = authenticate_user_login(
             email=email,
             license_key=license_key,
@@ -1292,12 +1289,11 @@ async def full_authentication(request: Request, response: Response):
             ip_address=ip_address,
             user_agent=user_agent,
         )
-
         if not result or not result.get("authenticated"):
             err = (result or {}).get("error", "Invalid credentials")
             return JSONResponse({"success": False, "error": err}, status_code=401)
 
-        # 1) пробуем взять user_id из разных возможных полей
+        # 1) пробуем взять user_id из результата
         user_obj = result.get("user") or {}
         user_id = (
             user_obj.get("id")
@@ -1306,53 +1302,35 @@ async def full_authentication(request: Request, response: Response):
             or result.get("id")
         )
 
-        # 2) если не нашли — аккуратный fallback: поиск в БД по email/лицензии
+        # 2) если нет — валидируем через БД (функция сама расшифрует email)
         if not user_id:
-            from security import _db
-            with _db() as con:
-                row = None
-                if email:
-                    row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
-                if not row and license_key:
-                    row = con.execute("SELECT id FROM users WHERE license_key = ?", (license_key,)).fetchone()
-                if not row and email and license_key:
-                    row = con.execute(
-                        "SELECT id FROM users WHERE email = ? AND license_key = ?",
-                        (email, license_key),
-                    ).fetchone()
-            user_id = row["id"] if row else None
+            v = validate_user_credentials(email, license_key)
+            if v and v.get("valid"):
+                user_id = v.get("user_id")
+
+        # 3) если это админ и записи нет — создаём и валидируем ещё раз
+        if not user_id:
+            admin_email = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
+            admin_key   = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
+            if email.lower() == admin_email and license_key.strip() == admin_key:
+                try:
+                    create_new_user(email=email, full_name=full_name or os.getenv("ADMIN_FULL_NAME", "Administrator"))
+                except Exception:
+                    pass
+                v = validate_user_credentials(email, license_key)
+                if v and v.get("valid"):
+                    user_id = v.get("user_id")
 
         if not user_id:
-            # без 500 — просто корректный отказ
-            return JSONResponse(
-                {"success": False, "error": "User not found for this login"},
-                status_code=401,
-            )
+            return JSONResponse({"success": False, "error": "User not found for this login"}, status_code=401)
 
-        # создаём серверную сессию + csrf
+        # 4) создаём серверную сессию и ставим cookies
         token, csrf, _ = create_session(int(user_id), ip_address, user_agent)
+        response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
+                            httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/")
+        response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
+                            httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/")
 
-        # ставим HttpOnly и CSRF cookie (Secure — по домену)
-        response.set_cookie(
-            key=SESSION_COOKIE,
-            value=token,
-            max_age=30 * 24 * 3600,
-            httponly=True,
-            secure=SECURE_COOKIES,
-            samesite="lax",
-            path="/",
-        )
-        response.set_cookie(
-            key=CSRF_COOKIE,
-            value=csrf,
-            max_age=30 * 24 * 3600,
-            httponly=False,
-            secure=SECURE_COOKIES,
-            samesite="lax",
-            path="/",
-        )
-
-        # совместимость со старым фронтом
         return JSONResponse({"success": True, "authenticated": True, "redirect": "/dashboard"}, status_code=200)
 
     except Exception as e:
@@ -1364,6 +1342,7 @@ async def full_authentication(request: Request, response: Response):
 
 @app.post("/api/authenticate")
 async def api_authenticate(request: Request, response: Response):
+    """API-версия — такая же логика, та же сессия"""
     try:
         body = await request.json()
         email       = (body.get("email") or "").strip()
@@ -1380,12 +1359,10 @@ async def api_authenticate(request: Request, response: Response):
             ip_address=ip_address,
             user_agent=user_agent,
         )
-
         if not result or not result.get("authenticated"):
             err = (result or {}).get("error", "Invalid credentials")
             raise HTTPException(status_code=401, detail=err)
 
-        # пытаемся достать user_id из разных возможных полей ответа
         user_obj = result.get("user") or {}
         user_id = (
             user_obj.get("id")
@@ -1394,47 +1371,31 @@ async def api_authenticate(request: Request, response: Response):
             or result.get("id")
         )
 
-        # если не нашли — аккуратно ищем в БД по email/лицензии
         if not user_id:
-            from security import _db
-            with _db() as con:
-                row = None
-                if email:
-                    row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
-                if not row and license_key:
-                    row = con.execute("SELECT id FROM users WHERE license_key = ?", (license_key,)).fetchone()
-                if not row and email and license_key:
-                    row = con.execute(
-                        "SELECT id FROM users WHERE email = ? AND license_key = ?",
-                        (email, license_key),
-                    ).fetchone()
-            user_id = row["id"] if row else None
+            v = validate_user_credentials(email, license_key)
+            if v and v.get("valid"):
+                user_id = v.get("user_id")
+
+        if not user_id:
+            admin_email = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
+            admin_key   = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
+            if email.lower() == admin_email and license_key.strip() == admin_key:
+                try:
+                    create_new_user(email=email, full_name=full_name or os.getenv("ADMIN_FULL_NAME", "Administrator"))
+                except Exception:
+                    pass
+                v = validate_user_credentials(email, license_key)
+                if v and v.get("valid"):
+                    user_id = v.get("user_id")
 
         if not user_id:
             raise HTTPException(status_code=401, detail="User not found for this login")
 
-        # создаём серверную сессию + CSRF и ставим куки
         token, csrf, _ = create_session(int(user_id), ip_address, user_agent)
-
-        response.set_cookie(
-            key=SESSION_COOKIE,
-            value=token,
-            max_age=30 * 24 * 3600,
-            httponly=True,
-            secure=SECURE_COOKIES,
-            samesite="lax",
-            path="/",
-        )
-        response.set_cookie(
-            key=CSRF_COOKIE,
-            value=csrf,
-            max_age=30 * 24 * 3600,
-            httponly=False,
-            secure=SECURE_COOKIES,
-            samesite="lax",
-            path="/",
-        )
-
+        response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
+                            httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/")
+        response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
+                            httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/")
         return {"authenticated": True}
 
     except HTTPException:
