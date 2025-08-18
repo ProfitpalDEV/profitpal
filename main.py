@@ -887,6 +887,41 @@ def get_customer_default_payment_method(customer_id: str) -> str | None:
     return None
 
 
+# --- helper: resolve user_id from auth result / DB ---
+def _resolve_user_id_or_none(email: str, license_key: str, result: dict):
+    from security import _db
+    user = result.get("user") or {}
+    # 1) попробуем собрать кандидатов из разных возможных полей
+    candidates = [
+        result.get("user_id"),
+        user.get("id"),
+        user.get("uid"),
+        result.get("uid"),
+        result.get("id"),
+    ]
+    for c in candidates:
+        try:
+            if c is not None:
+                return int(c)
+        except Exception:
+            pass
+
+    # 2) fallback — поиск в БД по email / license_key
+    with _db() as con:
+        row = None
+        if email:
+            row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if not row and license_key:
+            row = con.execute("SELECT id FROM users WHERE license_key = ?", (license_key,)).fetchone()
+        if not row and email and license_key:
+            row = con.execute(
+                "SELECT id FROM users WHERE email = ? AND license_key = ?",
+                (email, license_key),
+            ).fetchone()
+    return row["id"] if row else None
+
+
+
 
 # ==========================================
 # STATIC FILE ROUTES
@@ -1237,14 +1272,14 @@ async def check_admin_status(request: Request):
         status_code=500)
 
 
-@app.post('/authenticate-user')
+@app.post("/authenticate-user")
 async def full_authentication(request: Request, response: Response):
     """Complete authentication: create server-side session and set cookies"""
     try:
         body = await request.json()
-        email       = (body.get('email') or '').strip()
-        license_key = (body.get('license_key') or '').strip()
-        full_name   = (body.get('full_name') or '').strip() or None
+        email       = (body.get("email") or "").strip()
+        license_key = (body.get("license_key") or "").strip()
+        full_name   = (body.get("full_name") or "").strip() or None
 
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
@@ -1258,35 +1293,67 @@ async def full_authentication(request: Request, response: Response):
             user_agent=user_agent,
         )
 
-        if not result or not result.get('authenticated'):
-            err = (result or {}).get('error', 'Invalid credentials')
+        if not result or not result.get("authenticated"):
+            err = (result or {}).get("error", "Invalid credentials")
             return JSONResponse({"success": False, "error": err}, status_code=401)
 
-        # достаём user_id (под разные варианты результата)
-        user     = result.get("user") or {}
-        user_id  = user.get("id") or result.get("user_id")
+        # 1) пробуем взять user_id из разных возможных полей
+        user_obj = result.get("user") or {}
+        user_id = (
+            user_obj.get("id")
+            or result.get("user_id")
+            or result.get("uid")
+            or result.get("id")
+        )
+
+        # 2) если не нашли — аккуратный fallback: поиск в БД по email/лицензии
         if not user_id:
-            raise HTTPException(status_code=500, detail="Auth result missing user_id")
+            from security import _db
+            with _db() as con:
+                row = None
+                if email:
+                    row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+                if not row and license_key:
+                    row = con.execute("SELECT id FROM users WHERE license_key = ?", (license_key,)).fetchone()
+                if not row and email and license_key:
+                    row = con.execute(
+                        "SELECT id FROM users WHERE email = ? AND license_key = ?",
+                        (email, license_key),
+                    ).fetchone()
+            user_id = row["id"] if row else None
+
+        if not user_id:
+            # без 500 — просто корректный отказ
+            return JSONResponse(
+                {"success": False, "error": "User not found for this login"},
+                status_code=401,
+            )
 
         # создаём серверную сессию + csrf
-        token, csrf, _ = create_session(user_id, ip_address, user_agent)
+        token, csrf, _ = create_session(int(user_id), ip_address, user_agent)
 
         # ставим HttpOnly и CSRF cookie (Secure — по домену)
         response.set_cookie(
-            key=SESSION_COOKIE, value=token, max_age=30*24*3600,
-            httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/"
+            key=SESSION_COOKIE,
+            value=token,
+            max_age=30 * 24 * 3600,
+            httponly=True,
+            secure=SECURE_COOKIES,
+            samesite="lax",
+            path="/",
         )
         response.set_cookie(
-            key=CSRF_COOKIE, value=csrf, max_age=30*24*3600,
-            httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/"
+            key=CSRF_COOKIE,
+            value=csrf,
+            max_age=30 * 24 * 3600,
+            httponly=False,
+            secure=SECURE_COOKIES,
+            samesite="lax",
+            path="/",
         )
 
-        # совместимость со старым фронтом (можешь потом убрать)
-        return JSONResponse({
-            "success": True,
-            "authenticated": True,
-            "redirect": "/dashboard"
-        }, status_code=200)
+        # совместимость со старым фронтом
+        return JSONResponse({"success": True, "authenticated": True, "redirect": "/dashboard"}, status_code=200)
 
     except Exception as e:
         import traceback
@@ -1294,43 +1361,89 @@ async def full_authentication(request: Request, response: Response):
         return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
 
 
+
 @app.post("/api/authenticate")
 async def api_authenticate(request: Request, response: Response):
-    body = await request.json()
-    email       = (body.get('email') or '').strip()
-    license_key = (body.get('license_key') or '').strip()
-    full_name   = (body.get('full_name') or '').strip() or None
+    try:
+        body = await request.json()
+        email       = (body.get("email") or "").strip()
+        license_key = (body.get("license_key") or "").strip()
+        full_name   = (body.get("full_name") or "").strip() or None
 
-    ip_address = request.client.host if request.client else "unknown"
-    user_agent = request.headers.get("user-agent", "unknown")
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
 
-    result = authenticate_user_login(
-        email=email,
-        license_key=license_key,
-        full_name=full_name,
-        ip_address=ip_address,
-        user_agent=user_agent,
-    )
+        result = authenticate_user_login(
+            email=email,
+            license_key=license_key,
+            full_name=full_name,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
 
-    if not result or not result.get('authenticated'):
-        raise HTTPException(status_code=401, detail=result.get('error', 'Invalid credentials'))
+        if not result or not result.get("authenticated"):
+            err = (result or {}).get("error", "Invalid credentials")
+            raise HTTPException(status_code=401, detail=err)
 
-    user     = result.get("user") or {}
-    user_id  = user.get("id") or result.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=500, detail="Auth result missing user_id")
+        # пытаемся достать user_id из разных возможных полей ответа
+        user_obj = result.get("user") or {}
+        user_id = (
+            user_obj.get("id")
+            or result.get("user_id")
+            or result.get("uid")
+            or result.get("id")
+        )
 
-    token, csrf, _ = create_session(user_id, ip_address, user_agent)
+        # если не нашли — аккуратно ищем в БД по email/лицензии
+        if not user_id:
+            from security import _db
+            with _db() as con:
+                row = None
+                if email:
+                    row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+                if not row and license_key:
+                    row = con.execute("SELECT id FROM users WHERE license_key = ?", (license_key,)).fetchone()
+                if not row and email and license_key:
+                    row = con.execute(
+                        "SELECT id FROM users WHERE email = ? AND license_key = ?",
+                        (email, license_key),
+                    ).fetchone()
+            user_id = row["id"] if row else None
 
-    response.set_cookie(
-        key=SESSION_COOKIE, value=token, max_age=30*24*3600,
-        httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/"
-    )
-    response.set_cookie(
-        key=CSRF_COOKIE, value=csrf, max_age=30*24*3600,
-        httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/"
-    )
-    return {"authenticated": True}
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User not found for this login")
+
+        # создаём серверную сессию + CSRF и ставим куки
+        token, csrf, _ = create_session(int(user_id), ip_address, user_agent)
+
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=token,
+            max_age=30 * 24 * 3600,
+            httponly=True,
+            secure=SECURE_COOKIES,
+            samesite="lax",
+            path="/",
+        )
+        response.set_cookie(
+            key=CSRF_COOKIE,
+            value=csrf,
+            max_age=30 * 24 * 3600,
+            httponly=False,
+            secure=SECURE_COOKIES,
+            samesite="lax",
+            path="/",
+        )
+
+        return {"authenticated": True}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"❌ API auth error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Internal error")
+
 
 
 
