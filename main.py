@@ -15,7 +15,9 @@ from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTML
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user
+from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, auth_manager as AUTH
+from security import create_session, SESSION_COOKIE, CSRF_COOKIE
+from referral_manager import ReferralManager
 import re
 
 # ==========================================
@@ -92,6 +94,10 @@ YOUR_DOMAIN            = os.getenv("DOMAIN", "https://profitpal.org")
 
 from security import create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
 SECURE_COOKIES = YOUR_DOMAIN.startswith("https://") or ("profitpal.org" in YOUR_DOMAIN)
+
+# Referral manager (DB можно переопределить через ENV REFERRALS_DB)
+REFERRALS_DB = os.getenv("REFERRALS_DB", "referrals.db")
+referral_mgr = ReferralManager(db_path=REFERRALS_DB)
 
 
 # ==========================================
@@ -1161,77 +1167,90 @@ def api_logout(request: Request, response: Response, user = Depends(require_user
 
 @app.post('/validate-credentials')
 async def check_credentials(request: Request):
-        """Проверка email + license для подсветки имени + referral info"""
-        try:
-            body = await request.json()
-            email = body.get('email', '').strip()
-            license_key = body.get('license_key', '').strip().upper()
+    """Проверка email + license для подсветки имени + referral info"""
+    try:
+        body = await request.json()
+        email_raw       = (body.get('email') or '').strip()
+        license_key_raw = (body.get('license_key') or '').strip()
 
-            # Check if admin mode
-            admin_email = os.getenv('ADMIN_EMAIL', '').lower()
-            is_admin = (email.lower() == admin_email)
+        if not email_raw or not license_key_raw:
+            return JSONResponse({"show_name": False, "error": "Email and license key required"}, status_code=400)
 
-            # Admin keys can be any format starting with PP-
-            # Client keys must be PP-XXXX-XXXX-XXXX format
-            if not is_admin:
-                # Validate client key format only
-                if not re.match(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', license_key):
-                    return JSONResponse(content={
-                        "show_name": False,
-                        "error": "Invalid license key format. Should be: PP-XXXX-XXXX-XXXX"
-                    }, status_code=400)
+        # нормализуем
+        email = email_raw.lower()
+        def _norm_key(s: str) -> str:
+            import re as _re
+            return _re.sub(r'[^A-Z0-9]', '', (s or '').upper())
 
-            if not email or not license_key:
-                return JSONResponse(content={
-                    "show_name": False,
-                    "error": "Email and license key required"
-                }, status_code=400)
-   
-            # 👑 ДОБАВИТЬ ЭТОТ БЛОК ЗДЕСЬ:
-            # Check if admin login
-            admin_key = os.getenv('ADMIN_LICENSE_KEY', '')
-            if is_admin and license_key == admin_key:
-                admin_full_name = os.getenv('ADMIN_FULL_NAME', 'Administrator')
-                response_data = {
-                    "show_name": True,
-                    "full_name": admin_full_name,
-                    "email": email,
-                    "welcome_message": f"Welcome back, {admin_full_name}!"
-                }
-                return JSONResponse(content=response_data)
+        # ===== Админ =====
+        admin_email = (os.getenv('ADMIN_EMAIL', '') or '').lower().strip()
+        admin_key   = (os.getenv('ADMIN_LICENSE_KEY', '') or '').strip()
+        if email == admin_email:
+            if _norm_key(license_key_raw) != _norm_key(admin_key):
+                return JSONResponse({"show_name": False, "error": "User not found"}, status_code=401)
 
-            result = validate_user_credentials(email, license_key)
-
-            if result['valid']:
-                response_data = {
-                    "show_name": True,
-                    "full_name": result['full_name'],
-                    "email": result['email'],
-                    "welcome_message": f"Welcome back, {result['full_name']}!"
-                }
-
-                referral_info = referral_mgr.get_user_referral_info(email)
-                if referral_info:
-                    response_data.update({
-                        "referral_code": referral_info['referral_code'],
-                        "referral_link": referral_info['referral_link'],
-                        "free_months_balance": referral_info['free_months_balance'],
-                        "total_referrals": referral_info['total_referrals']
+            resp = {
+                "show_name": True,
+                "full_name": os.getenv('ADMIN_FULL_NAME', 'System Administrator'),
+                "email": email_raw,
+                "welcome_message": "Welcome back, System Administrator!"
+            }
+            # реферал-инфо (если есть запись)
+            try:
+                info = referral_mgr.get_user_referral_info(email)  # lower-case ключ
+                if info:
+                    resp.update({
+                        "referral_code": info.get("referral_code"),
+                        "referral_link": info.get("referral_link"),
+                        "free_months_balance": info.get("free_months_balance"),
+                        "total_referrals": info.get("total_referrals"),
+                        "total_earned_months": info.get("total_earned_months"),
                     })
+            except Exception:
+                pass
+            return JSONResponse(resp, status_code=200)
 
-                return JSONResponse(content=response_data)
-            else:
-                return JSONResponse(content={
-                    "show_name": False,
-                    "error": result.get('error', 'Invalid credentials')
-                })
+        # ===== Клиент =====
+        import re
+        # формат PP-XXXX-XXXX-XXXX
+        if not re.fullmatch(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', license_key_raw.upper()):
+            return JSONResponse(
+                {"show_name": False, "error": "Invalid license key format. Should be: PP-XXXX-XXXX-XXXX"},
+                status_code=400
+            )
 
-        except Exception as e:
-            print(f"❌ Credentials validation error: {e}")
-            return JSONResponse(content={
-                "show_name": False,
-                "error": "Validation failed"
-            }, status_code=500)
+        result = validate_user_credentials(email=email_raw, license_key=license_key_raw)
+        if result and result.get('valid'):
+            full_name = result.get('full_name') or ''
+            resp = {
+                "show_name": True,
+                "full_name": full_name,
+                "email": result.get('email') or email_raw,
+                "welcome_message": f"Welcome back, {full_name}!"
+            }
+            # реферал-инфо для клиента
+            try:
+                info = referral_mgr.get_user_referral_info(email)  # lower-case ключ
+                if info:
+                    resp.update({
+                        "referral_code": info.get("referral_code"),
+                        "referral_link": info.get("referral_link"),
+                        "free_months_balance": info.get("free_months_balance"),
+                        "total_referrals": info.get("total_referrals"),
+                        "total_earned_months": info.get("total_earned_months"),
+                    })
+            except Exception:
+                pass
+
+            return JSONResponse(resp, status_code=200)
+
+        return JSONResponse({"show_name": False, "error": (result or {}).get('error', 'Invalid credentials')}, status_code=401)
+
+    except Exception as e:
+        print(f"❌ Credentials validation error: {e}")
+        return JSONResponse({"show_name": False, "error": "Validation failed"}, status_code=500)
+
+
 
    
 @app.post('/api/check-admin-status')
@@ -1270,73 +1289,86 @@ async def check_admin_status(request: Request):
 
 
 @app.post("/authenticate-user")
-async def full_authentication(request: Request, response: Response):
-    """Complete authentication: create server-side session and set cookies"""
+async def authenticate_user_ep(request: Request, response: Response):
+    """Полный вход: админ по ENV или обычный пользователь через auth_manager.
+    Всегда создаём server-side сессию и ставим pp_session/pp_csrf cookies.
+    """
     try:
-        body = await request.json()
-        email       = (body.get("email") or "").strip()
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        email       = (body.get("email") or "").strip().lower()
         license_key = (body.get("license_key") or "").strip()
         full_name   = (body.get("full_name") or "").strip() or None
 
-        ip_address = request.client.host if request.client else "unknown"
-        user_agent = request.headers.get("user-agent", "unknown")
+        if not email or not license_key:
+            return JSONResponse({"success": False, "error": "Email and license key required"}, status_code=400)
 
-        # твоя авторизация
-        result = authenticate_user_login(
+        ip = request.client.host if request.client else "unknown"
+        ua = request.headers.get("user-agent", "unknown")
+
+        # secure-cookie: берём глобальную настройку если есть, иначе определим по URL/домену
+        try:
+            secure_cookie = bool(SECURE_COOKIES)
+        except NameError:
+            secure_cookie = (request.url.scheme == "https") or ("profitpal.org" in (request.url.hostname or ""))
+
+        # ========= Админ строго по ENV (с нормализацией ключа) =========
+        if ADMIN_EMAIL and email == ADMIN_EMAIL:
+            if _norm_key(license_key) != _norm_key(ADMIN_KEY):
+                return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
+
+            # гарантируем наличие админа в users
+            user = AUTH.get_user_by_email(email)
+            if not user:
+                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_NAME)
+                if not created or not created.get("success"):
+                    # вдруг уже существует — перечитаем
+                    user = AUTH.get_user_by_email(email)
+                    if not user:
+                        return JSONResponse({"success": False, "error": "Failed to create admin"}, status_code=500)
+                else:
+                    user = {"id": created["user_id"]}
+            user_id = int(user["id"])
+
+            token, csrf, _ = create_session(user_id, ip, ua)
+            response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
+                                httponly=True, secure=secure_cookie, samesite="lax", path="/")
+            response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
+                                httponly=False, secure=secure_cookie, samesite="lax", path="/")
+            return {"success": True, "authenticated": True, "redirect": "/dashboard"}
+
+        # ========= Обычный пользователь — через auth_manager =========
+        auth = authenticate_user_login(
             email=email,
             license_key=license_key,
             full_name=full_name,
-            ip_address=ip_address,
-            user_agent=user_agent,
+            ip_address=ip,
+            user_agent=ua,
         )
-        if not result or not result.get("authenticated"):
-            err = (result or {}).get("error", "Invalid credentials")
+        if not auth or not auth.get("authenticated"):
+            err = (auth or {}).get("error", "Invalid credentials")
             return JSONResponse({"success": False, "error": err}, status_code=401)
 
-        # 1) пробуем взять user_id из результата
-        user_obj = result.get("user") or {}
-        user_id = (
-            user_obj.get("id")
-            or result.get("user_id")
-            or result.get("uid")
-            or result.get("id")
-        )
-
-        # 2) если нет — валидируем через БД (функция сама расшифрует email)
+        user = auth.get("user") or {}
+        user_id = user.get("id") or auth.get("user_id")
         if not user_id:
-            v = validate_user_credentials(email, license_key)
-            if v and v.get("valid"):
-                user_id = v.get("user_id")
+            return JSONResponse({"success": False, "error": "Auth result missing user_id"}, status_code=500)
 
-        # 3) если это админ и записи нет — создаём и валидируем ещё раз
-        if not user_id:
-            admin_email = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
-            admin_key   = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
-            if email.lower() == admin_email and license_key.strip() == admin_key:
-                try:
-                    create_new_user(email=email, full_name=full_name or os.getenv("ADMIN_FULL_NAME", "Administrator"))
-                except Exception:
-                    pass
-                v = validate_user_credentials(email, license_key)
-                if v and v.get("valid"):
-                    user_id = v.get("user_id")
-
-        if not user_id:
-            return JSONResponse({"success": False, "error": "User not found for this login"}, status_code=401)
-
-        # 4) создаём серверную сессию и ставим cookies
-        token, csrf, _ = create_session(int(user_id), ip_address, user_agent)
+        token, csrf, _ = create_session(int(user_id), ip, ua)
         response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
-                            httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/")
+                            httponly=True, secure=secure_cookie, samesite="lax", path="/")
         response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
-                            httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/")
-
-        return JSONResponse({"success": True, "authenticated": True, "redirect": "/dashboard"}, status_code=200)
+                            httponly=False, secure=secure_cookie, samesite="lax", path="/")
+        return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
     except Exception as e:
         import traceback
-        print(f"❌ Auth error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        print(f"❌ authenticate_user_ep error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
         return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
+
 
 
 
