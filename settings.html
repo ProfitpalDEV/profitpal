@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Settings — Payment Method</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--bg:#0e2235;--card:#102a44;--border:#274a6a;--text:#e7f0fa;--muted:#b8c7d6;--ok:#2ea44f;--warn:#e6b800}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
+    .wrap{max-width:760px;margin:32px auto;padding:0 16px}
+    a{color:#91d0ff;text-decoration:none}
+    .row{display:grid;grid-template-columns:1fr;gap:16px}
+    @media (min-width:860px){.row{grid-template-columns:1fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 16px 20px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+    h1{font-size:22px;margin:0 0 16px}
+    h2{font-size:18px;margin:0 0 10px}
+    .muted{color:var(--muted);font-size:14px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#193551;border:1px solid #2f5577;font-size:12px}
+    .ok{color:#d9ffe4}
+    button{border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    #save-card{background:var(--ok);color:white}
+    #pm-status{margin-top:10px;font-size:14px;min-height:20px}
+    .testbox{background:#2b3a07;border:1px dashed #597a00;color:#eaff9a;border-radius:10px;padding:10px 12px;font-size:14px}
+    .kv{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+    .kv span{background:#0b1e31;border:1px solid #2b4a68;padding:4px 8px;border-radius:8px}
+  </style>
+  <script src="https://js.stripe.com/v3"></script>
+  <script src="/pp-auth.js"></script>
+</head>
+<body>
+  <script>ensureSessionOrRedirect();</script>
+
+  <div class="wrap">
+    <p><a href="/dashboard">← Back to Dashboard</a></p>
+
+    <div class="row">
+      <!-- Сводка по сохранённой карте -->
+      <div class="card">
+        <h1>Saved Card</h1>
+        <div id="card-summary" class="muted">Loading…</div>
+        <div class="testbox" style="margin-top:12px">
+          <b>Test mode</b>. For tests use:
+          <div class="kv">
+            <span>Card: <code>4242 4242 4242 4242</code></span>
+            <span>Exp: <code>12 / 28</code></span>
+            <span>CVC: <code>123</code></span>
+            <span>Name: <code>Test User</code></span>
+            <span>ZIP: <code>94107</code></span>
+          </div>
+          Other test cards: 3-D Secure → <code>4000 0027 6000 3184</code>
+        </div>
+      </div>
+
+      <!-- Сохранение/обновление карты -->
+      <div class="card">
+        <h1>Payment Method</h1>
+        <h2 class="muted">Add or replace your card</h2>
+        <div id="payment-element"></div>
+        <button id="save-card" style="margin-top:12px;">Save card</button>
+        <div id="pm-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // helper to show current card summary
+  async function renderCardSummary(){
+    try{
+      const r = await fetch('/api/billing/pm-info', { credentials: 'include' });
+      if(!r.ok){ document.getElementById('card-summary').textContent = 'Not available'; return; }
+      const d = await r.json();
+      const box = document.getElementById('card-summary');
+      if(!d.has_pm){
+        box.innerHTML = 'No card on file. Please save a card on the right.';
+      } else {
+        box.innerHTML =
+          `<div class="pill ok">Active</div>
+           <div style="margin-top:8px">Brand: <b>${(d.brand||'').toUpperCase()}</b></div>
+           <div>Last4: <b>${d.last4||'—'}</b></div>
+           <div>Exp: <b>${d.exp_month||'??'}/${d.exp_year||'??'}</b></div>`;
+      }
+    }catch(e){
+      document.getElementById('card-summary').textContent = 'Error loading card info';
+    }
+  }
+
+  (async function() {
+    // 1) получаем publishable key
+    const rKey = await fetch('/api/stripe-key');
+    const { publishable_key } = await rKey.json();
+    const stripe = Stripe(publishable_key);
+
+    // 2) создаём SetupIntent на сервере
+    const rSI = await fetch('/api/billing/create-setup-intent', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    const { client_secret } = await rSI.json();
+
+    // 3) инициализируем Payment Element
+    const elements = stripe.elements({ clientSecret: client_secret });
+    const paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+
+    // 4) сохраняем карту и делаем её дефолтной
+    document.getElementById('save-card').onclick = async () => {
+      document.getElementById('pm-status').textContent = 'Saving...';
+      const { setupIntent, error } = await stripe.confirmSetup({
+        elements,
+        redirect: 'if_required'
+      });
+      if (error) {
+        document.getElementById('pm-status').textContent = 'Error: ' + (error.message || error);
+        return;
+      }
+      await apiPost('/api/billing/set-default-pm', { payment_method: setupIntent.payment_method });
+      document.getElementById('pm-status').textContent = 'Card saved ✔';
+      renderCardSummary();
+    };
+
+    // первый рендер сводки
+    renderCardSummary();
+  })();
+  </script>
+</body>
+</html>

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, List, Optional, Tuple
-from fastapi import FastAPI, HTTPException, Request, Form, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Form, BackgroundTasks, Depends, Response
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -88,6 +88,10 @@ STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_fallback")
 GMAIL_EMAIL            = os.getenv("GMAIL_EMAIL", "denava.business@gmail.com")
 GMAIL_PASSWORD         = os.getenv("GMAIL_PASSWORD")
 YOUR_DOMAIN            = os.getenv("DOMAIN", "https://profitpal.org")
+
+from security import create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
+SECURE_COOKIES = YOUR_DOMAIN.startswith("https://") or ("profitpal.org" in YOUR_DOMAIN)
+
 
 # ==========================================
 # PRICE IDs (ENV only — no hardcode)
@@ -840,6 +844,50 @@ def send_upgrade_confirmation_email(email: str, old_plan: str, new_plan: str,
         print(f"❌ Error sending upgrade email: {e}")
 
 
+# ---- Stripe helpers for donations / billing ----
+def ensure_stripe_customer_for_user(user_id: int):
+    """Найти/создать Stripe Customer; вернуть (customer_id, email)."""
+    from security import _db
+    with _db() as con:
+        row = con.execute(
+            "SELECT email, stripe_customer_id FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    email = row["email"]
+    cust_id = row["stripe_customer_id"]
+
+    if not cust_id:
+        customer = stripe.Customer.create(
+            email=email,
+            metadata={"user_id": str(user_id)}
+        )
+        cust_id = customer["id"]
+        with _db() as con:
+            con.execute(
+                "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
+                (cust_id, user_id)
+            )
+    return cust_id, email
+
+
+def get_customer_default_payment_method(customer_id: str) -> str | None:
+    """Вернуть id картового payment_method для off_session списаний."""
+    # 1) дефолтный PM в invoice_settings
+    cust = stripe.Customer.retrieve(customer_id)
+    pm = (cust.get("invoice_settings") or {}).get("default_payment_method")
+    if pm:
+        return pm
+    # 2) любой привязанный card PM
+    pms = stripe.PaymentMethod.list(customer=customer_id, type="card", limit=1)
+    if pms.data:
+        return pms.data[0]["id"]
+    return None
+
+
+
 # ==========================================
 # STATIC FILE ROUTES
 # ==========================================
@@ -880,14 +928,12 @@ def login_page():
     """Login page for existing users"""
     return FileResponse('login.html')
 
-@app.get("/stock-analysis")
-def serve_stock_analysis():
-    """Serve stock analysis page for authorized users"""
+@app.get('/stock-analysis')
+def serve_stock_analysis(user = Depends(require_plan("lifetime"))):
     return FileResponse('stock-analysis.html')
 
 @app.get('/dashboard')
-def serve_dashboard():
-    """Dashboard page with stock analysis"""
+def serve_dashboard(user = Depends(require_plan("lifetime"))):
     return FileResponse('dashboard.html')
 
 @app.get("/fake-dashboard")
@@ -900,6 +946,7 @@ def serve_fake_dashboard():
 async def serve_introduction():
     """Serve introduction page with calligraphy letter"""
     return FileResponse("introduction.html")
+
 
 @app.get("/test-fail")
 async def test_fail_page():
@@ -936,6 +983,12 @@ def serve_refund():
     return FileResponse('refund-policy.html')
 
 
+@app.get("/settings")
+def serve_settings(user = Depends(require_user)):
+    return FileResponse("settings.html")
+
+
+
 @app.get("/profitpal-styles.css")
 def serve_css():
     """Serve ProfitPal CSS styles"""
@@ -946,11 +999,132 @@ def serve_css():
 async def get_stripe_key():
     """Return Stripe publishable key for frontend"""
     return {"publishable_key": STRIPE_PUBLISHABLE_KEY}
+
+
+@app.get("/api/billing/pm-info")
+def pm_info(user = Depends(require_user)):
+    """Вернёт краткую информацию о сохранённой карте (brand/last4/exp)"""
+    customer_id, _ = ensure_stripe_customer_for_user(user["id"])
+    pm_id = get_customer_default_payment_method(customer_id)
+    if not pm_id:
+        return {"has_pm": False}
+
+    pm = stripe.PaymentMethod.retrieve(pm_id)
+    card = pm.get("card") or {}
+    return {
+        "has_pm": True,
+        "brand": card.get("brand"),
+        "last4": card.get("last4"),
+        "exp_month": card.get("exp_month"),
+        "exp_year": card.get("exp_year"),
+    }
+
+
+@app.post("/api/billing/create-setup-intent")
+def create_setup_intent(user = Depends(require_user)):
+    """Создать SetupIntent для сохранения карты 'off_session'."""
+    customer_id, _ = ensure_stripe_customer_for_user(user["id"])
+    si = stripe.SetupIntent.create(
+        customer=customer_id,
+        usage="off_session",
+        payment_method_types=["card"],
+    )
+    return {"client_secret": si["client_secret"]}
+
+
+@app.post("/api/billing/set-default-pm")
+def set_default_pm(payload: dict, user = Depends(require_user), _=Depends(verify_csrf)):
+    """Пометить сохранённую карту как дефолтную у клиента."""
+    pm_id = (payload.get("payment_method") or "").strip()
+    if not pm_id:
+        raise HTTPException(status_code=400, detail="payment_method required")
+
+    customer_id, _ = ensure_stripe_customer_for_user(user["id"])
+    stripe.PaymentMethod.attach(pm_id, customer=customer_id)
+    stripe.Customer.modify(customer_id, invoice_settings={"default_payment_method": pm_id})
+
+    from security import _db
+    with _db() as con:
+        con.execute("UPDATE users SET stripe_default_pm = ? WHERE id = ?", (pm_id, user["id"]))
+    return {"ok": True}
+
+
+
+@app.get("/pp-auth.js")
+def serve_pp_auth():
+    """Serve tiny auth helper for frontend"""
+    return FileResponse("pp-auth.js", media_type="application/javascript")
+
+
+
+@app.get("/api/session/me")
+def session_me(user = Depends(require_user)):
+    return {
+        "id": user["id"],
+        "plan": user.get("plan_type"),
+        "subscription_status": user.get("subscription_status"),
+    }
+
+@app.get("/api/referral-stats/me")
+def referral_stats_me(user = Depends(require_user)):
+    """
+    Return referral stats for the currently authenticated user.
+    Safe defaults if referral tables aren't present.
+    """
+    from security import _db
+    stats = {"email": None, "referrals": 0, "free_months": 0}
+
+    try:
+        with _db() as con:
+            # 1) узнаём email текущего пользователя
+            row = con.execute("SELECT email FROM users WHERE id = ?", (user["id"],)).fetchone()
+            if row:
+                stats["email"] = row["email"]
+
+            # 2) попытка посчитать рефералы (работает, если есть такая таблица/поле)
+            # Попробуем по user_id:
+            try:
+                r = con.execute("SELECT COUNT(*) AS c FROM referrals WHERE referrer_user_id = ?", (user["id"],)).fetchone()
+                if r and "c" in r.keys() and r["c"] is not None:
+                    stats["referrals"] = int(r["c"])
+            except Exception:
+                # Альтернатива — по email (если вдруг так хранится)
+                if stats["email"]:
+                    try:
+                        r = con.execute("SELECT COUNT(*) AS c FROM referrals WHERE referrer_email = ?", (stats["email"],)).fetchone()
+                        if r and "c" in r.keys() and r["c"] is not None:
+                            stats["referrals"] = int(r["c"])
+                    except Exception:
+                        pass
+
+            # 3) бесплатные месяцы, если где-то считаются/копятся
+            # Если у тебя есть отдельная таблица/поле — подставь свой запрос.
+            # Иначе оставим 0.
+    except Exception:
+        # тихо даём дефолт, чтобы UI не падал
+        pass
+
+    return stats
+
+
     
 
 # ==========================================
 # AUTHENTICATION API ENDPOINTS
 # ==========================================
+
+@app.post("/api/logout")
+def api_logout(request: Request, response: Response, user = Depends(require_user)):
+    # deactivate current session and clear cookies
+    from security import _db
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        with _db() as con:
+            con.execute("UPDATE user_sessions SET is_active=0 WHERE session_token = ?", (token,))
+    response.delete_cookie(SESSION_COOKIE, path="/")
+    response.delete_cookie(CSRF_COOKIE, path="/")
+    return {"ok": True}
+
 
 
 @app.post('/validate-credentials')
@@ -1064,8 +1238,8 @@ async def check_admin_status(request: Request):
 
 
 @app.post('/authenticate-user')
-async def full_authentication(request: Request):
-    """Полная аутентификация пользователя с созданием сессии"""
+async def full_authentication(request: Request, response: Response):
+    """Complete authentication: create server-side session and set cookies"""
     try:
         body = await request.json()
         email       = (body.get('email') or '').strip()
@@ -1075,6 +1249,7 @@ async def full_authentication(request: Request):
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
 
+        # твоя функция из auth_manager
         result = authenticate_user_login(
             email=email,
             license_key=license_key,
@@ -1083,27 +1258,79 @@ async def full_authentication(request: Request):
             user_agent=user_agent,
         )
 
-        if result.get('authenticated'):
-            return JSONResponse(content={
-                "success": True,
-                "session_token": result.get("session_token"),
-                "user": result.get("user"),
-                "user_role": result.get("user", {}).get("role", "client"),
-                "message": result.get("message", "Authenticated"),
-            }, status_code=200)
+        if not result or not result.get('authenticated'):
+            err = (result or {}).get('error', 'Invalid credentials')
+            return JSONResponse({"success": False, "error": err}, status_code=401)
 
-        # не прошла аутентификация (осознанный отказ, не 500)
-        err = result.get('error', 'Invalid credentials')
-        print(f"⚠️ Auth failed for {email}: {err}")
-        return JSONResponse(content={"success": False, "error": err}, status_code=401)
+        # достаём user_id (под разные варианты результата)
+        user     = result.get("user") or {}
+        user_id  = user.get("id") or result.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=500, detail="Auth result missing user_id")
+
+        # создаём серверную сессию + csrf
+        token, csrf, _ = create_session(user_id, ip_address, user_agent)
+
+        # ставим HttpOnly и CSRF cookie (Secure — по домену)
+        response.set_cookie(
+            key=SESSION_COOKIE, value=token, max_age=30*24*3600,
+            httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/"
+        )
+        response.set_cookie(
+            key=CSRF_COOKIE, value=csrf, max_age=30*24*3600,
+            httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/"
+        )
+
+        # совместимость со старым фронтом (можешь потом убрать)
+        return JSONResponse({
+            "success": True,
+            "authenticated": True,
+            "redirect": "/dashboard"
+        }, status_code=200)
 
     except Exception as e:
         import traceback
         print(f"❌ Auth error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
-        return JSONResponse(
-            content={"success": False, "error": f"{type(e).__name__}: {e}"},
-            status_code=500
-        )
+        return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
+
+
+@app.post("/api/authenticate")
+async def api_authenticate(request: Request, response: Response):
+    body = await request.json()
+    email       = (body.get('email') or '').strip()
+    license_key = (body.get('license_key') or '').strip()
+    full_name   = (body.get('full_name') or '').strip() or None
+
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    result = authenticate_user_login(
+        email=email,
+        license_key=license_key,
+        full_name=full_name,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    if not result or not result.get('authenticated'):
+        raise HTTPException(status_code=401, detail=result.get('error', 'Invalid credentials'))
+
+    user     = result.get("user") or {}
+    user_id  = user.get("id") or result.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=500, detail="Auth result missing user_id")
+
+    token, csrf, _ = create_session(user_id, ip_address, user_agent)
+
+    response.set_cookie(
+        key=SESSION_COOKIE, value=token, max_age=30*24*3600,
+        httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/"
+    )
+    response.set_cookie(
+        key=CSRF_COOKIE, value=csrf, max_age=30*24*3600,
+        httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/"
+    )
+    return {"authenticated": True}
 
 
 
@@ -1851,50 +2078,68 @@ async def record_free_trial(request: FreeTrialRecordRequest):
 
 
 @app.post("/api/process-donation")
-async def process_donation(request: DonationRequest,
-                           background_tasks: BackgroundTasks):
-    """💎 Обработка donation платежей через Stripe"""
+def process_donation(payload: dict, user = Depends(require_user), _=Depends(verify_csrf)):
+    """
+    One-click donation (off_session) по сохранённой карте.
+    Body: { amount, type, authorized: true }
+    """
     try:
-        print(
-            f"💝 Processing donation: ${request.amount} ({request.type}) from {request.email}"
+        amount = float(payload.get("amount", 0))
+        dtype = (payload.get("type") or "donation").strip()
+        authorized = bool(payload.get("authorized"))
+        if not authorized:
+            raise HTTPException(status_code=400, detail="Authorization checkbox is required")
+        if not (1 <= amount <= 1000):
+            raise HTTPException(status_code=400, detail="Invalid amount")
+
+        amount_cents = int(round(amount * 100))
+        currency = (os.getenv("DONATION_CURRENCY") or "USD").lower()
+
+        from security import _db
+        with _db() as con:
+            row = con.execute("SELECT stripe_customer_id FROM users WHERE id = ?", (user["id"],)).fetchone()
+        if not row or not row["stripe_customer_id"]:
+            raise HTTPException(status_code=402, detail="No saved card. Please save a card in Settings first.")
+
+        customer_id = row["stripe_customer_id"]
+        # возьмём default PM; если нет — любой картовый
+        cust = stripe.Customer.retrieve(customer_id)
+        pm = (cust.get("invoice_settings") or {}).get("default_payment_method")
+        if not pm:
+            pms = stripe.PaymentMethod.list(customer=customer_id, type="card", limit=1)
+            pm = pms.data[0]["id"] if pms.data else None
+        if not pm:
+            raise HTTPException(status_code=402, detail="No saved card. Please save a card in Settings.")
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount_cents,
+            currency=currency,
+            customer=customer_id,
+            payment_method=pm,
+            off_session=True,
+            confirm=True,
+            description=f"Donation ({dtype}) user {user['id']}",
+            metadata={"user_id": str(user["id"]), "donation_type": dtype},
         )
 
-        # Найти пользователя в базе
-        auth_user = auth_mgr.get_user_by_email(request.email)
-        if not auth_user:
-            raise Exception("User not found")
+        # лог в БД
+        with _db() as con:
+            con.execute(
+                "INSERT INTO donations (user_id, amount_cents, currency, donation_type, stripe_payment_intent_id, status) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (user["id"], amount_cents, currency, dtype, intent["id"], intent["status"]),
+            )
 
-        # Создать Stripe payment intent для donation
-        payment_intent = stripe.PaymentIntent.create(
-            amount=int(request.amount * 100),  # Конвертируем в центы
-            currency='usd',
-            customer=auth_user['stripe_customer_id'],
-            payment_method=auth_user.get('default_payment_method'),
-            confirm=True,
-            description=f"ProfitPal Boost Development - {request.type}",
-            metadata={
-                'type': 'donation',
-                'donation_type': request.type,
-                'user_email': request.email
-            })
+        return {"success": intent["status"] == "succeeded", "status": intent["status"], "message": "Thank you for your support!"}
 
-        # Отправить персонализированный thank you email
-        background_tasks.add_task(send_donation_thank_you_email, request.email,
-                                  request.amount, request.type)
-
-        print(f"✅ Donation processed successfully: ${request.amount}")
-
-        return JSONResponse(
-            content={
-                'success': True,
-                'amount': request.amount,
-                'message': 'Thank you for boosting ProfitPal development!'
-            })
-
+    except stripe.error.CardError:
+        raise HTTPException(status_code=402, detail="Card requires authentication. Please update your card in Settings.")
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"❌ Donation processing error: {e}")
-        return JSONResponse(content={'error': f'Donation failed: {str(e)}'},
-                            status_code=500)
+        import traceback
+        print("❌ process_donation:", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Internal error")
 
 
 # ==========================================

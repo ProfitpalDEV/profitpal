@@ -843,6 +843,10 @@
         </style>
 </head>
 <body>
+
+    <script src="/pp-auth.js"></script>
+    <script>ensureSessionOrRedirect();</script>
+
     <!-- Background Animation -->
     <div class="background-animation">
         <div class="floating-shape" style="width: 100px; height: 100px; top: 10%; left: 80%; animation-delay: 0s;"></div>
@@ -1395,46 +1399,44 @@
         }
 
         async function processDonation() {
-            if (selectedDonationAmount <= 0) {
-                alert('Please select a donation amount');
-                return;
-            }
+          if (selectedDonationAmount <= 0) {
+            alert('Please select a donation amount');
+            return;
+          }
 
-            try {
-                const submitBtn = document.getElementById('submitDonation');
-                submitBtn.textContent = 'Processing...';
-                submitBtn.disabled = true;
+          // галочка "I authorize this transaction"
+          const authorized = document.getElementById('authorizeDonation')?.checked;
+          if (!authorized) {
+            alert('Please check "I authorize this transaction"');
+            return;
+          }
 
-                // Send donation request to backend
-                const response = await fetch('/api/process-donation', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        amount: selectedDonationAmount,
-                        type: selectedDonationType,
-                        email: userData.email
-                    })
-                });
+          const submitBtn = document.getElementById('submitDonation');
+          submitBtn.textContent = 'Processing...';
+          submitBtn.disabled = true;
 
-                if (response.ok) {
-                    showDonationSuccess();
-                    toggleBoostOptions(); // Close options
-                    resetDonationForm();
-                } else {
-                    throw new Error('Donation failed');
-                }
+          try {
+            // отправляем только то, что нужно; email НЕ отправляем
+            await apiPost('/api/process-donation', {
+              amount: selectedDonationAmount,
+              type: selectedDonationType,
+              authorized: authorized
+            });
 
-            } catch (error) {
-                console.error('Donation error:', error);
-                alert('Donation failed. Please try again.');
+            // успех — оставляем твою логику
+            showDonationSuccess();
+            toggleBoostOptions();    // Close options
+            resetDonationForm();
 
-                const submitBtn = document.getElementById('submitDonation');
-                submitBtn.textContent = 'BOOST NOW';
-                submitBtn.disabled = false;
-            }
+          } catch (error) {
+            console.error('Donation error:', error);
+            alert('Donation failed. Please try again.');
+          } finally {
+            submitBtn.textContent = 'BOOST NOW';
+            submitBtn.disabled = false;
+          }
         }
+
 
         function showDonationSuccess() {
             const successDiv = document.createElement('div');
@@ -1491,7 +1493,8 @@
                 console.log('Loading referral data for:', userEmail);
 
                 // API запрос за referral статистикой
-                const response = await fetch(`/api/referral-stats/${userEmail}`);
+                const response = await fetch('/api/referral-stats/me', { credentials: 'include' });
+
 
                 // Проверяем что ответ действительно JSON
                 const contentType = response.headers.get('content-type');
@@ -1862,6 +1865,7 @@
         setInterval(() => {
             loadUserData();
         }, 300000); // 5 minutes
+
     </script>
 </body>
 </html>
