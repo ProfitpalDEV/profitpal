@@ -34,24 +34,22 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
     if not token:
         return None
 
-    with _db() as con:
-        # базовые поля
-        row = con.execute(
-            """
-            SELECT u.id,
-                   u.email,
-                   u.license_key,
-                   u.is_active
-            FROM user_sessions s
-            JOIN users u ON u.id = s.user_id
-            WHERE s.session_token = ?
-              AND s.is_active = 1
-              AND s.expires_at > datetime('now')
-            """,
-            (token,),
-        ).fetchone()
-        if not row:
-            return None
+        with _db() as con:
+            try:
+                row = con.execute(
+                    """
+                    SELECT u.id, u.license_key, u.is_active
+                    FROM user_sessions s
+                    JOIN users u ON u.id = s.user_id
+                    WHERE s.session_token = ?
+                      AND s.is_active = 1
+                      AND s.expires_at > datetime('now')
+                    """,
+                    (token,),
+                ).fetchone()
+            except sqlite3.OperationalError as e:
+                print(f"[auth] schema error: {e}")  # не падаем 500, а считаем, что сессии нет
+                return None
 
         # попробуем получить payment_status, если такая колонка есть
         payment_status = None

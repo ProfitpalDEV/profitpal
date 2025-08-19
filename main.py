@@ -15,14 +15,33 @@ from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTML
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from pathlib import Path
 from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, auth_manager as AUTH
-from security import create_session, SESSION_COOKIE, CSRF_COOKIE
+from security import create_session, require_user, SESSION_COOKIE, CSRF_COOKIE
 from referral_manager import ReferralManager
 import re
+
+
+# ==========================================
+# ROOT DIRECTORY CONFIGURATION
+# ==========================================
+
+ROOT = Path(__file__).parent.resolve()
+
+def serve_html(filename: str) -> FileResponse:
+    """
+    Отдать html как статический файл.
+    Если файла нет — вернём 404 вместо 500.
+    """
+    p = (ROOT / filename).resolve()
+    if not p.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+    return FileResponse(str(p), media_type="text/html")  # <= str(p)!
 
 # ==========================================
 # MANAGERS INTEGRATION
 # ==========================================
+
 from auth_manager import validate_user_credentials, create_new_user, authenticate_user_login, get_auth_stats
 from referral_manager import ReferralManager
 
@@ -972,18 +991,21 @@ def serve_analysis():
     """Serve analysis page for payments"""
     return FileResponse('analysis.html')
 
+
 @app.get('/login')
 def login_page():
-    """Login page for existing users"""
-    return FileResponse('login.html')
+    return serve_html('login.html')
+
 
 @app.get('/stock-analysis')
-def serve_stock_analysis(user = Depends(require_plan("lifetime"))):
-    return FileResponse('stock-analysis.html')
+def serve_stock_analysis(user=Depends(require_plan("lifetime"))):
+    return serve_html('stock-analysis.html')
+    
 
 @app.get('/dashboard')
-def serve_dashboard(user = Depends(require_plan("lifetime"))):
-    return FileResponse('dashboard.html')
+def serve_dashboard(user=Depends(require_plan("lifetime"))):
+    return serve_html('dashboard.html')
+    
 
 @app.get("/fake-dashboard")
 def serve_fake_dashboard():
@@ -1045,12 +1067,12 @@ def serve_css():
 
 @app.get("/admin.css")
 def serve_admin_css():
-    return FileResponse("admin.css", media_type="text/css")
+    return FileResponse(str(ROOT / "admin.css"), media_type="text/css")
 
 
 @app.get("/pp-admin.js")
 def serve_pp_admin_js():
-    return FileResponse("pp-admin.js", media_type="application/javascript")
+    return FileResponse(str(ROOT / "pp-admin.js"), media_type="application/javascript")
 
 
 @app.get("/api/stripe-key")
