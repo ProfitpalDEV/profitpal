@@ -95,6 +95,17 @@ YOUR_DOMAIN            = os.getenv("DOMAIN", "https://profitpal.org")
 from security import create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
 SECURE_COOKIES = YOUR_DOMAIN.startswith("https://") or ("profitpal.org" in YOUR_DOMAIN)
 
+
+# --- Admin login (из ENV) ---
+ADMIN_EMAIL       = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
+ADMIN_LICENSE_KEY = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
+ADMIN_FULL_NAME   = os.getenv("ADMIN_FULL_NAME", "System Administrator")
+
+# Нормализация ключей (убираем пробелы/дефисы/любой мусор, делаем верхний регистр)
+def _norm_key(s: str) -> str:
+    return re.sub(r'[^A-Z0-9]', '', (s or '').upper())
+
+
 # Referral manager (DB можно переопределить через ENV REFERRALS_DB)
 REFERRALS_DB = os.getenv("REFERRALS_DB", "referrals.db")
 referral_mgr = ReferralManager(db_path=REFERRALS_DB)
@@ -1290,15 +1301,12 @@ async def check_admin_status(request: Request):
 
 @app.post("/authenticate-user")
 async def authenticate_user_ep(request: Request, response: Response):
-    """Полный вход: админ по ENV или обычный пользователь через auth_manager.
-    Всегда создаём server-side сессию и ставим pp_session/pp_csrf cookies.
+    """
+    Полный вход: админ (через ENV) или обычный пользователь (через auth_manager).
+    Всегда создаём server-side сессию и ставим pp_session / pp_csrf cookies.
     """
     try:
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
-
+        body = await request.json()
         email       = (body.get("email") or "").strip().lower()
         license_key = (body.get("license_key") or "").strip()
         full_name   = (body.get("full_name") or "").strip() or None
@@ -1309,21 +1317,17 @@ async def authenticate_user_ep(request: Request, response: Response):
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("user-agent", "unknown")
 
-        # secure-cookie: берём глобальную настройку если есть, иначе определим по URL/домену
-        try:
-            secure_cookie = bool(SECURE_COOKIES)
-        except NameError:
-            secure_cookie = (request.url.scheme == "https") or ("profitpal.org" in (request.url.hostname or ""))
+        secure_cookie = bool(SECURE_COOKIES)
 
-        # ========= Админ строго по ENV (с нормализацией ключа) =========
+        # ===== Админ строго по ENV (с нормализацией ключа) =====
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
-            if _norm_key(license_key) != _norm_key(ADMIN_KEY):
+            if _norm_key(license_key) != _norm_key(ADMIN_LICENSE_KEY):
                 return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
 
             # гарантируем наличие админа в users
             user = AUTH.get_user_by_email(email)
             if not user:
-                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_NAME)
+                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_FULL_NAME)
                 if not created or not created.get("success"):
                     # вдруг уже существует — перечитаем
                     user = AUTH.get_user_by_email(email)
@@ -1340,7 +1344,7 @@ async def authenticate_user_ep(request: Request, response: Response):
                                 httponly=False, secure=secure_cookie, samesite="lax", path="/")
             return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
-        # ========= Обычный пользователь — через auth_manager =========
+        # ===== Обычный пользователь — через auth_manager =====
         auth = authenticate_user_login(
             email=email,
             license_key=license_key,
@@ -1368,6 +1372,7 @@ async def authenticate_user_ep(request: Request, response: Response):
         import traceback
         print(f"❌ authenticate_user_ep error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
         return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
+
 
 
 
