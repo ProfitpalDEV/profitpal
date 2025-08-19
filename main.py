@@ -1006,8 +1006,13 @@ def serve_dashboard(user=Depends(require_plan("lifetime"))):
         # временный лог, чтобы сразу увидеть реальную причину в логах хоста
         print(f"❌ dashboard error: {type(e).__name__}: {e}")
         raise
-    
 
+
+@app.get("/__dash_raw")
+def serve_dashboard_raw():
+    return FileResponse(str(ROOT / "dashboard.html"), media_type="text/html")
+
+    
 @app.get("/fake-dashboard")
 def serve_fake_dashboard():
     return serve_html("fake-dashboard.html")

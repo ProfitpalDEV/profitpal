@@ -1,15 +1,18 @@
 # security.py
-from fastapi import Request, HTTPException, Depends
+from fastapi import Request, HTTPException
 from datetime import datetime, timedelta, timezone
-import sqlite3, secrets
+import sqlite3, secrets, os
 from typing import Optional, Dict
 
 # Куки
 SESSION_COOKIE = "pp_session"
 CSRF_COOKIE    = "pp_csrf"
 
-# ВАЖНО: используем ту же БД, что и auth_manager (где таблица users)
+# БД такая же, как в auth_manager
 DB_PATH = "profitpal_auth.db"
+
+# Админ из ENV (для байпаса require_plan)
+ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
 
 def _db():
     con = sqlite3.connect(DB_PATH)
@@ -33,37 +36,35 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
     """Достаёт пользователя по токену сессии. План/подписка — опциональны."""
     if not token:
         return None
-
+    try:
         with _db() as con:
-            try:
-                row = con.execute(
-                    """
-                    SELECT u.id, u.license_key, u.is_active
-                    FROM user_sessions s
-                    JOIN users u ON u.id = s.user_id
-                    WHERE s.session_token = ?
-                      AND s.is_active = 1
-                      AND s.expires_at > datetime('now')
-                    """,
-                    (token,),
-                ).fetchone()
-            except sqlite3.OperationalError as e:
-                print(f"[auth] schema error: {e}")  # не падаем 500, а считаем, что сессии нет
+            row = con.execute(
+                """
+                SELECT u.id, u.email, u.license_key, u.is_active
+                FROM user_sessions s
+                JOIN users u ON u.id = s.user_id
+                WHERE s.session_token = ?
+                  AND s.is_active = 1
+                  AND s.expires_at > datetime('now')
+                """,
+                (token,),
+            ).fetchone()
+            if not row:
                 return None
 
-        # попробуем получить payment_status, если такая колонка есть
-        payment_status = None
-        try:
-            r2 = con.execute(
-                "SELECT payment_status FROM users WHERE id = ?",
-                (row["id"],),
-            ).fetchone()
-            if r2 and "payment_status" in r2.keys():
-                payment_status = r2["payment_status"]
-        except sqlite3.OperationalError:
-            pass
+            # попробуем получить payment_status, если такая колонка есть
+            payment_status = None
+            try:
+                r2 = con.execute("SELECT payment_status FROM users WHERE id = ?", (row["id"],)).fetchone()
+                if r2 and "payment_status" in r2.keys():
+                    payment_status = r2["payment_status"]
+            except sqlite3.OperationalError:
+                pass
+    except sqlite3.OperationalError as e:
+        print(f"[security] _fetch_user_by_session schema error: {e}")
+        return None
 
-    # по умолчанию плана нет
+    # по умолчанию плана/подписки нет
     plan_type = None
     subscription_status = None
 
@@ -81,46 +82,58 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
         "email": row["email"],
         "license_key": row["license_key"],
         "is_active": row["is_active"],
-        "plan_type": plan_type,                # None | "lifetime"
+        "plan_type": plan_type,                  # None | "lifetime"
         "subscription_status": subscription_status,  # None | "active" | "inactive"
     }
 
-
-
 def _plan_rank(plan: Optional[str]) -> int:
-    order = {"lifetime": 1, "early_bird": 1, "standard": 2, "pro": 3}
+    # lifetime — самый высокий ранг
+    order = {"lifetime": 3, "pro": 2, "standard": 1, "early_bird": 1}
     return order.get((plan or "").lower(), 0)
 
 async def require_user(request: Request):
-    """Пускаем только при валидной активной сессии."""
-    token = request.cookies.get(SESSION_COOKIE)
-    user = _fetch_user_by_session(token)
-    if not user or not user.get("is_active"):
+    """Пускаем только при валидной активной сессии (без 500)."""
+    try:
+        token = request.cookies.get(SESSION_COOKIE)
+        if not token:
+            raise HTTPException(status_code=401, detail="No session")
+        user = _fetch_user_by_session(token)
+        if not user or not user.get("is_active"):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        request.state.user = user
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ require_user error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=401, detail="Unauthorized")
-    request.state.user = user
-    return user
 
-def require_plan(min_plan: str):
+def require_plan(required: Optional[str] = None):
     """
-    Требует определённый план. Если колонок plan/subscription нет в БД —
-    gracefully разрешаем доступ активному пользователю.
+    Требует план/подписку. Админ из ENV проходит всегда.
+    Любые ошибки отдаются как 401/402, а не 500.
     """
-    async def _inner(request: Request, user = Depends(require_user)):
-        subs = user.get("subscription_status")
-        plan = user.get("plan_type")
+    async def _dep(request: Request):
+        user = await require_user(request)
 
-        # Нет полей в БД → разрешаем активному пользователю
-        if subs is None and plan is None:
+        # ✅ админ-байпас
+        email = (user.get("email") or "").strip().lower()
+        if ADMIN_EMAIL and email == ADMIN_EMAIL:
             return user
 
-        if subs not in ("active", "trialing"):
-            raise HTTPException(status_code=402, detail="Payment Required")
+        if not required:
+            return user
 
-        if _plan_rank(plan) < _plan_rank(min_plan):
-            raise HTTPException(status_code=403, detail="Insufficient plan")
+        need = _plan_rank(required)
+        have = _plan_rank(user.get("plan_type"))
+        subs = (user.get("subscription_status") or "").lower()
+
+        ok = (have >= need) or (subs in ("active", "trialing"))
+        if not ok:
+            raise HTTPException(status_code=402, detail="Payment required")
 
         return user
-    return _inner
+    return _dep
 
 def verify_csrf(request: Request):
     """Double-submit cookie CSRF: заголовок должен совпадать с cookie."""
