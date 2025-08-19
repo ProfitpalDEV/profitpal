@@ -963,24 +963,21 @@ def _resolve_user_id_or_none(email: str, license_key: str, result: dict):
 
 @app.get("/")
 def serve_homepage():
-    """Serve the main landing page"""
-    return FileResponse('index.html')
+    # главная
+    return serve_html("index.html")
 
 
 @app.get("/ref/{referral_code}")
 def handle_referral_redirect(referral_code: str):
-    """Handle referral links and redirect to main page with ref parameter"""
+    # ЭТО НЕ МЕНЯЕМ — тут редиректная логика, не статика
     try:
         print(f"🔗 Referral link clicked: {referral_code}")
-
         if (referral_mgr.validate_referral_code_format(referral_code)
                 and referral_mgr.referral_code_exists(referral_code)):
-            return RedirectResponse(url=f"/?ref={referral_code}",
-                                    status_code=302)
+            return RedirectResponse(url=f"/?ref={referral_code}", status_code=302)
         else:
             print(f"❌ Invalid referral code: {referral_code}")
             return RedirectResponse(url="/", status_code=302)
-
     except Exception as e:
         print(f"❌ Referral redirect error: {e}")
         return RedirectResponse(url="/", status_code=302)
@@ -988,82 +985,87 @@ def handle_referral_redirect(referral_code: str):
 
 @app.get("/analysis")
 def serve_analysis():
-    return FileResponse(str(ROOT / "analysis.html"), media_type="text/html")
+    return serve_html("analysis.html")
 
 
 @app.get("/login")
 def login_page():
-    return FileResponse(str(ROOT / "login.html"), media_type="text/html")
+    return serve_html("login.html")
 
 
 @app.get("/stock-analysis")
 def serve_stock_analysis(user=Depends(require_plan("lifetime"))):
-    return FileResponse(str(ROOT / "stock-analysis.html"), media_type="text/html")
+    return serve_html("stock-analysis.html")
 
     
 @app.get("/dashboard")
 def serve_dashboard(user=Depends(require_plan("lifetime"))):
-    return FileResponse(str(ROOT / "dashboard.html"), media_type="text/html")
+    try:
+        return serve_html("dashboard.html")
+    except Exception as e:
+        # временный лог, чтобы сразу увидеть реальную причину в логах хоста
+        print(f"❌ dashboard error: {type(e).__name__}: {e}")
+        raise
     
 
 @app.get("/fake-dashboard")
 def serve_fake_dashboard():
-    return FileResponse(str(ROOT / "fake-dashboard.html"), media_type="text/html")
+    return serve_html("fake-dashboard.html")
 
 
 @app.get("/introduction")
 async def serve_introduction():
-    return FileResponse(str(ROOT / "introduction.html"), media_type="text/html")
+    return serve_html("introduction.html")
 
 
 @app.get("/test-fail")
 async def test_fail_page():
-    return FileResponse(str(ROOT / "test-fail.html"), media_type="text/html")
+    return serve_html("test-fail.html")
 
 
 @app.get("/success")
 def serve_success(user=Depends(require_user)):
-    return FileResponse(str(ROOT / "success.html"), media_type="text/html")
+    return serve_html("success.html")
 
 
 @app.get("/cancel")
 def serve_cancel():
-    return FileResponse(str(ROOT / "cancel.html"), media_type="text/html")
+    return serve_html("cancel.html")
 
 
 @app.get("/terms-of-service")
 def serve_terms():
-    return FileResponse(str(ROOT / "terms-of-service.html"), media_type="text/html")
+    return serve_html("terms-of-service.html")
 
 
 @app.get("/privacy-policy")
 def serve_privacy():
-    return FileResponse(str(ROOT / "privacy-policy.html"), media_type="text/html")
+    return serve_html("privacy-policy.html")
 
 
 @app.get("/refund-policy")
 def serve_refund():
-    return FileResponse(str(ROOT / "refund-policy.html"), media_type="text/html")
+    return serve_html("refund-policy.html")
 
 
 @app.get("/settings")
 def serve_settings(user=Depends(require_user)):
-    return FileResponse(str(ROOT / "settings.html"), media_type="text/html")
+    return serve_html("settings.html")
 
 
 @app.get("/profitpal-styles.css")
 def serve_css():
-    return FileResponse(str(ROOT / "profitpal-styles.css"), media_type="text/css")
+    return serve_static("profitpal-styles.css", "text/css")
 
 
 @app.get("/admin.css")
 def serve_admin_css():
-    return FileResponse(str(ROOT / "admin.css"), media_type="text/css")
+    return serve_static("admin.css", "text/css")
 
 
 @app.get("/pp-admin.js")
 def serve_pp_admin_js():
-    return FileResponse(str(ROOT / "pp-admin.js"), media_type="application/javascript")
+    return serve_static("pp-admin.js", "application/javascript")
 
 
 @app.get("/api/stripe-key")
@@ -1089,6 +1091,20 @@ def pm_info(user = Depends(require_user)):
         "exp_month": card.get("exp_month"),
         "exp_year": card.get("exp_year"),
     }
+
+app.get("/_whoami")
+def whoami(user=Depends(require_user)):
+    return {
+        "id": user.get("id"),
+        "email": user.get("email"),
+        "is_admin": bool(os.getenv("ADMIN_EMAIL", "").strip().lower() == (user.get("email") or "").strip().lower()),
+        "plan_type": user.get("plan_type"),
+        "subscription_status": user.get("subscription_status"),
+    }
+
+@app.get("/_health")
+def health():
+    return {"ok": True}
 
 
 @app.post("/api/billing/create-setup-intent")
@@ -1122,9 +1138,8 @@ def set_default_pm(payload: dict, user = Depends(require_user), _=Depends(verify
 
 
 @app.get("/pp-auth.js")
-def serve_pp_auth():
-    """Serve tiny auth helper for frontend"""
-    return FileResponse("pp-auth.js", media_type="application/javascript")
+def serve_pp_auth_js():
+    return serve_static("pp-auth.js", "application/javascript")
 
 
 
