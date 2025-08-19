@@ -842,10 +842,20 @@
             }
         </style>
 </head>
-<body>
+    <body>
+      <script src="/pp-auth.js"></script>
+      <script>
+        ensureSessionOrRedirect().then(me => {
+          document.body.classList.toggle('admin-mode', !!me.is_admin);
+          window.PP_USER = me; // пригодится в других скриптах
+          // опционально: проставим data-атрибут на <html>
+          document.documentElement.dataset.isAdmin = me.is_admin ? '1' : '0';
+        });
+      </script>
 
-    <script src="/pp-auth.js"></script>
-    <script>ensureSessionOrRedirect();</script>
+        <link rel="stylesheet" href="/admin.css">
+        <script src="/pp-admin.js"></script>
+
 
     <!-- Background Animation -->
     <div class="background-animation">
@@ -1478,6 +1488,12 @@
             submitBtn.disabled = true;
         }
 
+        // признак админа из серверной сессии
+        function isAdmin() {
+          return !!(window.PP_USER && window.PP_USER.is_admin);
+        }
+
+
         // 🔥 ЗАГРУЗКА ДАННЫХ ИЗ API
         async function loadUserData() {
             try {
@@ -1535,41 +1551,41 @@
 
         // 🔧 ИСПРАВЛЕННАЯ ФУНКЦИЯ showDemoData() - ADMIN ИЛИ DEMO ДАННЫЕ
         function showDemoData() {
-            const userEmail = getUserEmail();
-            const userRole = localStorage.getItem('pp_user_role') || 'client';
+          const email =
+            (window.PP_USER && window.PP_USER.email) ||
+            new URLSearchParams(location.search).get('email') ||
+            'dj@profitpal.org';
 
-            // 👑 ПРОВЕРЯЕМ ЕСЛИ ЭТО ADMIN
-            const adminEmail = 'denava.business@gmail.com'; // Ваш admin email
-            const isAdmin = (userEmail.toLowerCase() === adminEmail.toLowerCase()) || (userRole === 'admin');
+          if (isAdmin()) {
+            // демо для админа
+            userData = {
+              fullName: "System Administrator",
+              email: email,
+              referralLink: "https://profitpal.org?ref=ADMIN-SYSTEM-ACCESS",
+              freeMonthsBalance: 999,
+              totalPaidReferrals: 0,
+              totalEarnedMonths: 0,
+              recentReferrals: []
+            };
+          } else {
+            // демо для обычного пользователя
+            userData = {
+              fullName: "DJ Investor",
+              email: email,
+              referralLink: "https://profitpal.org?ref=ABCDE12345fghij",
+              freeMonthsBalance: 3,
+              totalPaidReferrals: 3,
+              totalEarnedMonths: 3,
+              recentReferrals: [
+                { new_user_email: "alex.smith@gmail.com",  used_at: "2025-01-03" },
+                { new_user_email: "sarah.jones@yahoo.com", used_at: "2025-01-01" },
+                { new_user_email: "mike.wilson@gmail.com", used_at: "2024-12-28" }
+              ]
+            };
+          }
 
-            if (isAdmin) {
-                // 👑 ADMIN ДАННЫЕ
-                userData = {
-                    fullName: "System Administrator",
-                    email: adminEmail,
-                    referralLink: "https://profitpal.org?ref=ADMIN-SYSTEM-ACCESS",
-                    freeMonthsBalance: 999,        // Admin имеет неограниченный доступ
-                    totalPaidReferrals: 0,         // Admin не участвует в referral программе
-                    totalEarnedMonths: 0,          // Admin не зарабатывает месяцы
-                    recentReferrals: []            // Admin не имеет referrals
-                };
-
-                console.log('👑 Admin demo data loaded for:', adminEmail);
-            } else {
-                // 👤 ОБЫЧНЫЕ DEMO ДАННЫЕ ДЛЯ КЛИЕНТОВ
-                userData = {
-                    fullName: "DJ Investor",
-                    email: "dj@profitpal.org", 
-                    referralLink: "https://profitpal.org?ref=ABCDE12345fghij",
-                    freeMonthsBalance: 3,
-                    totalPaidReferrals: 3,
-                    totalEarnedMonths: 3,
-                    recentReferrals: [
-                        { new_user_email: "alex.smith@gmail.com", used_at: "2025-01-03" },
-                        { new_user_email: "sarah.jones@yahoo.com", used_at: "2025-01-01" },
-                        { new_user_email: "mike.wilson@gmail.com", used_at: "2024-12-28" }
-                    ]
-                };
+          updateUI();
+        }
 
                 console.log('👤 Client demo data loaded for:', userEmail);
             }
@@ -1579,82 +1595,62 @@
         }
 
         function updateUI() {
-            // 🔥 ПРАВИЛЬНЫЕ РАСЧЕТЫ
-            const freeMonths = userData.freeMonthsBalance;
-            const paidFriends = userData.totalPaidReferrals;
-            const moneySaved = userData.totalEarnedMonths * 9.99; // NEW PRICING
+          // ✅ Правильные расчёты
+          const freeMonths  = Number(userData.freeMonthsBalance || 0);
+          const paidFriends = Number(userData.totalPaidReferrals || 0);
+          const moneySaved  = Number(userData.totalEarnedMonths || 0) * 9.99; // NEW PRICING
 
-            // 👑 ПРОВЕРКА ADMIN РОЛИ С КОРОЛЕВСКИМ ИНТЕРФЕЙСОМ
-            const userRole = localStorage.getItem('pp_user_role') || 'client';
-            const userEmail = localStorage.getItem('pp_email') || '';
-            const isAdmin = (userRole === 'admin') || (userEmail.toLowerCase() === 'denava.business@gmail.com');
+          // ✅ Флаг админа ставит ensureSessionOrRedirect() → <html data-is-admin="1">
+          const isAdmin = document.documentElement.dataset.isAdmin === '1';
 
-            if (isAdmin) {
-                // 👑 КОРОЛЕВСКИЙ ADMIN ИНТЕРФЕЙС
-                const userAvatar = document.getElementById('user-avatar');
-                const userGreeting = document.getElementById('user-greeting');
+          // ===== Основные счётчики =====
+          const $ref   = document.getElementById('referral-link');
+          const $free  = document.getElementById('free-months-count');
+          const $paid  = document.getElementById('paid-friends-count');
+          const $saved = document.getElementById('money-saved');
 
-                // 💎 ЗОЛОТАЯ КОРОНА ВМЕСТО ИНИЦИАЛОВ
-                userAvatar.innerHTML = '👑';
-                userAvatar.style.background = 'linear-gradient(135deg, #ffd700, #ff6b35)';
-                userAvatar.style.border = '3px solid #ffd700';
-                userAvatar.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
+          if ($ref)  $ref.textContent  = userData.referralLink || '';
+          if ($free) $free.textContent = freeMonths;
+          if ($paid) $paid.textContent = paidFriends;
+          if ($saved)$saved.textContent = `$${moneySaved.toFixed(2)}`;
 
-                // 🔥 КОРОЛЕВСКОЕ ПРИВЕТСТВИЕ
-                userGreeting.innerHTML = '👑 <span style="color: #ffd700; font-size: 18px; font-weight: 800;">ADMIN MODE</span>';
+          // ===== Пользовательский блок: инициалы и приветствие — только для НЕ-админа =====
+          // (для админа визуал делает pp-admin.js + admin.css, здесь не трогаем)
+          const avatarEl = document.getElementById('user-avatar');
+          const greetEl  = document.getElementById('user-greeting');
+          const first    = (userData.fullName || '').split(' ')[0] || 'User';
 
-                console.log('👑 Royal Admin interface activated');
-            }
+          if (!isAdmin) {
+            const initials = (userData.fullName || '')
+              .split(' ')
+              .filter(Boolean)
+              .map(s => s[0])
+              .join('');
 
-            // Обновляем основные счетчики
-            document.getElementById('referral-link').textContent = userData.referralLink;
-            document.getElementById('free-months-count').textContent = freeMonths;
-            document.getElementById('paid-friends-count').textContent = paidFriends;
-            document.getElementById('money-saved').textContent = `$${moneySaved.toFixed(2)}`;
+            if (avatarEl) avatarEl.textContent = initials || '🙂';
+            if (greetEl)  greetEl.textContent  = `Welcome back, ${first}!`;
+            if (typeof updateGreeting === 'function') updateGreeting(first);
+          } else {
+            // для админа заголовок — “Admin” (визуал уже рисуется снаружи)
+            if (typeof updateGreeting === 'function') updateGreeting('Admin');
+          }
 
-            // Обновляем информацию о пользователе (ТОЛЬКО ДЛЯ НЕ-АДМИНОВ)
-            if (!isAdmin) {
-                const initials = userData.fullName.split(' ').map(n => n[0]).join('');
-                document.getElementById('user-avatar').textContent = initials;
-                document.getElementById('user-greeting').textContent = `Welcome back, ${userData.fullName.split(' ')[0]}!`;
-            }
-
-            // Обновляем заголовок
-            updateGreeting(isAdmin ? 'Admin' : userData.fullName.split(' ')[0]);
-
-            // Показываем friends section только если есть referrals
+          // ===== Friends section: показываем только если есть оплаченные рефералы =====
+          const friendsSection = document.getElementById('referral-friends-section');
+          if (friendsSection) {
             if (paidFriends > 0) {
-                document.getElementById('referral-friends-section').style.display = 'block';
-                updateFriendsList();
-                updateProgress();
+              friendsSection.style.display = 'block';
+              if (typeof updateFriendsList === 'function') updateFriendsList();
+              if (typeof updateProgress === 'function')    updateProgress();
+            } else {
+              friendsSection.style.display = 'none';
             }
+          }
 
-            // Обновляем информацию о следующем биллинге
-            updateNextBilling();
+          // ===== Информация о следующем биллинге =====
+          if (typeof updateNextBilling === 'function') updateNextBilling();
         }
 
-        function updateFriendsList() {
-            const friendsList = document.getElementById('friends-list');
-            friendsList.innerHTML = '';
-
-            userData.recentReferrals.forEach(referral => {
-                const friendDiv = document.createElement('div');
-                friendDiv.className = 'friend-item';
-
-                const date = new Date(referral.used_at);
-                const timeAgo = getTimeAgo(date);
-
-                friendDiv.innerHTML = `
-                    <div>
-                        <div class="friend-email">${referral.new_user_email}</div>
-                        <div class="friend-date">Joined ${timeAgo}</div>
-                    </div>
-                    <div class="friend-reward">+1 FREE MONTH</div>
-                `;
-
-                friendsList.appendChild(friendDiv);
-            });
-        }
 
         function updateProgress() {
             const current = userData.totalPaidReferrals;
@@ -1700,12 +1696,13 @@
 
             // 🔧 ИСПРАВЛЕННАЯ ФУНКЦИЯ getUserEmail() - ЧИТАЕТ ИЗ ADMIN СЕССИИ
         function getUserEmail() {
-            // 🎯 Сначала проверяем localStorage из admin логина
-            const sessionEmail = localStorage.getItem('pp_email');
-            if (sessionEmail) {
-                console.log('📧 Found admin email in session:', sessionEmail);
-                return sessionEmail;
-            }
+          const me = window.PP_USER;
+          if (me && me.email) {
+            return me.email; // из серверной сессии
+          }
+          const urlEmail = new URLSearchParams(location.search).get('email');
+          return urlEmail || null; // если нет — пойдём в demo
+        }
 
             // 🔍 Fallback: проверяем URL параметры
             const urlParams = new URLSearchParams(window.location.search);

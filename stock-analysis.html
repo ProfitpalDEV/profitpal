@@ -578,7 +578,15 @@
 <body>
 
     <script src="/pp-auth.js"></script>
-      <script>ensureSessionOrRedirect();</script>
+    <script>
+      ensureSessionOrRedirect().then(me => {
+        document.body.classList.toggle('admin-mode', !!me.is_admin);
+        window.PP_USER = me;
+        document.documentElement.dataset.isAdmin = me.is_admin ? '1' : '0';
+      });
+    </script>
+    <link rel="stylesheet" href="/admin.css">
+    <script src="/pp-admin.js"></script>
     
     <!-- Background Animation -->
     <div class="background-animation">
@@ -593,9 +601,8 @@
             <div class="logo">💎 ProfitPal</div>
 
             <div class="user-info">
-                <div class="user-avatar" id="userAvatar">👑</div>
-                <div class="user-greeting" id="userGreeting">Welcome back, Admin!</div>
-                <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+              <div class="user-avatar" id="userAvatar"></div>
+              <div class="user-greeting" id="userGreeting">Welcome back!</div>
             </div>
         </div>
     </header>
@@ -703,21 +710,60 @@
         let currentMode = 'analyze';
         let filtersExpanded = false;
 
-        // Check authorization and admin status on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const userSession = localStorage.getItem('pp_session');
-            const userEmail = localStorage.getItem('pp_email');
+        // --- один обработчик на весь низ страницы (замени существующий) ---
+        document.addEventListener('DOMContentLoaded', () => {
+          const me = window.PP_USER;                // авторизацию уже сделали сверху
+          if (!me) return;
 
-            if (!userSession || !userEmail) {
-                console.log('🔒 No authorization - redirecting to home');
-                window.location.href = '/';
-                return;
+          // аватар/приветствие в шапке
+          const avatar = document.getElementById('userAvatar') || document.getElementById('user-avatar');
+          const greet  = document.getElementById('userGreeting') || document.getElementById('user-greeting');
+
+          if (me.is_admin) {
+            if (avatar) {
+              avatar.textContent = '👑';
+              avatar.style.background = 'linear-gradient(135deg,#ffd700,#ff6b35)';
+              avatar.style.border = '3px solid #ffd700';
+              avatar.style.boxShadow = '0 0 20px rgba(255,215,0,.6)';
             }
+            if (greet) {
+              greet.innerHTML = '👑 <span style="color:#ffd700;font-size:18px;font-weight:800;">ADMIN MODE</span>';
+            }
+          } else {
+            const first = (me.email || 'user@example.com').split('@')[0].split(/[._-]/)[0] || 'User';
+            if (avatar) {
+              avatar.textContent = first.slice(0,2).toUpperCase();
+              avatar.style.background = 'linear-gradient(135deg,#32cd32,#228b22)';
+              avatar.style.border = '2px solid rgba(50,205,50,.3)';
+              avatar.style.boxShadow = 'none';
+            }
+            if (greet) greet.textContent = `Welcome back, ${first}!`;
+          }
 
+          // автозапуск анализа по ?ticker=
+          const p   = new URLSearchParams(location.search);
+          const raw = p.get('ticker');
+          if (raw) {
+            const ticker = raw.replace(/[{}$]/g, '').toUpperCase();
+            const input  = document.getElementById('tickerInput');
+            if (input) {
+              input.value = ticker;
+              const sub = document.getElementById('analyzeSubtitle');
+              if (sub) sub.textContent = `Full analysis of ${ticker} with advanced metrics and insights`;
+              setTimeout(() => performAnalysis(), 400);
+            }
+          }
+
+          // фокус на поле тикера + плавные анимации
+          const input = document.getElementById('tickerInput');
+          if (input) input.focus();
+          try { addSmoothTransitions && addSmoothTransitions(); } catch {}
+        });
+        // --- конец обработчика ---
+
+        
             console.log('💎 Authorized user - stock analysis ready');
 
-            // 👑 CHECK ADMIN STATUS AND UPDATE UI
-            checkAndUpdateAdminUI();
 
             // Focus on ticker input
             const tickerInput = document.getElementById('tickerInput');
@@ -749,71 +795,7 @@
             addSmoothTransitions();
         });
 
-        // 👑 ADMIN UI UPDATE FUNCTION
-        async function checkAndUpdateAdminUI() {
-            const userRole = localStorage.getItem('pp_user_role') || 'client';
-            const userEmail = localStorage.getItem('pp_email') || '';
-            const isAdmin = (userRole === 'admin') || (userEmail.toLowerCase() === 'denava.business@gmail.com');
-
-            const userAvatar = document.getElementById('userAvatar');
-            const userGreeting = document.getElementById('userGreeting');
-
-            if (isAdmin) {
-                // 👑 КОРОЛЕВСКИЙ ADMIN ИНТЕРФЕЙС
-
-                // 💎 ЗОЛОТАЯ КОРОНА ВМЕСТО ИНИЦИАЛОВ - КАК В DASHBOARD
-                userAvatar.innerHTML = '👑';
-                userAvatar.style.background = 'linear-gradient(135deg, #ffd700, #ff6b35)';
-                userAvatar.style.border = '3px solid #ffd700';
-                userAvatar.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
-                userAvatar.style.fontSize = '20px';
-
-                // Королевское приветствие
-                userGreeting.innerHTML = '👑 <span style="color: #ffd700; font-size: 18px; font-weight: 800;">ADMIN MODE</span>';
-
-                console.log('👑 Royal Admin interface activated in stock analysis');
-            } else {
-                // 👤 ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
-
-                // Get user data
-                const userData = getUserData();
-
-                // User initials avatar
-                const initials = userData.fullName.split(' ').map(n => n[0]).join('');
-                userAvatar.textContent = initials;
-                userAvatar.style.background = 'linear-gradient(135deg, #32cd32, #228b22)';
-                userAvatar.style.border = '2px solid rgba(50, 205, 50, 0.3)';
-                userAvatar.style.boxShadow = 'none';
-
-                // User greeting
-                const firstName = userData.fullName.split(' ')[0];
-                userGreeting.textContent = `Welcome back, ${firstName}!`;
-
-                console.log('👤 User interface activated in stock analysis');
-            }
-        }
-
-        // GET USER DATA FROM LOCALSTORAGE
-        function getUserData() {
-            const email = localStorage.getItem('pp_email') || 'user@example.com';
-
-            // Try to get stored user data or create default
-            const storedUserData = localStorage.getItem('pp_user_data');
-            if (storedUserData) {
-                try {
-                    return JSON.parse(storedUserData);
-                } catch (e) {
-                    console.log('Failed to parse stored user data');
-                }
-            }
-
-            // Default user data based on email
-            return {
-                fullName: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User',
-                email: email
-            };
-        }
-
+        
         // MODE SWITCHING
         function setMode(mode) {
             currentMode = mode;

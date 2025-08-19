@@ -30,15 +30,18 @@ def create_session(user_id: int, ip: str, ua: str, days: int = 30):
     return token, csrf, expires_at
 
 def _fetch_user_by_session(token: str) -> Optional[Dict]:
-    """Достаём пользователя по токену сессии. План/подписка — опциональны."""
+    """Достаёт пользователя по токену сессии. План/подписка — опциональны."""
     if not token:
         return None
 
     with _db() as con:
-        # базовые поля, которые точно есть
+        # базовые поля
         row = con.execute(
             """
-            SELECT u.id, u.license_key, u.is_active
+            SELECT u.id,
+                   u.email,
+                   u.license_key,
+                   u.is_active
             FROM user_sessions s
             JOIN users u ON u.id = s.user_id
             WHERE s.session_token = ?
@@ -50,17 +53,19 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
         if not row:
             return None
 
-        # пробуем получить payment_status, если такая колонка есть
+        # попробуем получить payment_status, если такая колонка есть
         payment_status = None
         try:
-            r2 = con.execute("SELECT payment_status FROM users WHERE id = ?", (row["id"],)).fetchone()
+            r2 = con.execute(
+                "SELECT payment_status FROM users WHERE id = ?",
+                (row["id"],),
+            ).fetchone()
             if r2 and "payment_status" in r2.keys():
                 payment_status = r2["payment_status"]
         except sqlite3.OperationalError:
-            # колонки payment_status нет — тихо игнорируем
             pass
 
-    # по умолчанию полей плана/подписки нет
+    # по умолчанию плана нет
     plan_type = None
     subscription_status = None
 
@@ -68,18 +73,20 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
     if payment_status is not None:
         ps = str(payment_status).lower()
         if ps in ("completed", "active", "paid"):
-            plan_type = "lifetime"          # чтобы require_plan("lifetime") проходил
+            plan_type = "lifetime"
             subscription_status = "active"
         else:
             subscription_status = "inactive"
 
     return {
         "id": row["id"],
+        "email": row["email"],
         "license_key": row["license_key"],
         "is_active": row["is_active"],
-        "plan_type": plan_type,                   # None или "lifetime"
-        "subscription_status": subscription_status,  # None / "active" / "inactive"
+        "plan_type": plan_type,                # None | "lifetime"
+        "subscription_status": subscription_status,  # None | "active" | "inactive"
     }
+
 
 
 def _plan_rank(plan: Optional[str]) -> int:

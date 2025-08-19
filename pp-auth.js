@@ -34,9 +34,12 @@ async function ensureSessionOrRedirect() {
     throw new Error('Not authenticated');
   }
   const me = await r.json();
-  window.__ME__ = me; // optionally expose
+  window.__ME__ = me;                 // уже есть
+  window.PP_USER = me;                // удобно глобально
+  document.documentElement.dataset.isAdmin = me.is_admin ? '1' : '0'; // флаг админа
   return me;
 }
+
 
 // Simple logout helper
 async function logoutAndGoLogin() {

@@ -1,0 +1,39 @@
+/* ===== Admin utilities ===== */
+
+/* По умолчанию админские блоки скрыты */
+.admin-only { display: none !important; }
+
+/* Включаем их, если юзер админ */
+html[data-is-admin="1"] .admin-only { display: initial !important; }
+
+/* Точный контроль типа отображения (по желанию) */
+html[data-is-admin="1"] .admin-only[data-display="block"]  { display: block !important; }
+html[data-is-admin="1"] .admin-only[data-display="inline"] { display: inline !important; }
+html[data-is-admin="1"] .admin-only[data-display="flex"]   { display: flex !important; }
+html[data-is-admin="1"] .admin-only[data-display="grid"]   { display: grid !important; }
+
+/* Наоборот: скрыть для админа */
+html[data-is-admin="1"] .admin-hide { display: none !important; }
+
+/* Автокорона для целей .admin-crown-target или [data-admin-crown] */
+html[data-is-admin="1"] .admin-crown-target::after,
+html[data-is-admin="1"] [data-admin-crown]::after {
+  content: "👑";
+  margin-left: .35rem;
+  opacity: .9;
+}
+
+/* Небольшой бейдж ADMIN MODE (по желанию) */
+html[data-is-admin="1"] .admin-ribbon {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 9999;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ffd34d, #ff9f1a);
+  color: #1e2732;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.12);
+  letter-spacing: .2px;
+}

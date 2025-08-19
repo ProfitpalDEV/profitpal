@@ -1037,11 +1037,20 @@ def serve_settings(user = Depends(require_user)):
     return FileResponse("settings.html")
 
 
-
 @app.get("/profitpal-styles.css")
 def serve_css():
     """Serve ProfitPal CSS styles"""
     return FileResponse('profitpal-styles.css', media_type='text/css')
+
+
+@app.get("/admin.css")
+def serve_admin_css():
+    return FileResponse("admin.css", media_type="text/css")
+
+
+@app.get("/pp-admin.js")
+def serve_pp_admin_js():
+    return FileResponse("pp-admin.js", media_type="application/javascript")
 
 
 @app.get("/api/stripe-key")
@@ -1108,11 +1117,17 @@ def serve_pp_auth():
 
 @app.get("/api/session/me")
 def session_me(user = Depends(require_user)):
+    email = (user.get("email") or "").strip().lower()
+    is_admin = bool(ADMIN_EMAIL and email == ADMIN_EMAIL)
+
     return {
         "id": user["id"],
-        "plan": user.get("plan_type"),
+        "email": user.get("email"),
+        "is_admin": is_admin,
+        "plan_type": user.get("plan_type"),
         "subscription_status": user.get("subscription_status"),
     }
+
 
 @app.get("/api/referral-stats/me")
 def referral_stats_me(user = Depends(require_user)):
