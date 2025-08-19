@@ -2,22 +2,24 @@
 from fastapi import Request, HTTPException
 from datetime import datetime, timedelta, timezone
 import sqlite3, secrets, os
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
-# Куки
+# === Cookies ===
 SESSION_COOKIE = "pp_session"
 CSRF_COOKIE    = "pp_csrf"
 
-# БД такая же, как в auth_manager
+# Та же БД, что и в auth_manager
 DB_PATH = "profitpal_auth.db"
 
-# Админ из ENV (для байпаса require_plan)
+# Админ из ENV (байпас для require_plan)
 ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
 
-def _db():
+
+def _db() -> sqlite3.Connection:
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     return con
+
 
 def create_session(user_id: int, ip: str, ua: str, days: int = 30):
     """Создаёт серверную сессию и возвращает (token, csrf, expires_iso)."""
@@ -26,16 +28,20 @@ def create_session(user_id: int, ip: str, ua: str, days: int = 30):
     expires_at = (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
     with _db() as con:
         con.execute(
-            "INSERT INTO user_sessions (user_id, session_token, expires_at, ip_address, user_agent, is_active) "
-            "VALUES (?, ?, ?, ?, ?, 1)",
+            """
+            INSERT INTO user_sessions (user_id, session_token, expires_at, ip_address, user_agent, is_active)
+            VALUES (?, ?, ?, ?, ?, 1)
+            """,
             (user_id, token, expires_at, ip, ua),
         )
     return token, csrf, expires_at
 
-def _fetch_user_by_session(token: str) -> Optional[Dict]:
-    """Достаёт пользователя по токену сессии. План/подписка — опциональны."""
+
+def _fetch_user_by_session(token: str) -> Optional[Dict[str, Any]]:
+    """Возвращает пользователя по токену сессии. План/подписка — опциональны."""
     if not token:
         return None
+
     try:
         with _db() as con:
             row = con.execute(
@@ -52,23 +58,28 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
             if not row:
                 return None
 
-            # попробуем получить payment_status, если такая колонка есть
+            # payment_status читаем только если такая колонка есть
             payment_status = None
             try:
-                r2 = con.execute("SELECT payment_status FROM users WHERE id = ?", (row["id"],)).fetchone()
-                if r2 and "payment_status" in r2.keys():
-                    payment_status = r2["payment_status"]
+                cols = {c["name"] for c in con.execute("PRAGMA table_info(users)").fetchall()}
+                if "payment_status" in cols:
+                    r2 = con.execute(
+                        "SELECT payment_status FROM users WHERE id = ?",
+                        (row["id"],),
+                    ).fetchone()
+                    if r2:
+                        payment_status = r2["payment_status"]
             except sqlite3.OperationalError:
+                # на всякий случай: не валим процесс
                 pass
-    except sqlite3.OperationalError as e:
-        print(f"[security] _fetch_user_by_session schema error: {e}")
+
+    except Exception as e:
+        print(f"[security] _fetch_user_by_session error: {type(e).__name__}: {e}")
         return None
 
-    # по умолчанию плана/подписки нет
-    plan_type = None
-    subscription_status = None
-
-    # если есть payment_status — нормализуем
+    # Нормализуем план/подписку
+    plan_type: Optional[str] = None
+    subscription_status: Optional[str] = None
     if payment_status is not None:
         ps = str(payment_status).lower()
         if ps in ("completed", "active", "paid"):
@@ -82,17 +93,19 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
         "email": row["email"],
         "license_key": row["license_key"],
         "is_active": row["is_active"],
-        "plan_type": plan_type,                  # None | "lifetime"
-        "subscription_status": subscription_status,  # None | "active" | "inactive"
+        "plan_type": plan_type,                    # None | "lifetime"
+        "subscription_status": subscription_status # None | "active" | "inactive"
     }
 
+
 def _plan_rank(plan: Optional[str]) -> int:
-    # lifetime — самый высокий ранг
+    # lifetime — самый высокий
     order = {"lifetime": 3, "pro": 2, "standard": 1, "early_bird": 1}
     return order.get((plan or "").lower(), 0)
 
-async def require_user(request: Request):
-    """Пускаем только при валидной активной сессии (без 500)."""
+
+async def require_user(request: Request) -> Dict[str, Any]:
+    """Пускаем только при валидной активной сессии (не даём 500)."""
     try:
         token = request.cookies.get(SESSION_COOKIE)
         if not token:
@@ -108,12 +121,13 @@ async def require_user(request: Request):
         print(f"❌ require_user error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+
 def require_plan(required: Optional[str] = None):
     """
     Требует план/подписку. Админ из ENV проходит всегда.
     Любые ошибки отдаются как 401/402, а не 500.
     """
-    async def _dep(request: Request):
+    async def _dep(request: Request) -> Dict[str, Any]:
         user = await require_user(request)
 
         # ✅ админ-байпас
@@ -135,9 +149,12 @@ def require_plan(required: Optional[str] = None):
         return user
     return _dep
 
+
 def verify_csrf(request: Request):
     """Double-submit cookie CSRF: заголовок должен совпадать с cookie."""
-    header = request.headers.get("X-CSRF-Token")
+    # Headers у Starlette регистронезависимые; берём в нижнем регистре для ясности
+    header = request.headers.get("x-csrf-token")
     cookie = request.cookies.get(CSRF_COOKIE)
-    if not header or not cookie or header != cookie:
+    # Подсказка линтера: лучше сравнивать через is None
+    if header is None or cookie is None or header != cookie:
         raise HTTPException(status_code=403, detail="Invalid CSRF token")
