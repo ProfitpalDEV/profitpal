@@ -988,81 +988,72 @@ def handle_referral_redirect(referral_code: str):
 
 @app.get("/analysis")
 def serve_analysis():
-    """Serve analysis page for payments"""
-    return FileResponse('analysis.html')
+    return FileResponse(str(ROOT / "analysis.html"), media_type="text/html")
 
 
-@app.get('/login')
+@app.get("/login")
 def login_page():
-    return serve_html('login.html')
+    return FileResponse(str(ROOT / "login.html"), media_type="text/html")
 
 
-@app.get('/stock-analysis')
+@app.get("/stock-analysis")
 def serve_stock_analysis(user=Depends(require_plan("lifetime"))):
-    return serve_html('stock-analysis.html')
-    
+    return FileResponse(str(ROOT / "stock-analysis.html"), media_type="text/html")
 
-@app.get('/dashboard')
+    
+@app.get("/dashboard")
 def serve_dashboard(user=Depends(require_plan("lifetime"))):
-    return serve_html('dashboard.html')
+    return FileResponse(str(ROOT / "dashboard.html"), media_type="text/html")
     
 
 @app.get("/fake-dashboard")
 def serve_fake_dashboard():
-    """Serve fake dashboard for free trial users"""
-    return FileResponse('fake-dashboard.html')
+    return FileResponse(str(ROOT / "fake-dashboard.html"), media_type="text/html")
 
 
 @app.get("/introduction")
 async def serve_introduction():
-    """Serve introduction page with calligraphy letter"""
-    return FileResponse("introduction.html")
+    return FileResponse(str(ROOT / "introduction.html"), media_type="text/html")
 
 
 @app.get("/test-fail")
 async def test_fail_page():
-    return FileResponse('test-fail.html')
+    return FileResponse(str(ROOT / "test-fail.html"), media_type="text/html")
 
 
 @app.get("/success")
-def serve_success():
-    """Serve success page"""
-    return FileResponse('success.html')
+def serve_success(user=Depends(require_user)):
+    return FileResponse(str(ROOT / "success.html"), media_type="text/html")
 
 
 @app.get("/cancel")
 def serve_cancel():
-    """Serve cancel page"""
-    return FileResponse('cancel.html')
+    return FileResponse(str(ROOT / "cancel.html"), media_type="text/html")
 
 
 @app.get("/terms-of-service")
 def serve_terms():
-    """Serve Terms of Service page"""
-    return FileResponse('terms-of-service.html')
+    return FileResponse(str(ROOT / "terms-of-service.html"), media_type="text/html")
 
 
 @app.get("/privacy-policy")
 def serve_privacy():
-    """Serve Privacy Policy page"""
-    return FileResponse('privacy-policy.html')
+    return FileResponse(str(ROOT / "privacy-policy.html"), media_type="text/html")
 
 
 @app.get("/refund-policy")
 def serve_refund():
-    """Serve Refund Policy page"""
-    return FileResponse('refund-policy.html')
+    return FileResponse(str(ROOT / "refund-policy.html"), media_type="text/html")
 
 
 @app.get("/settings")
-def serve_settings(user = Depends(require_user)):
-    return FileResponse("settings.html")
+def serve_settings(user=Depends(require_user)):
+    return FileResponse(str(ROOT / "settings.html"), media_type="text/html")
 
 
 @app.get("/profitpal-styles.css")
 def serve_css():
-    """Serve ProfitPal CSS styles"""
-    return FileResponse('profitpal-styles.css', media_type='text/css')
+    return FileResponse(str(ROOT / "profitpal-styles.css"), media_type="text/css")
 
 
 @app.get("/admin.css")
