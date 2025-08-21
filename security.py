@@ -86,13 +86,10 @@ def set_session_cookies(
 
 
 def _fetch_user_by_session(token: str) -> Optional[Dict]:
-    """Возвращает user по токену сессии. Безопасна к отсутствующим колонкам."""
     if not token:
         return None
-
     try:
         with _db() as con:
-            # минимально-совместимый запрос
             row = con.execute(
                 """
                 SELECT u.id, u.is_active
@@ -110,7 +107,6 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
             uid = int(row["id"])
             is_active = int(row["is_active"] or 0)
 
-            # --- ДОЧИТЫВАЕМ ОПЦИОНАЛЬНО (если колонки есть) ---
             cols = {c[1] for c in con.execute("PRAGMA table_info(users)").fetchall()}
 
             email = None
@@ -124,6 +120,13 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
                 r = con.execute("SELECT payment_status FROM users WHERE id = ?", (uid,)).fetchone()
                 if r:
                     payment_status = r["payment_status"]
+
+            # ⬇️ ДОБАВЬ ЭТО: license_key (если колонка есть)
+            license_key = None
+            if "license_key" in cols:
+                r = con.execute("SELECT license_key FROM users WHERE id = ?", (uid,)).fetchone()
+                if r:
+                    license_key = r["license_key"]
 
     except Exception as e:
         print(f"[security] _fetch_user_by_session error: {type(e).__name__}: {e}")
@@ -141,7 +144,8 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
 
     return {
         "id": uid,
-        "email": email,  # может быть None — это ок
+        "email": email,                # может быть None — ок
+        "license_key": license_key,    # ⬅️ понадобится для is_admin
         "is_active": is_active,
         "plan_type": plan_type,
         "subscription_status": subscription_status,

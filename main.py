@@ -1239,7 +1239,6 @@ def serve_pp_auth_js():
 
 @app.get("/api/session/me")
 async def session_me(user = Depends(require_user)):
-    # базовые поля
     out = {
         "id": user.get("id"),
         "email": user.get("email"),
@@ -1247,15 +1246,26 @@ async def session_me(user = Depends(require_user)):
         "subscription_status": user.get("subscription_status"),
     }
 
-    # определяем is_admin надёжно
+    def _norm(s: str) -> str:
+        import re
+        return re.sub(r"[^A-Z0-9]", "", (s or "").upper())
+
+    # 1) по email, если он есть
     email = (user.get("email") or "").strip().lower()
     is_admin = bool(ADMIN_EMAIL and email == ADMIN_EMAIL)
 
+    # 2) по license_key (надёжнее, если email недоступен/шифрован)
+    if not is_admin:
+        lk = user.get("license_key")
+        if lk and ADMIN_LICENSE_KEY:
+            if _norm(lk) == _norm(ADMIN_LICENSE_KEY):
+                is_admin = True
+
+    # 3) fallback по id (если вдруг нужно)
     if not is_admin and ADMIN_EMAIL:
-        # fallback: если email не доступен/шифрован — сверяем по id админа
         try:
-            admin_row = AUTH.get_user_by_email(ADMIN_EMAIL)
-            if admin_row and int(admin_row.get("id", 0)) == int(user.get("id", 0)):
+            u_admin = AUTH.get_user_by_email(ADMIN_EMAIL)
+            if u_admin and int(u_admin.get("id", 0)) == int(user.get("id", 0)):
                 is_admin = True
         except Exception as e:
             print(f"[session_me] admin id fallback error: {e}")
