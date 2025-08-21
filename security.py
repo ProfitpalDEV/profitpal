@@ -1,7 +1,9 @@
 # security.py
 from fastapi import Request, HTTPException, Response
 from datetime import datetime, timedelta, timezone
-import sqlite3, secrets, os
+import sqlite3
+import secrets
+import os
 from typing import Optional, Dict, Any
 
 # === Cookies ===
@@ -78,24 +80,21 @@ def set_session_cookies(
 
     def _fetch_user_by_session(token: str) -> Optional[Dict]:
         """Возвращает пользователя по токену сессии. План/подписка — опциональны.
-           Админ из ENV проходит как lifetime/active без проверок."""
+           Важно: без кривых отступов и с аккуратными проверками.
+        """
         if not token:
             return None
 
-        row = None
-        payment_status = None
-
         try:
             with _db() as con:
-                # ищем валидную активную сессию и пользователя
                 row = con.execute(
                     """
                     SELECT u.id, u.email, u.license_key, u.is_active
-                      FROM user_sessions s
-                      JOIN users u ON u.id = s.user_id
-                     WHERE s.session_token = ?
-                       AND s.is_active = 1
-                       AND s.expires_at > datetime('now')
+                    FROM user_sessions s
+                    JOIN users u ON u.id = s.user_id
+                    WHERE s.session_token = ?
+                      AND s.is_active     = 1
+                      AND s.expires_at   > datetime('now')
                     """,
                     (token,),
                 ).fetchone()
@@ -103,19 +102,8 @@ def set_session_cookies(
                 if not row:
                     return None
 
-                # ✅ АДМИН-БАЙПАС: админ всегда "lifetime / active"
-                email = (row["email"] or "").strip().lower()
-                if ADMIN_EMAIL and email == ADMIN_EMAIL:
-                    return {
-                        "id": row["id"],
-                        "email": email,
-                        "license_key": row["license_key"],
-                        "is_active": 1,
-                        "plan_type": "lifetime",
-                        "subscription_status": "active",
-                    }
-
-                # пытаемся достать payment_status, если колонка есть
+                # Попробуем достать payment_status, если колонка есть
+                payment_status = None
                 try:
                     r2 = con.execute(
                         "SELECT payment_status FROM users WHERE id = ?",
@@ -124,13 +112,14 @@ def set_session_cookies(
                     if r2 and "payment_status" in r2.keys():
                         payment_status = r2["payment_status"]
                 except sqlite3.OperationalError:
-                    payment_status = None
+                    # Колонка отсутствует — просто игнорим
+                    pass
 
-        except Exception as e:
-            print(f"[security] _fetch_user_by_session error: {type(e).__name__}: {e}")
+        except sqlite3.OperationalError as e:
+            print(f"[security] _fetch_user_by_session schema error: {e}")
             return None
 
-        # нормализуем план/подписку
+        # Нормализуем план / статус подписки
         plan_type = None
         subscription_status = None
         if payment_status is not None:
@@ -146,8 +135,8 @@ def set_session_cookies(
             "email": row["email"],
             "license_key": row["license_key"],
             "is_active": row["is_active"],
-            "plan_type": plan_type,
-            "subscription_status": subscription_status,
+            "plan_type": plan_type,                    # None | "lifetime"
+            "subscription_status": subscription_status # None | "active" | "inactive"
         }
 
 

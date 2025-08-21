@@ -1377,13 +1377,13 @@ async def authenticate_user_ep(request: Request, response: Response):
 
         # ========= Админ строго по ENV (с нормализацией ключа) =========
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
-            if _norm_key(license_key) != _norm_key(ADMIN_KEY):
+            if _norm_key(license_key) != _norm_key(ADMIN_LICENSE_KEY):
                 return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
 
             # гарантируем наличие админа в users
             user = AUTH.get_user_by_email(email)
             if not user:
-                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_NAME)
+                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_FULL_NAME)
                 if not created or not created.get("success"):
                     user = AUTH.get_user_by_email(email)
                     if not user:
