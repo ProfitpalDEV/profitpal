@@ -74,55 +74,82 @@ def set_session_cookies(
     print(f"[auth] cookies set for host={request.url.hostname} domain={cookie_domain} secure={secure} token={token[:8]}...")
 
 
+    # security.py
+
     def _fetch_user_by_session(token: str) -> Optional[Dict]:
-        """Возвращает пользователя по токену сессии без обращения к зашифрованным полям.
-           Планы/подписка — опционально (пытаемся прочитать, если колонка есть).
-        """
+        """Возвращает пользователя по токену сессии. План/подписка — опциональны.
+           Админ из ENV проходит как lifetime/active без проверок."""
         if not token:
             return None
 
+        row = None
+        payment_status = None
+
         try:
             with _db() as con:
+                # ищем валидную активную сессию и пользователя
                 row = con.execute(
                     """
-                    SELECT u.id, u.is_active
-                    FROM user_sessions s
-                    JOIN users u ON u.id = s.user_id
-                    WHERE s.session_token = ?
-                      AND s.is_active = 1
-                      AND s.expires_at > datetime('now')
+                    SELECT u.id, u.email, u.license_key, u.is_active
+                      FROM user_sessions s
+                      JOIN users u ON u.id = s.user_id
+                     WHERE s.session_token = ?
+                       AND s.is_active = 1
+                       AND s.expires_at > datetime('now')
                     """,
                     (token,),
                 ).fetchone()
+
                 if not row:
                     return None
 
-                # Попробуем аккуратно получить статус оплаты, если колонка есть
-                plan_type = None
-                subscription_status = None
-                try:
-                    cols = {c[1] for c in con.execute("PRAGMA table_info(users)").fetchall()}
-                    if "payment_status" in cols:
-                        rps = con.execute("SELECT payment_status FROM users WHERE id = ?", (row["id"],)).fetchone()
-                        if rps and rps[0] is not None:
-                            ps = str(rps[0]).lower()
-                            if ps in ("completed", "active", "paid", "lifetime"):
-                                plan_type = "lifetime"
-                                subscription_status = "active"
-                            else:
-                                subscription_status = "inactive"
-                except sqlite3.OperationalError:
-                    pass
+                # ✅ АДМИН-БАЙПАС: админ всегда "lifetime / active"
+                email = (row["email"] or "").strip().lower()
+                if ADMIN_EMAIL and email == ADMIN_EMAIL:
+                    return {
+                        "id": row["id"],
+                        "email": email,
+                        "license_key": row["license_key"],
+                        "is_active": 1,
+                        "plan_type": "lifetime",
+                        "subscription_status": "active",
+                    }
 
-                return {
-                    "id": row["id"],
-                    "is_active": row["is_active"],
-                    "plan_type": plan_type,                 # None | "lifetime"
-                    "subscription_status": subscription_status,  # None | "active" | "inactive"
-                }
-        except sqlite3.OperationalError as e:
-            print(f"[security] session lookup error: {e}")
+                # пытаемся достать payment_status, если колонка есть
+                try:
+                    r2 = con.execute(
+                        "SELECT payment_status FROM users WHERE id = ?",
+                        (row["id"],),
+                    ).fetchone()
+                    if r2 and "payment_status" in r2.keys():
+                        payment_status = r2["payment_status"]
+                except sqlite3.OperationalError:
+                    payment_status = None
+
+        except Exception as e:
+            print(f"[security] _fetch_user_by_session error: {type(e).__name__}: {e}")
             return None
+
+        # нормализуем план/подписку
+        plan_type = None
+        subscription_status = None
+        if payment_status is not None:
+            ps = str(payment_status).lower()
+            if ps in ("completed", "active", "paid"):
+                plan_type = "lifetime"
+                subscription_status = "active"
+            else:
+                subscription_status = "inactive"
+
+        return {
+            "id": row["id"],
+            "email": row["email"],
+            "license_key": row["license_key"],
+            "is_active": row["is_active"],
+            "plan_type": plan_type,
+            "subscription_status": subscription_status,
+        }
+
 
     # ⬇️ ДОБАВЬТЕ ЭТО (3 строки логики + возврат)
     email = (row["email"] or "").strip().lower()
