@@ -115,13 +115,19 @@ from security import create_session, require_user, require_plan, verify_csrf, SE
 SECURE_COOKIES = YOUR_DOMAIN.startswith("https://") or ("profitpal.org" in YOUR_DOMAIN)
 
 
-# --- Admin login (из ENV) ---
-ADMIN_EMAIL       = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
-ADMIN_LICENSE_KEY = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
-ADMIN_FULL_NAME   = os.getenv("ADMIN_FULL_NAME", "System Administrator")
+# --- Admin login (ENV) ---
+ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
 
-# Нормализация ключей (убираем пробелы/дефисы/любой мусор, делаем верхний регистр)
+# Принимаем оба имени переменной окружения:
+#   - новый: ADMIN_LICENSE_KEY
+#   - легаси: ADMIN_KEY
+ADMIN_LICENSE_KEY = (os.getenv("ADMIN_LICENSE_KEY", "") or os.getenv("ADMIN_KEY", "") or "").strip()
+ADMIN_KEY = ADMIN_LICENSE_KEY  # алиас, чтобы ниже и в эндпоинтах было одно имя
+
+ADMIN_FULL_NAME = os.getenv("ADMIN_FULL_NAME", "System Administrator")
+
 def _norm_key(s: str) -> str:
+    """Нормализуем ключ: оставляем только A-Z и 0-9, приводим к верхнему регистру."""
     return re.sub(r'[^A-Z0-9]', '', (s or '').upper())
 
 
