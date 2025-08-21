@@ -124,6 +124,18 @@ def set_session_cookies(
             print(f"[security] session lookup error: {e}")
             return None
 
+    # ⬇️ ДОБАВЬТЕ ЭТО (3 строки логики + возврат)
+    email = (row["email"] or "").strip().lower()
+    if ADMIN_EMAIL and email == ADMIN_EMAIL:
+        return {
+            "id": row["id"],
+            "email": email,
+            "license_key": row["license_key"],
+            "is_active": 1,
+            "plan_type": "lifetime",            # админ всегда как будто купил LIFETIME
+            "subscription_status": "active"     # и подписка "активна"
+        }
+
 
     # Нормализуем план/подписку
     plan_type: Optional[str] = None
