@@ -16,17 +16,17 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
-from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, auth_manager as AUTH
+from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, get_auth_stats, auth_manager as AUTH
 from security import set_session_cookies, create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
 from referral_manager import ReferralManager
 import re
-
 
 # ==========================================
 # ROOT DIRECTORY CONFIGURATION
 # ==========================================
 
 ROOT = Path(__file__).parent.resolve()
+
 
 def serve_html(filename: str) -> FileResponse:
     """
@@ -35,15 +35,22 @@ def serve_html(filename: str) -> FileResponse:
     """
     p = (ROOT / filename).resolve()
     if not p.exists():
-        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+        raise HTTPException(status_code=404,
+                            detail=f"File not found: {filename}")
     return FileResponse(str(p), media_type="text/html")  # <= str(p)!
+
+
+def serve_static(filename: str, media_type: str = "text/html") -> FileResponse:
+    p = (ROOT / filename).resolve()
+    if not p.exists():
+        raise HTTPException(status_code=404,
+                            detail=f"File not found: {filename}")
+    return FileResponse(str(p), media_type=media_type)
+
 
 # ==========================================
 # MANAGERS INTEGRATION
 # ==========================================
-
-from auth_manager import validate_user_credentials, create_new_user, authenticate_user_login, get_auth_stats
-from referral_manager import ReferralManager
 
 
 # Инициализируем auth manager
@@ -103,17 +110,20 @@ create_free_trial_table()
 APP_ENV = os.getenv("APP_ENV", "prod")
 
 # Get API keys from environment variables (Railway/host secrets)
-FMP_API_KEY            = os.getenv("FMP_API_KEY", "")
-STRIPE_SECRET_KEY      = os.getenv("STRIPE_SECRET_KEY", "")  # no fallback to avoid false-positive configs
-STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_fallback")
-STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_fallback")
-GMAIL_EMAIL            = os.getenv("GMAIL_EMAIL", "denava.business@gmail.com")
-GMAIL_PASSWORD         = os.getenv("GMAIL_PASSWORD")
-YOUR_DOMAIN            = os.getenv("DOMAIN", "https://profitpal.org")
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
+STRIPE_SECRET_KEY = os.getenv(
+    "STRIPE_SECRET_KEY", "")  # no fallback to avoid false-positive configs
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY",
+                                   "pk_test_fallback")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_fallback")
+GMAIL_EMAIL = os.getenv("GMAIL_EMAIL", "denava.business@gmail.com")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+YOUR_DOMAIN = os.getenv("DOMAIN", "https://profitpal.org")
 
 from security import create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
-SECURE_COOKIES = YOUR_DOMAIN.startswith("https://") or ("profitpal.org" in YOUR_DOMAIN)
 
+SECURE_COOKIES = YOUR_DOMAIN.startswith("https://") or ("profitpal.org"
+                                                        in YOUR_DOMAIN)
 
 # --- Admin login (ENV) ---
 ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
@@ -121,10 +131,12 @@ ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
 # Принимаем оба имени переменной окружения:
 #   - новый: ADMIN_LICENSE_KEY
 #   - легаси: ADMIN_KEY
-ADMIN_LICENSE_KEY = (os.getenv("ADMIN_LICENSE_KEY", "") or os.getenv("ADMIN_KEY", "") or "").strip()
+ADMIN_LICENSE_KEY = (os.getenv("ADMIN_LICENSE_KEY", "")
+                     or os.getenv("ADMIN_KEY", "") or "").strip()
 ADMIN_KEY = ADMIN_LICENSE_KEY  # алиас, чтобы ниже и в эндпоинтах было одно имя
 
 ADMIN_FULL_NAME = os.getenv("ADMIN_FULL_NAME", "System Administrator")
+
 
 def _norm_key(s: str) -> str:
     """Нормализуем ключ: оставляем только A-Z и 0-9, приводим к верхнему регистру."""
@@ -135,15 +147,14 @@ def _norm_key(s: str) -> str:
 REFERRALS_DB = os.getenv("REFERRALS_DB", "referrals.db")
 referral_mgr = ReferralManager(db_path=REFERRALS_DB)
 
-
 # ==========================================
 # PRICE IDs (ENV only — no hardcode)
 # ==========================================
 
 LIFETIME_ACCESS_PRICE_ID = os.getenv("LIFETIME_ACCESS_PRICE_ID", "")
-EARLY_BIRD_PRICE_ID      = os.getenv("EARLY_BIRD_PRICE_ID", "")
-STANDARD_PRICE_ID        = os.getenv("STANDARD_PRICE_ID", "")
-PRO_PRICE_ID             = os.getenv("PRO_PRICE_ID", "")
+EARLY_BIRD_PRICE_ID = os.getenv("EARLY_BIRD_PRICE_ID", "")
+STANDARD_PRICE_ID = os.getenv("STANDARD_PRICE_ID", "")
+PRO_PRICE_ID = os.getenv("PRO_PRICE_ID", "")
 
 # Optional: quick diagnostics (won't crash the app)
 for _name, _val in [
@@ -176,12 +187,15 @@ else:
             acc_email = getattr(account_info, "email", None) or "No email"
             print("✅ Stripe connection successful!")
             print(f"🏢 Stripe account: {acc_email}")
-            print(f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
+            print(
+                f"✅ Stripe checkout available: {hasattr(stripe, 'checkout')}")
         else:
             print("ℹ️ Skipping Stripe eager check at startup.")
     except Exception as e:
         STRIPE_STARTUP_ERROR = str(e)
-        print(f"⚠️ Stripe check failed (startup continues): {STRIPE_STARTUP_ERROR}")
+        print(
+            f"⚠️ Stripe check failed (startup continues): {STRIPE_STARTUP_ERROR}"
+        )
 
 # --- Dev-only smoke test (guarded) ---
 if APP_ENV == "dev" and STRIPE_READY:
@@ -191,7 +205,9 @@ if APP_ENV == "dev" and STRIPE_READY:
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {"name": "Test Product"},
+                    "product_data": {
+                        "name": "Test Product"
+                    },
                     "unit_amount": 500,  # $5.00
                 },
                 "quantity": 1,
@@ -204,7 +220,9 @@ if APP_ENV == "dev" and STRIPE_READY:
     except Exception as e:
         print(f"❌ Failed to create test Checkout Session: {e}")
 else:
-    print("ℹ Skipping test Checkout Session creation (not in DEV mode or Stripe not ready)")
+    print(
+        "ℹ Skipping test Checkout Session creation (not in DEV mode or Stripe not ready)"
+    )
 
 # --- Dev-only diagnostics (no secrets) ---
 if APP_ENV == "dev":
@@ -892,10 +910,8 @@ def ensure_stripe_customer_for_user(user_id: int):
     """Найти/создать Stripe Customer; вернуть (customer_id, None). Email не трогаем."""
     from security import _db
     with _db() as con:
-        row = con.execute(
-            "SELECT stripe_customer_id FROM users WHERE id = ?",
-            (user_id,)
-        ).fetchone()
+        row = con.execute("SELECT stripe_customer_id FROM users WHERE id = ?",
+                          (user_id, )).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -905,10 +921,8 @@ def ensure_stripe_customer_for_user(user_id: int):
         customer = stripe.Customer.create(metadata={"user_id": str(user_id)})
         cust_id = customer["id"]
         with _db() as con:
-            con.execute(
-                "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
-                (cust_id, user_id)
-            )
+            con.execute("UPDATE users SET stripe_customer_id = ? WHERE id = ?",
+                        (cust_id, user_id))
     return cust_id, None  # второе значение нам не нужно
 
 
@@ -949,9 +963,11 @@ def _resolve_user_id_or_none(email: str, license_key: str, result: dict):
     with _db() as con:
         row = None
         if email:
-            row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            row = con.execute("SELECT id FROM users WHERE email = ?",
+                              (email, )).fetchone()
         if not row and license_key:
-            row = con.execute("SELECT id FROM users WHERE license_key = ?", (license_key,)).fetchone()
+            row = con.execute("SELECT id FROM users WHERE license_key = ?",
+                              (license_key, )).fetchone()
         if not row and email and license_key:
             row = con.execute(
                 "SELECT id FROM users WHERE email = ? AND license_key = ?",
@@ -960,6 +976,61 @@ def _resolve_user_id_or_none(email: str, license_key: str, result: dict):
     return row["id"] if row else None
 
 
+# ===== helper: ensure admin exists and return user_id =====
+def ensure_admin_user_id(email: str, full_name: str, license_key: str) -> int:
+    """
+    Гарантированно возвращает user_id для админа.
+    Пробуем разные пути, чтобы не упасть из-за различий в auth_manager.
+    """
+    # 1) Есть ли уже такой пользователь?
+    try:
+        u = AUTH.get_user_by_email(email)
+        if u and u.get("id"):
+            return int(u["id"])
+    except Exception as e:
+        print(f"[admin] get_user_by_email failed: {e}")
+
+    # 2) Высокоуровневая функция (если есть)
+    try:
+        if 'create_new_user' in globals():
+            res = create_new_user(email=email,
+                                  full_name=full_name,
+                                  license_key=license_key)
+            if isinstance(res,
+                          dict) and res.get("success") and res.get("user_id"):
+                return int(res["user_id"])
+    except Exception as e:
+        print(f"[admin] create_new_user failed: {e}")
+
+    # 3) Метод менеджера с разными сигнатурами
+    try:
+        res = AUTH.create_user(email=email,
+                               full_name=full_name,
+                               license_key=license_key)
+        if isinstance(res, dict) and res.get("success") and res.get("user_id"):
+            return int(res["user_id"])
+    except TypeError:
+        # у кого-то create_user без license_key — пробуем так
+        try:
+            res = AUTH.create_user(email=email, full_name=full_name)
+            if isinstance(res,
+                          dict) and res.get("success") and res.get("user_id"):
+                return int(res["user_id"])
+        except Exception as e2:
+            print(f"[admin] create_user(no key) failed: {e2}")
+    except Exception as e:
+        print(f"[admin] create_user failed: {e}")
+
+    # 4) На случай UNIQUE race — проверим ещё раз
+    try:
+        u = AUTH.get_user_by_email(email)
+        if u and u.get("id"):
+            return int(u["id"])
+    except Exception as e:
+        print(f"[admin] second get_user_by_email failed: {e}")
+
+    raise RuntimeError(
+        "ensure_admin_user_id: could not create/find admin user")
 
 
 # ==========================================
@@ -980,7 +1051,8 @@ def handle_referral_redirect(referral_code: str):
         print(f"🔗 Referral link clicked: {referral_code}")
         if (referral_mgr.validate_referral_code_format(referral_code)
                 and referral_mgr.referral_code_exists(referral_code)):
-            return RedirectResponse(url=f"/?ref={referral_code}", status_code=302)
+            return RedirectResponse(url=f"/?ref={referral_code}",
+                                    status_code=302)
         else:
             print(f"❌ Invalid referral code: {referral_code}")
             return RedirectResponse(url="/", status_code=302)
@@ -1003,7 +1075,7 @@ def login_page():
 def serve_stock_analysis(user=Depends(require_plan("lifetime"))):
     return serve_html("stock-analysis.html")
 
-    
+
 @app.get("/dashboard")
 def serve_dashboard(user=Depends(require_plan("lifetime"))):
     try:
@@ -1018,7 +1090,7 @@ def serve_dashboard(user=Depends(require_plan("lifetime"))):
 def serve_dashboard_raw():
     return FileResponse(str(ROOT / "dashboard.html"), media_type="text/html")
 
-    
+
 @app.get("/fake-dashboard")
 def serve_fake_dashboard():
     return serve_html("fake-dashboard.html")
@@ -1086,7 +1158,7 @@ async def get_stripe_key():
 
 
 @app.get("/api/billing/pm-info")
-def pm_info(user = Depends(require_user)):
+def pm_info(user=Depends(require_user)):
     """Вернёт краткую информацию о сохранённой карте (brand/last4/exp)"""
     customer_id, _ = ensure_stripe_customer_for_user(user["id"])
     pm_id = get_customer_default_payment_method(customer_id)
@@ -1103,15 +1175,24 @@ def pm_info(user = Depends(require_user)):
         "exp_year": card.get("exp_year"),
     }
 
-app.get("/_whoami")
+
+@app.get("/_whoami")
 def whoami(user=Depends(require_user)):
     return {
-        "id": user.get("id"),
-        "email": user.get("email"),
-        "is_admin": bool(os.getenv("ADMIN_EMAIL", "").strip().lower() == (user.get("email") or "").strip().lower()),
-        "plan_type": user.get("plan_type"),
-        "subscription_status": user.get("subscription_status"),
+        "id":
+        user.get("id"),
+        "email":
+        user.get("email"),
+        "is_admin":
+        bool(
+            os.getenv("ADMIN_EMAIL", "").strip().lower() == (
+                user.get("email") or "").strip().lower()),
+        "plan_type":
+        user.get("plan_type"),
+        "subscription_status":
+        user.get("subscription_status"),
     }
+
 
 @app.get("/_health")
 def health():
@@ -1119,7 +1200,7 @@ def health():
 
 
 @app.post("/api/billing/create-setup-intent")
-def create_setup_intent(user = Depends(require_user)):
+def create_setup_intent(user=Depends(require_user)):
     """Создать SetupIntent для сохранения карты 'off_session'."""
     customer_id, _ = ensure_stripe_customer_for_user(user["id"])
     si = stripe.SetupIntent.create(
@@ -1131,7 +1212,9 @@ def create_setup_intent(user = Depends(require_user)):
 
 
 @app.post("/api/billing/set-default-pm")
-def set_default_pm(payload: dict, user = Depends(require_user), _=Depends(verify_csrf)):
+def set_default_pm(payload: dict,
+                   user=Depends(require_user),
+                   _=Depends(verify_csrf)):
     """Пометить сохранённую карту как дефолтную у клиента."""
     pm_id = (payload.get("payment_method") or "").strip()
     if not pm_id:
@@ -1139,13 +1222,14 @@ def set_default_pm(payload: dict, user = Depends(require_user), _=Depends(verify
 
     customer_id, _ = ensure_stripe_customer_for_user(user["id"])
     stripe.PaymentMethod.attach(pm_id, customer=customer_id)
-    stripe.Customer.modify(customer_id, invoice_settings={"default_payment_method": pm_id})
+    stripe.Customer.modify(customer_id,
+                           invoice_settings={"default_payment_method": pm_id})
 
     from security import _db
     with _db() as con:
-        con.execute("UPDATE users SET stripe_default_pm = ? WHERE id = ?", (pm_id, user["id"]))
+        con.execute("UPDATE users SET stripe_default_pm = ? WHERE id = ?",
+                    (pm_id, user["id"]))
     return {"ok": True}
-
 
 
 @app.get("/pp-auth.js")
@@ -1153,9 +1237,8 @@ def serve_pp_auth_js():
     return serve_static("pp-auth.js", "application/javascript")
 
 
-
 @app.get("/api/session/me")
-async def session_me(user = Depends(require_user)):
+async def session_me(user=Depends(require_user)):
     # Вернём только безопасный минимум
     return {
         "id": user["id"],
@@ -1165,14 +1248,14 @@ async def session_me(user = Depends(require_user)):
         "subscription_status": user.get("subscription_status"),
     }
 
+
 @app.get("/__debug/cookies")
 def debug_cookies(request: Request):
     return {"cookies": dict(request.cookies)}
 
 
-
 @app.get("/api/referral-stats/me")
-def referral_stats_me(user = Depends(require_user)):
+def referral_stats_me(user=Depends(require_user)):
     """
     Return referral stats for the currently authenticated user.
     Safe defaults if referral tables aren't present.
@@ -1183,21 +1266,26 @@ def referral_stats_me(user = Depends(require_user)):
     try:
         with _db() as con:
             # 1) узнаём email текущего пользователя
-            row = con.execute("SELECT email FROM users WHERE id = ?", (user["id"],)).fetchone()
+            row = con.execute("SELECT email FROM users WHERE id = ?",
+                              (user["id"], )).fetchone()
             if row:
                 stats["email"] = row["email"]
 
             # 2) попытка посчитать рефералы (работает, если есть такая таблица/поле)
             # Попробуем по user_id:
             try:
-                r = con.execute("SELECT COUNT(*) AS c FROM referrals WHERE referrer_user_id = ?", (user["id"],)).fetchone()
+                r = con.execute(
+                    "SELECT COUNT(*) AS c FROM referrals WHERE referrer_user_id = ?",
+                    (user["id"], )).fetchone()
                 if r and "c" in r.keys() and r["c"] is not None:
                     stats["referrals"] = int(r["c"])
             except Exception:
                 # Альтернатива — по email (если вдруг так хранится)
                 if stats["email"]:
                     try:
-                        r = con.execute("SELECT COUNT(*) AS c FROM referrals WHERE referrer_email = ?", (stats["email"],)).fetchone()
+                        r = con.execute(
+                            "SELECT COUNT(*) AS c FROM referrals WHERE referrer_email = ?",
+                            (stats["email"], )).fetchone()
                         if r and "c" in r.keys() and r["c"] is not None:
                             stats["referrals"] = int(r["c"])
                     except Exception:
@@ -1213,24 +1301,26 @@ def referral_stats_me(user = Depends(require_user)):
     return stats
 
 
-    
-
 # ==========================================
 # AUTHENTICATION API ENDPOINTS
 # ==========================================
 
+
 @app.post("/api/logout")
-def api_logout(request: Request, response: Response, user = Depends(require_user)):
+def api_logout(request: Request,
+               response: Response,
+               user=Depends(require_user)):
     # deactivate current session and clear cookies
     from security import _db
     token = request.cookies.get(SESSION_COOKIE)
     if token:
         with _db() as con:
-            con.execute("UPDATE user_sessions SET is_active=0 WHERE session_token = ?", (token,))
+            con.execute(
+                "UPDATE user_sessions SET is_active=0 WHERE session_token = ?",
+                (token, ))
     response.delete_cookie(SESSION_COOKIE, path="/")
     response.delete_cookie(CSRF_COOKIE, path="/")
     return {"ok": True}
-
 
 
 @app.post('/validate-credentials')
@@ -1238,41 +1328,59 @@ async def check_credentials(request: Request):
     """Проверка email + license для подсветки имени + referral info"""
     try:
         body = await request.json()
-        email_raw       = (body.get('email') or '').strip()
+        email_raw = (body.get('email') or '').strip()
         license_key_raw = (body.get('license_key') or '').strip()
 
         if not email_raw or not license_key_raw:
-            return JSONResponse({"show_name": False, "error": "Email and license key required"}, status_code=400)
+            return JSONResponse(
+                {
+                    "show_name": False,
+                    "error": "Email and license key required"
+                },
+                status_code=400)
 
         # нормализуем
         email = email_raw.lower()
+
         def _norm_key(s: str) -> str:
             import re as _re
             return _re.sub(r'[^A-Z0-9]', '', (s or '').upper())
 
         # ===== Админ =====
         admin_email = (os.getenv('ADMIN_EMAIL', '') or '').lower().strip()
-        admin_key   = (os.getenv('ADMIN_LICENSE_KEY', '') or '').strip()
+        admin_key = (os.getenv('ADMIN_LICENSE_KEY', '') or '').strip()
         if email == admin_email:
             if _norm_key(license_key_raw) != _norm_key(admin_key):
-                return JSONResponse({"show_name": False, "error": "User not found"}, status_code=401)
+                return JSONResponse(
+                    {
+                        "show_name": False,
+                        "error": "User not found"
+                    },
+                    status_code=401)
 
             resp = {
                 "show_name": True,
-                "full_name": os.getenv('ADMIN_FULL_NAME', 'System Administrator'),
+                "full_name": os.getenv('ADMIN_FULL_NAME',
+                                       'System Administrator'),
                 "email": email_raw,
                 "welcome_message": "Welcome back, System Administrator!"
             }
             # реферал-инфо (если есть запись)
             try:
-                info = referral_mgr.get_user_referral_info(email)  # lower-case ключ
+                info = referral_mgr.get_user_referral_info(
+                    email)  # lower-case ключ
                 if info:
                     resp.update({
-                        "referral_code": info.get("referral_code"),
-                        "referral_link": info.get("referral_link"),
-                        "free_months_balance": info.get("free_months_balance"),
-                        "total_referrals": info.get("total_referrals"),
-                        "total_earned_months": info.get("total_earned_months"),
+                        "referral_code":
+                        info.get("referral_code"),
+                        "referral_link":
+                        info.get("referral_link"),
+                        "free_months_balance":
+                        info.get("free_months_balance"),
+                        "total_referrals":
+                        info.get("total_referrals"),
+                        "total_earned_months":
+                        info.get("total_earned_months"),
                     })
             except Exception:
                 pass
@@ -1281,13 +1389,19 @@ async def check_credentials(request: Request):
         # ===== Клиент =====
         import re
         # формат PP-XXXX-XXXX-XXXX
-        if not re.fullmatch(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', license_key_raw.upper()):
+        if not re.fullmatch(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$',
+                            license_key_raw.upper()):
             return JSONResponse(
-                {"show_name": False, "error": "Invalid license key format. Should be: PP-XXXX-XXXX-XXXX"},
-                status_code=400
-            )
+                {
+                    "show_name":
+                    False,
+                    "error":
+                    "Invalid license key format. Should be: PP-XXXX-XXXX-XXXX"
+                },
+                status_code=400)
 
-        result = validate_user_credentials(email=email_raw, license_key=license_key_raw)
+        result = validate_user_credentials(email=email_raw,
+                                           license_key=license_key_raw)
         if result and result.get('valid'):
             full_name = result.get('full_name') or ''
             resp = {
@@ -1298,29 +1412,42 @@ async def check_credentials(request: Request):
             }
             # реферал-инфо для клиента
             try:
-                info = referral_mgr.get_user_referral_info(email)  # lower-case ключ
+                info = referral_mgr.get_user_referral_info(
+                    email)  # lower-case ключ
                 if info:
                     resp.update({
-                        "referral_code": info.get("referral_code"),
-                        "referral_link": info.get("referral_link"),
-                        "free_months_balance": info.get("free_months_balance"),
-                        "total_referrals": info.get("total_referrals"),
-                        "total_earned_months": info.get("total_earned_months"),
+                        "referral_code":
+                        info.get("referral_code"),
+                        "referral_link":
+                        info.get("referral_link"),
+                        "free_months_balance":
+                        info.get("free_months_balance"),
+                        "total_referrals":
+                        info.get("total_referrals"),
+                        "total_earned_months":
+                        info.get("total_earned_months"),
                     })
             except Exception:
                 pass
 
             return JSONResponse(resp, status_code=200)
 
-        return JSONResponse({"show_name": False, "error": (result or {}).get('error', 'Invalid credentials')}, status_code=401)
+        return JSONResponse(
+            {
+                "show_name": False,
+                "error": (result or {}).get('error', 'Invalid credentials')
+            },
+            status_code=401)
 
     except Exception as e:
         print(f"❌ Credentials validation error: {e}")
-        return JSONResponse({"show_name": False, "error": "Validation failed"}, status_code=500)
+        return JSONResponse({
+            "show_name": False,
+            "error": "Validation failed"
+        },
+                            status_code=500)
 
 
-
-   
 @app.post('/api/check-admin-status')
 async def check_admin_status(request: Request):
     """API для проверки админского статуса пользователя"""
@@ -1335,8 +1462,7 @@ async def check_admin_status(request: Request):
 
         print(
             f"🔍 Admin status check: email={email}, admin_email={admin_email}, "
-            f"is_admin={is_admin}"
-        )
+            f"is_admin={is_admin}")
 
         return JSONResponse(content={
             "is_admin": is_admin,
@@ -1345,7 +1471,7 @@ async def check_admin_status(request: Request):
             "fingerprint": fingerprint,
             "status": "success"
         },
-        status_code=200)
+                            status_code=200)
 
     except Exception as e:
         print(f"❌ Error in check_admin_status: {e}")
@@ -1353,7 +1479,7 @@ async def check_admin_status(request: Request):
             "is_admin": False,
             "error": str(e)
         },
-        status_code=500)
+                            status_code=500)
 
 
 @app.post("/authenticate-user")
@@ -1364,75 +1490,175 @@ async def authenticate_user_ep(request: Request, response: Response):
     Всегда: создаём server-side сессию и ставим pp_session / pp_csrf.
     """
     try:
-        body = await request.json()
-        email       = (body.get("email") or "").strip().lower()
+        # ---- parse body ----
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({
+                "success": False,
+                "error": "Invalid JSON"
+            },
+                                status_code=400)
+
+        email = (body.get("email") or "").strip().lower()
         license_key = (body.get("license_key") or "").strip()
-        full_name   = (body.get("full_name") or "").strip() or None
+        full_name = (body.get("full_name") or "").strip() or None
 
         if not email or not license_key:
-            return JSONResponse({"success": False, "error": "Email and license key required"}, status_code=400)
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "Email and license key required"
+                },
+                status_code=400)
 
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("user-agent", "unknown")
 
-        # === ADMIN BYPASS ===
-        from security import ADMIN_EMAIL, ADMIN_LICENSE_KEY, ADMIN_FULL_NAME
+        def _norm(s: str) -> str:
+            return "".join(ch for ch in (s or "").strip().upper()
+                           if ch.isalnum())
+
+        # =========================
+        # === ADMIN BYPASS PATH ===
+        # =========================
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
-            # сравниваем «нормализованно»
-            def _norm(s: str) -> str:
-                return "".join(ch for ch in (s or "").strip().upper() if ch.isalnum())
             if _norm(license_key) != _norm(ADMIN_LICENSE_KEY):
-                return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
+                return JSONResponse(
+                    {
+                        "success": False,
+                        "error": "Invalid admin credentials"
+                    },
+                    status_code=401)
 
             # гарантируем наличие админа в users
-            u = AUTH.get_user_by_email(email)
-            if not u:
-                created = AUTH.create_user(email=email, full_name=ADMIN_FULL_NAME)
-                if not created or not created.get("success"):
-                    u = AUTH.get_user_by_email(email)
-                    if not u:
-                        return JSONResponse({"success": False, "error": "Failed to create admin"}, status_code=500)
-                else:
-                    u = {"id": created["user_id"]}
-            user_id = int(u["id"])
+            user = None
+            try:
+                user = AUTH.get_user_by_email(email)
+            except Exception as e:
+                print(f"[admin] get_user_by_email failed: {e}")
 
+            user_id: int | None = None
+            if user and user.get("id"):
+                user_id = int(user["id"])
+            else:
+                # 1) пробуем высокоуровневую функцию, если она есть
+                try:
+                    if 'create_new_user' in globals():
+                        r = create_new_user(email=email,
+                                            full_name=(full_name
+                                                       or ADMIN_FULL_NAME),
+                                            license_key=license_key)
+                        if isinstance(r, dict) and r.get("success") and r.get(
+                                "user_id"):
+                            user_id = int(r["user_id"])
+                except Exception as e:
+                    print(f"[admin] create_new_user failed: {e}")
+
+                # 2) пробуем метод менеджера с разными сигнатурами
+                if user_id is None:
+                    try:
+                        r = AUTH.create_user(email=email,
+                                             full_name=(full_name
+                                                        or ADMIN_FULL_NAME))
+                        if isinstance(r, dict) and r.get("success") and r.get(
+                                "user_id"):
+                            user_id = int(r["user_id"])
+                    except Exception as e:
+                        print(f"[admin] create_user failed: {e}")
+
+                # 3) на случай race/UNIQUE — перечитываем
+                if user_id is None:
+                    try:
+                        user = AUTH.get_user_by_email(email)
+                        if user and user.get("id"):
+                            user_id = int(user["id"])
+                    except Exception as e:
+                        print(f"[admin] second get_user_by_email failed: {e}")
+
+                if user_id is None:
+                    return JSONResponse(
+                        {
+                            "success": False,
+                            "error": "Failed to create admin"
+                        },
+                        status_code=500)
+
+            # создаём сессию и ставим куки
             token, csrf, _ = create_session(user_id, ip, ua)
             set_session_cookies(response, request, token, csrf, days=30)
-            return {"success": True, "authenticated": True, "redirect": "/dashboard"}
+            return {
+                "success": True,
+                "authenticated": True,
+                "redirect": "/dashboard"
+            }
 
-        # === REGULAR USER ===
-        auth = authenticate_user_login(
-            email=email,
-            license_key=license_key,
-            full_name=full_name,
-            ip_address=ip,
-            user_agent=ua,
-        )
+        # ==========================
+        # === REGULAR USER PATH ===
+        # ==========================
+        try:
+            auth = authenticate_user_login(
+                email=email,
+                license_key=license_key,
+                full_name=full_name,
+                ip_address=ip,
+                user_agent=ua,
+            )
+        except Exception as e:
+            print(f"[auth] authenticate_user_login call failed: {e}")
+            return JSONResponse({
+                "success": False,
+                "error": "Auth call failed"
+            },
+                                status_code=500)
 
         if not auth or not auth.get("authenticated"):
             err = (auth or {}).get("error", "Invalid credentials")
-            return JSONResponse({"success": False, "error": err}, status_code=401)
+            return JSONResponse({
+                "success": False,
+                "error": err
+            },
+                                status_code=401)
 
-        # надёжно получаем user_id
         user = auth.get("user") or {}
         user_id = user.get("id") or auth.get("user_id")
+
         if not user_id:
-            # последний шанс — достанем из БД
-            from security import _db
-            with _db() as con:
-                row = con.execute("SELECT id FROM users WHERE license_key = ? OR email = ?", (license_key, email)).fetchone()
-            if not row:
-                return JSONResponse({"success": False, "error": "Auth result missing user_id"}, status_code=500)
-            user_id = int(row["id"])
+            # последний шанс — по email из БД
+            try:
+                u2 = AUTH.get_user_by_email(email)
+                if u2 and u2.get("id"):
+                    user_id = int(u2["id"])
+            except Exception as e:
+                print(f"[auth] fallback get_user_by_email failed: {e}")
+
+        if not user_id:
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "Auth result missing user_id"
+                },
+                status_code=500)
 
         token, csrf, _ = create_session(int(user_id), ip, ua)
         set_session_cookies(response, request, token, csrf, days=30)
-        return {"success": True, "authenticated": True, "redirect": "/dashboard"}
+        return {
+            "success": True,
+            "authenticated": True,
+            "redirect": "/dashboard"
+        }
 
     except Exception as e:
         import traceback
-        print(f"❌ authenticate_user_ep error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
-        return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
+        print(
+            f"❌ authenticate_user_ep error: {type(e).__name__}: {e}\n{traceback.format_exc()}"
+        )
+        return JSONResponse(
+            {
+                "success": False,
+                "error": f"{type(e).__name__}: {e}"
+            },
+            status_code=500)
 
 
 @app.post("/api/authenticate")
@@ -1440,9 +1666,9 @@ async def api_authenticate(request: Request, response: Response):
     """API-версия — такая же логика, та же сессия"""
     try:
         body = await request.json()
-        email       = (body.get("email") or "").strip()
+        email = (body.get("email") or "").strip()
         license_key = (body.get("license_key") or "").strip()
-        full_name   = (body.get("full_name") or "").strip() or None
+        full_name = (body.get("full_name") or "").strip() or None
 
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
@@ -1459,12 +1685,8 @@ async def api_authenticate(request: Request, response: Response):
             raise HTTPException(status_code=401, detail=err)
 
         user_obj = result.get("user") or {}
-        user_id = (
-            user_obj.get("id")
-            or result.get("user_id")
-            or result.get("uid")
-            or result.get("id")
-        )
+        user_id = (user_obj.get("id") or result.get("user_id")
+                   or result.get("uid") or result.get("id"))
 
         if not user_id:
             v = validate_user_credentials(email, license_key)
@@ -1473,10 +1695,14 @@ async def api_authenticate(request: Request, response: Response):
 
         if not user_id:
             admin_email = (os.getenv("ADMIN_EMAIL", "") or "").strip().lower()
-            admin_key   = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
-            if email.lower() == admin_email and license_key.strip() == admin_key:
+            admin_key = (os.getenv("ADMIN_LICENSE_KEY", "") or "").strip()
+            if email.lower() == admin_email and license_key.strip(
+            ) == admin_key:
                 try:
-                    create_new_user(email=email, full_name=full_name or os.getenv("ADMIN_FULL_NAME", "Administrator"))
+                    create_new_user(
+                        email=email,
+                        full_name=full_name
+                        or os.getenv("ADMIN_FULL_NAME", "Administrator"))
                 except Exception:
                     pass
                 v = validate_user_credentials(email, license_key)
@@ -1484,23 +1710,34 @@ async def api_authenticate(request: Request, response: Response):
                     user_id = v.get("user_id")
 
         if not user_id:
-            raise HTTPException(status_code=401, detail="User not found for this login")
+            raise HTTPException(status_code=401,
+                                detail="User not found for this login")
 
         token, csrf, _ = create_session(int(user_id), ip_address, user_agent)
-        response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
-                            httponly=True, secure=SECURE_COOKIES, samesite="lax", path="/")
-        response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
-                            httponly=False, secure=SECURE_COOKIES, samesite="lax", path="/")
+        response.set_cookie(SESSION_COOKIE,
+                            token,
+                            max_age=30 * 24 * 3600,
+                            httponly=True,
+                            secure=SECURE_COOKIES,
+                            samesite="lax",
+                            path="/")
+        response.set_cookie(CSRF_COOKIE,
+                            csrf,
+                            max_age=30 * 24 * 3600,
+                            httponly=False,
+                            secure=SECURE_COOKIES,
+                            samesite="lax",
+                            path="/")
         return {"authenticated": True}
 
     except HTTPException:
         raise
     except Exception as e:
         import traceback
-        print(f"❌ API auth error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        print(
+            f"❌ API auth error: {type(e).__name__}: {e}\n{traceback.format_exc()}"
+        )
         raise HTTPException(status_code=500, detail="Internal error")
-
-
 
 
 # ==========================================
@@ -1522,9 +1759,9 @@ async def create_subscription_checkout(request: Request):
         raise HTTPException(status_code=503, detail="Stripe is not configured")
 
     body = await request.json()
-    plan_type     = (body.get('plan_type') or "").strip()
-    email         = (body.get('email') or "").strip()
-    full_name     = (body.get('full_name') or "").strip()
+    plan_type = (body.get('plan_type') or "").strip()
+    email = (body.get('email') or "").strip()
+    full_name = (body.get('full_name') or "").strip()
     referral_code = (body.get('referral_code') or "").strip()
 
     if not plan_type:
@@ -1536,8 +1773,8 @@ async def create_subscription_checkout(request: Request):
 
     price_id_map = {
         'early_bird': EARLY_BIRD_PRICE_ID,
-        'standard':   STANDARD_PRICE_ID,
-        'pro':        PRO_PRICE_ID,
+        'standard': STANDARD_PRICE_ID,
+        'pro': PRO_PRICE_ID,
     }
 
     # 1) валидируем тип плана
@@ -1547,7 +1784,9 @@ async def create_subscription_checkout(request: Request):
     # 2) проверяем, что для выбранного плана реально задан Price ID в ENV
     price_id = price_id_map[plan_type]
     if not price_id:
-        raise HTTPException(status_code=503, detail=f"Price ID for '{plan_type}' not configured")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Price ID for '{plan_type}' not configured")
 
     try:
         # привязываем биллинг к 1-му числу следующего месяца
@@ -1557,13 +1796,17 @@ async def create_subscription_checkout(request: Request):
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             customer_email=email,
-            line_items=[{'price': price_id, 'quantity': 1}],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1
+            }],
             mode='subscription',
             subscription_data={
                 'billing_cycle_anchor': billing_anchor,
                 'proration_behavior': 'create_prorations',
             },
-            success_url=f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
+            success_url=
+            f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{YOUR_DOMAIN}/cancel',
             metadata={
                 'full_name': full_name,
@@ -1593,7 +1836,8 @@ async def create_checkout_session(payment_request: PaymentRequest):
     if not STRIPE_READY:
         raise HTTPException(status_code=503, detail="Stripe is not configured")
     if not LIFETIME_ACCESS_PRICE_ID:
-        raise HTTPException(status_code=503, detail="LIFETIME price ID not configured")
+        raise HTTPException(status_code=503,
+                            detail="LIFETIME price ID not configured")
 
     # Validate payload
     email = (payment_request.email or "").strip()
@@ -1606,16 +1850,21 @@ async def create_checkout_session(payment_request: PaymentRequest):
         raise HTTPException(status_code=400, detail="full_name is required")
 
     try:
-        print(f"💳 Creating LIFETIME ACCESS checkout for: {full_name} ({email})")
+        print(
+            f"💳 Creating LIFETIME ACCESS checkout for: {full_name} ({email})")
         if referral_code:
             print(f"🔗 Referral code: {referral_code}")
 
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             customer_email=email,
-            line_items=[{'price': LIFETIME_ACCESS_PRICE_ID, 'quantity': 1}],
+            line_items=[{
+                'price': LIFETIME_ACCESS_PRICE_ID,
+                'quantity': 1
+            }],
             mode='payment',
-            success_url=f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
+            success_url=
+            f'{YOUR_DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{YOUR_DOMAIN}/cancel',
             metadata={
                 'full_name': full_name,
@@ -1623,8 +1872,7 @@ async def create_checkout_session(payment_request: PaymentRequest):
                 'referral_code': referral_code,
                 'product': 'profitpal_pro_lifetime',
                 'version': '2.0'
-            }
-        )
+            })
 
         print(f"✅ Checkout session created: {checkout_session.id}")
         return {"checkout_url": checkout_session.url}
@@ -1636,7 +1884,8 @@ async def create_checkout_session(payment_request: PaymentRequest):
         raise HTTPException(status_code=502, detail=msg)
     except Exception as e:
         print(f"❌ Error creating checkout session: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create checkout session")
+        raise HTTPException(status_code=500,
+                            detail="Failed to create checkout session")
 
 
 @app.post('/stripe-webhook')
@@ -1802,9 +2051,11 @@ async def get_user_referral_link(email: str):
         return JSONResponse(content={'error': 'Failed to get referral link'},
                             status_code=500)
 
+
 # =================================================
-# LOGIN API ENDPOINTS 
+# LOGIN API ENDPOINTS
 # =================================================
+
 
 @app.post('/api/login')
 async def api_login(request: Request):
@@ -1817,7 +2068,8 @@ async def api_login(request: Request):
 
         # Validate input
         if not email or not license_key:
-            raise HTTPException(status_code=400, detail="Email and license key are required")
+            raise HTTPException(status_code=400,
+                                detail="Email and license key are required")
 
         # Validate license key format (different for admin vs client)
         admin_email = os.getenv('ADMIN_EMAIL', '').lower()
@@ -1826,30 +2078,39 @@ async def api_login(request: Request):
         if is_admin:
             # Admin key: PP-XX-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX or any PP- format
             if not license_key.startswith('PP-') or len(license_key) < 10:
-                raise HTTPException(status_code=400, detail="Invalid admin license key format")
+                raise HTTPException(status_code=400,
+                                    detail="Invalid admin license key format")
         else:
             # Client key: PP-XXXX-XXXX-XXXX
-            if not re.match(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', license_key):
-                raise HTTPException(status_code=400, detail="Invalid license key format. Should be: PP-XXXX-XXXX-XXXX")
+            if not re.match(r'^PP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$',
+                            license_key):
+                raise HTTPException(
+                    status_code=400,
+                    detail=
+                    "Invalid license key format. Should be: PP-XXXX-XXXX-XXXX")
 
         # Check if license exists and is valid
         if not validate_license_key(email, license_key):
-            raise HTTPException(status_code=401, detail="Invalid license key or email address")
+            raise HTTPException(status_code=401,
+                                detail="Invalid license key or email address")
 
         # Record fingerprint and login
         record_user_login(email, license_key, fingerprint, request)
 
-        return JSONResponse(content={
-            "status": "success", 
-            "message": "Login successful",
-            "redirect": "/dashboard"
-        })
+        return JSONResponse(
+            content={
+                "status": "success",
+                "message": "Login successful",
+                "redirect": "/dashboard"
+            })
 
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Login error: {e}")
-        raise HTTPException(status_code=500, detail="Login failed. Please try again.")
+        raise HTTPException(status_code=500,
+                            detail="Login failed. Please try again.")
+
 
 def validate_license_key(email: str, license_key: str) -> bool:
     """Validate if license key belongs to email"""
@@ -1872,10 +2133,13 @@ def validate_license_key(email: str, license_key: str) -> bool:
         print(f"❌ License validation error: {e}")
         return False
 
-def record_user_login(email: str, license_key: str, fingerprint: dict, request: Request):
+
+def record_user_login(email: str, license_key: str, fingerprint: dict,
+                      request: Request):
     """Record user login with fingerprint for tracking"""
     try:
-        client_ip = request.client.host if hasattr(request, 'client') else 'unknown'
+        client_ip = request.client.host if hasattr(request,
+                                                   'client') else 'unknown'
 
         login_data = {
             'email': email,
@@ -1897,6 +2161,7 @@ def record_user_login(email: str, license_key: str, fingerprint: dict, request: 
 
     except Exception as e:
         print(f"❌ Error recording login: {e}")
+
 
 @app.post('/api/monthly-billing/{email}')
 async def process_monthly_billing(email: str):
@@ -2186,7 +2451,9 @@ async def check_free_trial(request: FreeTrialRequest):
 async def record_free_trial(request: FreeTrialRecordRequest):
     """Запись использования бесплатного анализа"""
     try:
-        print(f"📝 Recording free trial usage: {request.fingerprint[:10]}... ticker: {request.ticker}")
+        print(
+            f"📝 Recording free trial usage: {request.fingerprint[:10]}... ticker: {request.ticker}"
+        )
 
         # 🔥 ПРИНУДИТЕЛЬНО СОЗДАЕМ ТАБЛИЦУ ПЕРЕД ЗАПИСЬЮ
         create_free_trial_table()
@@ -2247,7 +2514,9 @@ async def record_free_trial(request: FreeTrialRecordRequest):
 
 
 @app.post("/api/process-donation")
-def process_donation(payload: dict, user = Depends(require_user), _=Depends(verify_csrf)):
+def process_donation(payload: dict,
+                     user=Depends(require_user),
+                     _=Depends(verify_csrf)):
     """
     One-click donation (off_session) по сохранённой карте.
     Body: { amount, type, authorized: true }
@@ -2257,7 +2526,8 @@ def process_donation(payload: dict, user = Depends(require_user), _=Depends(veri
         dtype = (payload.get("type") or "donation").strip()
         authorized = bool(payload.get("authorized"))
         if not authorized:
-            raise HTTPException(status_code=400, detail="Authorization checkbox is required")
+            raise HTTPException(status_code=400,
+                                detail="Authorization checkbox is required")
         if not (1 <= amount <= 1000):
             raise HTTPException(status_code=400, detail="Invalid amount")
 
@@ -2266,19 +2536,27 @@ def process_donation(payload: dict, user = Depends(require_user), _=Depends(veri
 
         from security import _db
         with _db() as con:
-            row = con.execute("SELECT stripe_customer_id FROM users WHERE id = ?", (user["id"],)).fetchone()
+            row = con.execute(
+                "SELECT stripe_customer_id FROM users WHERE id = ?",
+                (user["id"], )).fetchone()
         if not row or not row["stripe_customer_id"]:
-            raise HTTPException(status_code=402, detail="No saved card. Please save a card in Settings first.")
+            raise HTTPException(
+                status_code=402,
+                detail="No saved card. Please save a card in Settings first.")
 
         customer_id = row["stripe_customer_id"]
         # возьмём default PM; если нет — любой картовый
         cust = stripe.Customer.retrieve(customer_id)
         pm = (cust.get("invoice_settings") or {}).get("default_payment_method")
         if not pm:
-            pms = stripe.PaymentMethod.list(customer=customer_id, type="card", limit=1)
+            pms = stripe.PaymentMethod.list(customer=customer_id,
+                                            type="card",
+                                            limit=1)
             pm = pms.data[0]["id"] if pms.data else None
         if not pm:
-            raise HTTPException(status_code=402, detail="No saved card. Please save a card in Settings.")
+            raise HTTPException(
+                status_code=402,
+                detail="No saved card. Please save a card in Settings.")
 
         intent = stripe.PaymentIntent.create(
             amount=amount_cents,
@@ -2288,7 +2566,10 @@ def process_donation(payload: dict, user = Depends(require_user), _=Depends(veri
             off_session=True,
             confirm=True,
             description=f"Donation ({dtype}) user {user['id']}",
-            metadata={"user_id": str(user["id"]), "donation_type": dtype},
+            metadata={
+                "user_id": str(user["id"]),
+                "donation_type": dtype
+            },
         )
 
         # лог в БД
@@ -2296,13 +2577,22 @@ def process_donation(payload: dict, user = Depends(require_user), _=Depends(veri
             con.execute(
                 "INSERT INTO donations (user_id, amount_cents, currency, donation_type, stripe_payment_intent_id, status) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (user["id"], amount_cents, currency, dtype, intent["id"], intent["status"]),
+                (user["id"], amount_cents, currency, dtype, intent["id"],
+                 intent["status"]),
             )
 
-        return {"success": intent["status"] == "succeeded", "status": intent["status"], "message": "Thank you for your support!"}
+        return {
+            "success": intent["status"] == "succeeded",
+            "status": intent["status"],
+            "message": "Thank you for your support!"
+        }
 
     except stripe.error.CardError:
-        raise HTTPException(status_code=402, detail="Card requires authentication. Please update your card in Settings.")
+        raise HTTPException(
+            status_code=402,
+            detail=
+            "Card requires authentication. Please update your card in Settings."
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -2473,11 +2763,11 @@ def health_check():
         ],
         "endpoints": [
             "/", "/analysis", "/fake-dashboard", "/validate-credentials",
-            "/api/stripe-key", "/create-checkout-session", "/create-subscription-checkout",
-            "/stripe-webhook", "/analyze", "/api/referral-stats/{email}",
-            "/api/referral-link/{email}", "/api/process-donation",
-            "/api/upgrade-subscription", "/api/get-upgrade-options",
-            "/ref/{referral_code}"
+            "/api/stripe-key", "/create-checkout-session",
+            "/create-subscription-checkout", "/stripe-webhook", "/analyze",
+            "/api/referral-stats/{email}", "/api/referral-link/{email}",
+            "/api/process-donation", "/api/upgrade-subscription",
+            "/api/get-upgrade-options", "/ref/{referral_code}"
         ],
         "timestamp":
         datetime.now().isoformat()
