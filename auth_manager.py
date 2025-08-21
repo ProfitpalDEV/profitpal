@@ -169,42 +169,31 @@ class AuthManager:
                 "error": f"Failed to create user: {str(e)}"
             }
 
-    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
-        """Получение пользователя по email (расшифровка всех записей)"""
+    def get_user_by_email(self, email: str):
+        """Возвращает dict с id/email/... или None. Никаких NameError."""
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-
-            cursor.execute('SELECT * FROM users WHERE is_active = 1')
-
-            for row in cursor.fetchall():
-                try:
-                    decrypted_email = self.decrypt_data(row[1])
-                    if decrypted_email and decrypted_email.lower() == email.lower().strip():
-                        user_data = {
-                            'id': row[0],
-                            'email': decrypted_email,
-                            'full_name': self.decrypt_data(row[2]),
-                            'license_key': row[3],
-                            'stripe_customer_id': row[4],
-                            'payment_status': row[5],
-                            'card_last4': row[6],
-                            'created_at': row[7],
-                            'last_login': row[8],
-                            'login_count': row[9],
-                            'is_active': bool(row[10])
-                        }
-                        conn.close()
-                        return user_data
-                except:
-                    continue
-
-            conn.close()
-            return None
-
+            enc = self.encrypt(email)
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                row = cur.execute(
+                    "SELECT id, license_key, is_active, payment_status FROM users WHERE encrypted_email = ? LIMIT 1",
+                    (enc,),
+                ).fetchone()
+                if not row:
+                    return None
+                # Расшифровку full_name можешь добавить, если нужно
+                return {
+                    "id": row["id"],
+                    "email": email,
+                    "license_key": row["license_key"],
+                    "is_active": row["is_active"],
+                    "payment_status": (row["payment_status"] if "payment_status" in row.keys() else None),
+                }
         except Exception as e:
-            print(f"❌ Error getting user by email: {e}")
+            print(f"[auth_manager.get_user_by_email] error: {e}")
             return None
+
 
     def validate_credentials(self, email: str, license_key: str) -> Dict[str, Any]:
         """🎯 ГЛАВНАЯ ФУНКЦИЯ: Проверка email + license и возврат имени для подсветки"""
