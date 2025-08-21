@@ -74,45 +74,56 @@ def set_session_cookies(
     print(f"[auth] cookies set for host={request.url.hostname} domain={cookie_domain} secure={secure} token={token[:8]}...")
 
 
-def _fetch_user_by_session(token: str) -> Optional[Dict[str, Any]]:
-    """Возвращает пользователя по токену сессии. План/подписка — опциональны."""
-    if not token:
-        return None
+    def _fetch_user_by_session(token: str) -> Optional[Dict]:
+        """Возвращает пользователя по токену сессии без обращения к зашифрованным полям.
+           Планы/подписка — опционально (пытаемся прочитать, если колонка есть).
+        """
+        if not token:
+            return None
 
-    try:
-        with _db() as con:
-            row = con.execute(
-                """
-                SELECT u.id, u.email, u.license_key, u.is_active
-                FROM user_sessions s
-                JOIN users u ON u.id = s.user_id
-                WHERE s.session_token = ?
-                  AND s.is_active = 1
-                  AND s.expires_at > datetime('now')
-                """,
-                (token,),
-            ).fetchone()
-            if not row:
-                return None
+        try:
+            with _db() as con:
+                row = con.execute(
+                    """
+                    SELECT u.id, u.is_active
+                    FROM user_sessions s
+                    JOIN users u ON u.id = s.user_id
+                    WHERE s.session_token = ?
+                      AND s.is_active = 1
+                      AND s.expires_at > datetime('now')
+                    """,
+                    (token,),
+                ).fetchone()
+                if not row:
+                    return None
 
-            # payment_status читаем только если такая колонка есть
-            payment_status = None
-            try:
-                cols = {c["name"] for c in con.execute("PRAGMA table_info(users)").fetchall()}
-                if "payment_status" in cols:
-                    r2 = con.execute(
-                        "SELECT payment_status FROM users WHERE id = ?",
-                        (row["id"],),
-                    ).fetchone()
-                    if r2:
-                        payment_status = r2["payment_status"]
-            except sqlite3.OperationalError:
-                # на всякий случай: не валим процесс
-                pass
+                # Попробуем аккуратно получить статус оплаты, если колонка есть
+                plan_type = None
+                subscription_status = None
+                try:
+                    cols = {c[1] for c in con.execute("PRAGMA table_info(users)").fetchall()}
+                    if "payment_status" in cols:
+                        rps = con.execute("SELECT payment_status FROM users WHERE id = ?", (row["id"],)).fetchone()
+                        if rps and rps[0] is not None:
+                            ps = str(rps[0]).lower()
+                            if ps in ("completed", "active", "paid", "lifetime"):
+                                plan_type = "lifetime"
+                                subscription_status = "active"
+                            else:
+                                subscription_status = "inactive"
+                except sqlite3.OperationalError:
+                    pass
 
-    except Exception as e:
-        print(f"[security] _fetch_user_by_session error: {type(e).__name__}: {e}")
-        return None
+                return {
+                    "id": row["id"],
+                    "is_active": row["is_active"],
+                    "plan_type": plan_type,                 # None | "lifetime"
+                    "subscription_status": subscription_status,  # None | "active" | "inactive"
+                }
+        except sqlite3.OperationalError as e:
+            print(f"[security] session lookup error: {e}")
+            return None
+
 
     # Нормализуем план/подписку
     plan_type: Optional[str] = None
