@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
 from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, auth_manager as AUTH
-from security import set_session_cookies, create_session, require_user, SESSION_COOKIE, CSRF_COOKIE
+from security import set_session_cookies, create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
 from referral_manager import ReferralManager
 import re
 
@@ -1155,17 +1155,20 @@ def serve_pp_auth_js():
 
 
 @app.get("/api/session/me")
-def session_me(user = Depends(require_user)):
-    email = (user.get("email") or "").strip().lower()
-    is_admin = bool(ADMIN_EMAIL and email == ADMIN_EMAIL)
-
+async def session_me(user = Depends(require_user)):
+    # Вернём только безопасный минимум
     return {
         "id": user["id"],
         "email": user.get("email"),
-        "is_admin": is_admin,
+        "license_key": user.get("license_key"),
         "plan_type": user.get("plan_type"),
         "subscription_status": user.get("subscription_status"),
     }
+
+@app.get("/__debug/cookies")
+def debug_cookies(request: Request):
+    return {"cookies": dict(request.cookies)}
+
 
 
 @app.get("/api/referral-stats/me")
@@ -1356,15 +1359,12 @@ async def check_admin_status(request: Request):
 @app.post("/authenticate-user")
 async def authenticate_user_ep(request: Request, response: Response):
     """
-    Полный вход: админ по ENV или обычный пользователь через auth_manager.
-    Всегда создаём server-side сессию и ставим pp_session/pp_csrf cookies.
+    Админ по ENV → вход по email+license_key без оплаты.
+    Обычный пользователь → через auth_manager.authenticate_user_login.
+    Всегда: создаём server-side сессию и ставим pp_session / pp_csrf.
     """
     try:
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
-
+        body = await request.json()
         email       = (body.get("email") or "").strip().lower()
         license_key = (body.get("license_key") or "").strip()
         full_name   = (body.get("full_name") or "").strip() or None
@@ -1375,30 +1375,32 @@ async def authenticate_user_ep(request: Request, response: Response):
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("user-agent", "unknown")
 
-        # ========= Админ строго по ENV (с нормализацией ключа) =========
+        # === ADMIN BYPASS ===
+        from security import ADMIN_EMAIL, ADMIN_LICENSE_KEY, ADMIN_FULL_NAME
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
-            if _norm_key(license_key) != _norm_key(ADMIN_LICENSE_KEY):
+            # сравниваем «нормализованно»
+            def _norm(s: str) -> str:
+                return "".join(ch for ch in (s or "").strip().upper() if ch.isalnum())
+            if _norm(license_key) != _norm(ADMIN_LICENSE_KEY):
                 return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
 
             # гарантируем наличие админа в users
-            user = AUTH.get_user_by_email(email)
-            if not user:
-                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_FULL_NAME)
+            u = AUTH.get_user_by_email(email)
+            if not u:
+                created = AUTH.create_user(email=email, full_name=ADMIN_FULL_NAME)
                 if not created or not created.get("success"):
-                    user = AUTH.get_user_by_email(email)
-                    if not user:
+                    u = AUTH.get_user_by_email(email)
+                    if not u:
                         return JSONResponse({"success": False, "error": "Failed to create admin"}, status_code=500)
                 else:
-                    user = {"id": created["user_id"]}
-            user_id = int(user["id"])
+                    u = {"id": created["user_id"]}
+            user_id = int(u["id"])
 
             token, csrf, _ = create_session(user_id, ip, ua)
-            # <<< ВАЖНО: ставим куки через унифицированную функцию
             set_session_cookies(response, request, token, csrf, days=30)
-
             return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
-        # ========= Обычный пользователь — через auth_manager =========
+        # === REGULAR USER ===
         auth = authenticate_user_login(
             email=email,
             license_key=license_key,
@@ -1406,19 +1408,25 @@ async def authenticate_user_ep(request: Request, response: Response):
             ip_address=ip,
             user_agent=ua,
         )
+
         if not auth or not auth.get("authenticated"):
             err = (auth or {}).get("error", "Invalid credentials")
             return JSONResponse({"success": False, "error": err}, status_code=401)
 
+        # надёжно получаем user_id
         user = auth.get("user") or {}
         user_id = user.get("id") or auth.get("user_id")
         if not user_id:
-            return JSONResponse({"success": False, "error": "Auth result missing user_id"}, status_code=500)
+            # последний шанс — достанем из БД
+            from security import _db
+            with _db() as con:
+                row = con.execute("SELECT id FROM users WHERE license_key = ? OR email = ?", (license_key, email)).fetchone()
+            if not row:
+                return JSONResponse({"success": False, "error": "Auth result missing user_id"}, status_code=500)
+            user_id = int(row["id"])
 
         token, csrf, _ = create_session(int(user_id), ip, ua)
-        # <<< ВАЖНО: те же самые куки для обычного входа
         set_session_cookies(response, request, token, csrf, days=30)
-
         return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
     except Exception as e:

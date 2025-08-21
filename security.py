@@ -1,15 +1,22 @@
-# === ВЕРХ ФАЙЛА ===
+# security.py
 from fastapi import Request, HTTPException, Response
+from datetime import datetime, timedelta, timezone
 import sqlite3
 import secrets
 import os
 from typing import Optional, Dict
-from datetime import datetime, timedelta, timezone
 
+# ---- cookie names ----
 SESSION_COOKIE = "pp_session"
 CSRF_COOKIE    = "pp_csrf"
+
+# ---- single DB path (совпадает с auth_manager) ----
 DB_PATH = "profitpal_auth.db"
-ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
+
+# ---- admin bypass via ENV ----
+ADMIN_EMAIL        = (os.getenv("ADMIN_EMAIL") or "").strip().lower()
+ADMIN_LICENSE_KEY  = (os.getenv("ADMIN_LICENSE_KEY") or "").strip()
+ADMIN_FULL_NAME    = (os.getenv("ADMIN_FULL_NAME") or "System Administrator").strip()
 
 def _db():
     con = sqlite3.connect(DB_PATH)
@@ -17,6 +24,7 @@ def _db():
     return con
 
 def create_session(user_id: int, ip: str, ua: str, days: int = 30):
+    """Create server-side session in DB and return (token, csrf, expires_iso)."""
     token = secrets.token_urlsafe(32)
     csrf  = secrets.token_urlsafe(24)
     expires_at = (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
@@ -36,9 +44,13 @@ def set_session_cookies(
     days: int = 30,
     secure: bool | None = None,
 ):
-    """Ставит pp_session / pp_csrf на нужный домен (.profitpal.org)."""
-    cookie_domain = request.url.hostname or None
-    if cookie_domain and cookie_domain.endswith("profitpal.org"):
+    """
+    Ставит pp_session (HttpOnly) и pp_csrf на корректный домен.
+    Для apex/сабдоменов profitpal → ставим Domain=.profitpal.org.
+    """
+    host = (request.url.hostname or "").lower()
+    cookie_domain = None
+    if host.endswith("profitpal.org"):
         cookie_domain = ".profitpal.org"
 
     if secure is None:
@@ -46,29 +58,39 @@ def set_session_cookies(
 
     max_age = days * 24 * 3600
 
+    # session cookie (HttpOnly)
     response.set_cookie(
-        key=SESSION_COOKIE, value=token,
-        max_age=max_age, path="/",
-        httponly=True, secure=secure, samesite="Lax",
+        key=SESSION_COOKIE,
+        value=token,
+        max_age=max_age,
+        path="/",
         domain=cookie_domain,
+        secure=secure,
+        httponly=True,
+        samesite="Lax",
     )
+
+    # csrf cookie (доступна JS)
     response.set_cookie(
-        key=CSRF_COOKIE, value=csrf,
-        max_age=max_age, path="/",
-        httponly=False, secure=secure, samesite="Lax",
+        key=CSRF_COOKIE,
+        value=csrf,
+        max_age=max_age,
+        path="/",
         domain=cookie_domain,
+        secure=secure,
+        httponly=False,
+        samesite="Lax",
     )
-    print(f"[auth] cookies set for host={request.url.hostname} domain={cookie_domain} secure={secure} token={token[:8]}...")
 
 def _fetch_user_by_session(token: str) -> Optional[Dict]:
-    """Безопасно достаёт пользователя по токену сессии. Возвращает None, если не найден / истёк."""
+    """Return user dict by session token or None (без исключений/500)."""
     if not token:
         return None
     try:
         with _db() as con:
             row = con.execute(
                 """
-                SELECT u.id, u.email, u.license_key, u.is_active
+                SELECT u.id, u.license_key, u.is_active, u.payment_status, u.email
                 FROM user_sessions s
                 JOIN users u ON u.id = s.user_id
                 WHERE s.session_token = ?
@@ -79,46 +101,32 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
             ).fetchone()
             if not row:
                 return None
-
-            # опционально — достаём payment_status, если поле есть
-            payment_status = None
-            try:
-                ps = con.execute(
-                    "SELECT payment_status FROM users WHERE id = ?",
-                    (row["id"],),
-                ).fetchone()
-                if ps and "payment_status" in ps.keys():
-                    payment_status = ps["payment_status"]
-            except sqlite3.OperationalError:
-                payment_status = None
-    except Exception as e:
-        print(f"[security] _fetch_user_by_session error: {e}")
+    except Exception:
         return None
 
+    # нормализуем план/подписку
     plan_type = None
-    subscription_status = None
-    if payment_status is not None:
-        ps = str(payment_status).lower()
-        if ps in ("completed", "active", "paid"):
-            plan_type = "lifetime"
-            subscription_status = "active"
-        else:
-            subscription_status = "inactive"
+    sub = None
+    ps = (row["payment_status"] or "").lower() if "payment_status" in row.keys() else ""
+    if ps in ("completed", "active", "paid"):
+        plan_type = "lifetime"
+        sub = "active"
 
     return {
         "id": row["id"],
-        "email": row["email"],
+        "email": row["email"] if "email" in row.keys() else None,
         "license_key": row["license_key"],
         "is_active": row["is_active"],
         "plan_type": plan_type,
-        "subscription_status": subscription_status,
+        "subscription_status": sub,
     }
 
 def _plan_rank(plan: Optional[str]) -> int:
-    return {"lifetime": 3, "pro": 2, "standard": 1, "early_bird": 1}.get((plan or "").lower(), 0)
+    order = {"lifetime": 3, "pro": 2, "standard": 1, "early_bird": 1}
+    return order.get((plan or "").lower(), 0)
 
 async def require_user(request: Request):
-    """401 вместо 500 при любых проблемах с сессией."""
+    """401 вместо 500 при любых проблемах."""
     try:
         token = request.cookies.get(SESSION_COOKIE)
         user = _fetch_user_by_session(token)
@@ -128,43 +136,34 @@ async def require_user(request: Request):
         return user
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"❌ require_user error: {type(e).__name__}: {e}")
+    except Exception:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 def require_plan(required: Optional[str] = None):
-    """
-    Депенденси для маршрутов: сначала валидируем сессию,
-    для ADMIN_EMAIL делаем байпас, для остальных проверяем план/подписку.
-    """
-    async def _inner(request: Request):
-        # 1) проверяем, что сессия валидна (401 если нет)
+    """Админ по ENV проходит всегда; иначе проверяем план/подписку."""
+    async def _dep(request: Request):
         user = await require_user(request)
 
-        # 2) админ всегда проходит
+        # admin bypass
         email = (user.get("email") or "").strip().lower()
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
             return user
 
-        # 3) если маршрут не требует конкретного плана — пускаем
         if not required:
             return user
 
-        # 4) проверяем план/подписку
         need = _plan_rank(required)
         have = _plan_rank(user.get("plan_type"))
         subs = (user.get("subscription_status") or "").lower()
 
-        if (have >= need) or (subs in ("active", "trialing")):
-            return user
-
-        # иначе 402 Payment Required
-        raise HTTPException(status_code=402, detail="Payment required")
-
-    return _inner
+        if not ((have >= need) or (subs in ("active", "trialing"))):
+            raise HTTPException(status_code=402, detail="Payment required")
+        return user
+    return _dep
 
 def verify_csrf(request: Request):
-    header = request.headers.get("X-CSRF-Token")
-    cookie = request.cookies.get(CSRF_COOKIE)
-    if not header or not cookie or header != cookie:
+    """Double-submit cookie CSRF: header X-CSRF-Token должен совпадать с кукой."""
+    hdr = request.headers.get("X-CSRF-Token")
+    ckv = request.cookies.get(CSRF_COOKIE)
+    if not hdr or not ckv or hdr != ckv:
         raise HTTPException(status_code=403, detail="Invalid CSRF token")
