@@ -1238,15 +1238,30 @@ def serve_pp_auth_js():
 
 
 @app.get("/api/session/me")
-async def session_me(user=Depends(require_user)):
-    # Вернём только безопасный минимум
-    return {
-        "id": user["id"],
+async def session_me(user = Depends(require_user)):
+    # базовые поля
+    out = {
+        "id": user.get("id"),
         "email": user.get("email"),
-        "license_key": user.get("license_key"),
         "plan_type": user.get("plan_type"),
         "subscription_status": user.get("subscription_status"),
     }
+
+    # определяем is_admin надёжно
+    email = (user.get("email") or "").strip().lower()
+    is_admin = bool(ADMIN_EMAIL and email == ADMIN_EMAIL)
+
+    if not is_admin and ADMIN_EMAIL:
+        # fallback: если email не доступен/шифрован — сверяем по id админа
+        try:
+            admin_row = AUTH.get_user_by_email(ADMIN_EMAIL)
+            if admin_row and int(admin_row.get("id", 0)) == int(user.get("id", 0)):
+                is_admin = True
+        except Exception as e:
+            print(f"[session_me] admin id fallback error: {e}")
+
+    out["is_admin"] = is_admin
+    return out
 
 
 @app.get("/__debug/cookies")
