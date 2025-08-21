@@ -133,27 +133,34 @@ async def require_user(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 def require_plan(required: Optional[str] = None):
-    """Администратор (ADMIN_EMAIL) — всегда проходит. Остальные по плану/подписке."""
-    async def _dep(request: Request, user = await require_user(request)):  # type: ignore
-        return user  # заглушка, реальная обёртка ниже
-    # Starlette не даёт так объявить, поэтому реальная версия:
+    """
+    Депенденси для маршрутов: сначала валидируем сессию,
+    для ADMIN_EMAIL делаем байпас, для остальных проверяем план/подписку.
+    """
     async def _inner(request: Request):
+        # 1) проверяем, что сессия валидна (401 если нет)
         user = await require_user(request)
 
-        # admin bypass
+        # 2) админ всегда проходит
         email = (user.get("email") or "").strip().lower()
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
             return user
 
+        # 3) если маршрут не требует конкретного плана — пускаем
         if not required:
             return user
 
+        # 4) проверяем план/подписку
         need = _plan_rank(required)
         have = _plan_rank(user.get("plan_type"))
         subs = (user.get("subscription_status") or "").lower()
-        if not ((have >= need) or (subs in ("active", "trialing"))):
-            raise HTTPException(status_code=402, detail="Payment required")
-        return user
+
+        if (have >= need) or (subs in ("active", "trialing")):
+            return user
+
+        # иначе 402 Payment Required
+        raise HTTPException(status_code=402, detail="Payment required")
+
     return _inner
 
 def verify_csrf(request: Request):
