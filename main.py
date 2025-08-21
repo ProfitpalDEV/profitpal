@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
 from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, auth_manager as AUTH
-from security import create_session, require_user, SESSION_COOKIE, CSRF_COOKIE
+from security import set_session_cookies, create_session, require_user, SESSION_COOKIE, CSRF_COOKIE
 from referral_manager import ReferralManager
 import re
 
@@ -1350,11 +1350,15 @@ async def check_admin_status(request: Request):
 @app.post("/authenticate-user")
 async def authenticate_user_ep(request: Request, response: Response):
     """
-    Полный вход: админ (через ENV) или обычный пользователь (через auth_manager).
-    Всегда создаём server-side сессию и ставим pp_session / pp_csrf cookies.
+    Полный вход: админ по ENV или обычный пользователь через auth_manager.
+    Всегда создаём server-side сессию и ставим pp_session/pp_csrf cookies.
     """
     try:
-        body = await request.json()
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
         email       = (body.get("email") or "").strip().lower()
         license_key = (body.get("license_key") or "").strip()
         full_name   = (body.get("full_name") or "").strip() or None
@@ -1365,19 +1369,16 @@ async def authenticate_user_ep(request: Request, response: Response):
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("user-agent", "unknown")
 
-        secure_cookie = bool(SECURE_COOKIES)
-
-        # ===== Админ строго по ENV (с нормализацией ключа) =====
+        # ========= Админ строго по ENV (с нормализацией ключа) =========
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
-            if _norm_key(license_key) != _norm_key(ADMIN_LICENSE_KEY):
+            if _norm_key(license_key) != _norm_key(ADMIN_KEY):
                 return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
 
             # гарантируем наличие админа в users
             user = AUTH.get_user_by_email(email)
             if not user:
-                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_FULL_NAME)
+                created = AUTH.create_user(email=email, full_name=full_name or ADMIN_NAME)
                 if not created or not created.get("success"):
-                    # вдруг уже существует — перечитаем
                     user = AUTH.get_user_by_email(email)
                     if not user:
                         return JSONResponse({"success": False, "error": "Failed to create admin"}, status_code=500)
@@ -1386,13 +1387,12 @@ async def authenticate_user_ep(request: Request, response: Response):
             user_id = int(user["id"])
 
             token, csrf, _ = create_session(user_id, ip, ua)
-            response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
-                                httponly=True, secure=secure_cookie, samesite="lax", path="/")
-            response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
-                                httponly=False, secure=secure_cookie, samesite="lax", path="/")
+            # <<< ВАЖНО: ставим куки через унифицированную функцию
+            set_session_cookies(response, request, token, csrf, days=30)
+
             return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
-        # ===== Обычный пользователь — через auth_manager =====
+        # ========= Обычный пользователь — через auth_manager =========
         auth = authenticate_user_login(
             email=email,
             license_key=license_key,
@@ -1410,10 +1410,9 @@ async def authenticate_user_ep(request: Request, response: Response):
             return JSONResponse({"success": False, "error": "Auth result missing user_id"}, status_code=500)
 
         token, csrf, _ = create_session(int(user_id), ip, ua)
-        response.set_cookie(SESSION_COOKIE, token, max_age=30*24*3600,
-                            httponly=True, secure=secure_cookie, samesite="lax", path="/")
-        response.set_cookie(CSRF_COOKIE, csrf, max_age=30*24*3600,
-                            httponly=False, secure=secure_cookie, samesite="lax", path="/")
+        # <<< ВАЖНО: те же самые куки для обычного входа
+        set_session_cookies(response, request, token, csrf, days=30)
+
         return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
     except Exception as e:

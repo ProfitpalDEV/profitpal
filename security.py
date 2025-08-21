@@ -36,6 +36,43 @@ def create_session(user_id: int, ip: str, ua: str, days: int = 30):
         )
     return token, csrf, expires_at
 
+def set_session_cookies(
+    response: Response,
+    request: Request,
+    token: str,
+    csrf: str,
+    days: int = 30,
+    secure: bool | None = None,
+):
+    """
+    Ставит pp_session и pp_csrf на правильный домен.
+    Если хост *.profitpal.org → используем обобщённый .profitpal.org,
+    чтобы кука была видна и apex, и сабдоменам.
+    """
+    cookie_domain = request.url.hostname or None
+    if cookie_domain and cookie_domain.endswith("profitpal.org"):
+        cookie_domain = ".profitpal.org"
+
+    if secure is None:
+        secure = (request.url.scheme == "https")
+
+    max_age = days * 24 * 3600
+
+    response.set_cookie(
+        key=SESSION_COOKIE, value=token,
+        max_age=max_age, path="/",
+        httponly=True, secure=secure, samesite="Lax",
+        domain=cookie_domain,
+    )
+    response.set_cookie(
+        key=CSRF_COOKIE, value=csrf,
+        max_age=max_age, path="/",
+        httponly=False, secure=secure, samesite="Lax",
+        domain=cookie_domain,
+    )
+    # опционально для логов
+    print(f"[auth] cookies set for host={request.url.hostname} domain={cookie_domain} secure={secure} token={token[:8]}...")
+
 
 def _fetch_user_by_session(token: str) -> Optional[Dict[str, Any]]:
     """Возвращает пользователя по токену сессии. План/подписка — опциональны."""
