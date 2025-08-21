@@ -1254,6 +1254,17 @@ def debug_cookies(request: Request):
     return {"cookies": dict(request.cookies)}
 
 
+@app.get("/__debug/session")
+def dbg_session(request: Request):
+    from security import SESSION_COOKIE
+    try:
+        tok = request.cookies.get(SESSION_COOKIE)
+        u = _fetch_user_by_session(tok)  # импортируется из security.py
+        return {"pp_session_present": bool(tok), "token_len": len(tok or ""), "user": u}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
 @app.get("/api/referral-stats/me")
 def referral_stats_me(user=Depends(require_user)):
     """

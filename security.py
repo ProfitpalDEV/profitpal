@@ -23,6 +23,7 @@ def _db():
     con.row_factory = sqlite3.Row
     return con
 
+
 def create_session(user_id: int, ip: str, ua: str, days: int = 30):
     """Create server-side session in DB and return (token, csrf, expires_iso)."""
     token = secrets.token_urlsafe(32)
@@ -35,6 +36,7 @@ def create_session(user_id: int, ip: str, ua: str, days: int = 30):
             (user_id, token, expires_at, ip, ua),
         )
     return token, csrf, expires_at
+
 
 def set_session_cookies(
     response: Response,
@@ -82,15 +84,18 @@ def set_session_cookies(
         samesite="Lax",
     )
 
+
 def _fetch_user_by_session(token: str) -> Optional[Dict]:
-    """Return user dict by session token or None (без исключений/500)."""
+    """Возвращает user по токену сессии. Безопасна к отсутствующим колонкам."""
     if not token:
         return None
+
     try:
         with _db() as con:
+            # минимально-совместимый запрос
             row = con.execute(
                 """
-                SELECT u.id, u.license_key, u.is_active, u.payment_status, u.email
+                SELECT u.id, u.is_active
                 FROM user_sessions s
                 JOIN users u ON u.id = s.user_id
                 WHERE s.session_token = ?
@@ -101,25 +106,47 @@ def _fetch_user_by_session(token: str) -> Optional[Dict]:
             ).fetchone()
             if not row:
                 return None
-    except Exception:
+
+            uid = int(row["id"])
+            is_active = int(row["is_active"] or 0)
+
+            # --- ДОЧИТЫВАЕМ ОПЦИОНАЛЬНО (если колонки есть) ---
+            cols = {c[1] for c in con.execute("PRAGMA table_info(users)").fetchall()}
+
+            email = None
+            if "email" in cols:
+                r = con.execute("SELECT email FROM users WHERE id = ?", (uid,)).fetchone()
+                if r:
+                    email = r["email"]
+
+            payment_status = None
+            if "payment_status" in cols:
+                r = con.execute("SELECT payment_status FROM users WHERE id = ?", (uid,)).fetchone()
+                if r:
+                    payment_status = r["payment_status"]
+
+    except Exception as e:
+        print(f"[security] _fetch_user_by_session error: {type(e).__name__}: {e}")
         return None
 
-    # нормализуем план/подписку
     plan_type = None
-    sub = None
-    ps = (row["payment_status"] or "").lower() if "payment_status" in row.keys() else ""
-    if ps in ("completed", "active", "paid"):
-        plan_type = "lifetime"
-        sub = "active"
+    subscription_status = None
+    if payment_status is not None:
+        ps = str(payment_status).lower()
+        if ps in ("completed", "active", "paid"):
+            plan_type = "lifetime"
+            subscription_status = "active"
+        else:
+            subscription_status = "inactive"
 
     return {
-        "id": row["id"],
-        "email": row["email"] if "email" in row.keys() else None,
-        "license_key": row["license_key"],
-        "is_active": row["is_active"],
+        "id": uid,
+        "email": email,  # может быть None — это ок
+        "is_active": is_active,
         "plan_type": plan_type,
-        "subscription_status": sub,
+        "subscription_status": subscription_status,
     }
+
 
 def _plan_rank(plan: Optional[str]) -> int:
     order = {"lifetime": 3, "pro": 2, "standard": 1, "early_bird": 1}
@@ -139,14 +166,24 @@ async def require_user(request: Request):
     except Exception:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+
 def require_plan(required: Optional[str] = None):
-    """Админ по ENV проходит всегда; иначе проверяем план/подписку."""
-    async def _dep(request: Request):
+    async def _inner(request: Request):
         user = await require_user(request)
 
-        # admin bypass
         email = (user.get("email") or "").strip().lower()
-        if ADMIN_EMAIL and email == ADMIN_EMAIL:
+        is_admin = bool(ADMIN_EMAIL and email == ADMIN_EMAIL)
+
+        if not is_admin and ADMIN_EMAIL:
+            try:
+                from auth_manager import auth_manager as AUTH
+                admin_row = AUTH.get_user_by_email(ADMIN_EMAIL)
+                if admin_row and int(admin_row.get("id", 0)) == int(user.get("id", 0)):
+                    is_admin = True
+            except Exception as e:
+                print(f"[security] admin id fallback error: {e}")
+
+        if is_admin:
             return user
 
         if not required:
@@ -156,10 +193,11 @@ def require_plan(required: Optional[str] = None):
         have = _plan_rank(user.get("plan_type"))
         subs = (user.get("subscription_status") or "").lower()
 
-        if not ((have >= need) or (subs in ("active", "trialing"))):
-            raise HTTPException(status_code=402, detail="Payment required")
-        return user
-    return _dep
+        if (have >= need) or (subs in ("active", "trialing")):
+            return user
+        raise HTTPException(status_code=402, detail="Payment required")
+    return _inner
+    
 
 def verify_csrf(request: Request):
     """Double-submit cookie CSRF: header X-CSRF-Token должен совпадать с кукой."""
