@@ -10,6 +10,13 @@ from typing import Dict, Any, List, Optional, Tuple
 from cryptography.fernet import Fernet
 import base64
 
+# --- Admin config (from ENV) ---
+ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL", "").strip().lower() or "")
+ADMIN_LICENSE_KEY = os.getenv("ADMIN_LICENSE_KEY", os.getenv("ADMIN_KEY", "")).strip()
+
+# Back-compat: если где-то в коде ещё используется старое имя
+ADMIN_KEY = ADMIN_LICENSE_KEY
+
 class AuthManager:
     def __init__(self):
         # Ключ шифрования из environment variable

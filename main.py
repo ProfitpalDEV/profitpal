@@ -1421,9 +1421,6 @@ async def authenticate_user_ep(request: Request, response: Response):
         return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
 
 
-
-
-
 @app.post("/api/authenticate")
 async def api_authenticate(request: Request, response: Response):
     """API-версия — такая же логика, та же сессия"""
