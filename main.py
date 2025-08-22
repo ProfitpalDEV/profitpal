@@ -1168,6 +1168,11 @@ def serve_pp_admin_js():
     return serve_static("pp-admin.js", "application/javascript")
 
 
+@app.get("/donation-fix.js")
+def serve_donation_fix_js():
+    return serve_static("donation-fix.js", "application/javascript")
+
+
 @app.get("/api/stripe-key")
 async def get_stripe_key():
     """Return Stripe publishable key for frontend"""
