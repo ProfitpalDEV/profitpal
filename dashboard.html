@@ -1284,10 +1284,8 @@
 
         async function loadUserData() {
           try {
-            // если нет email — просто показываем demo и уходим
             if (!getUserEmail()) { showDemoData(); return; }
 
-            // пример реального API (если доступен)
             const res = await fetch('/api/referral-stats/me', { credentials: 'include' });
             const ct = res.headers.get('content-type') || '';
             if (!ct.includes('application/json')) { showDemoData(); return; }
@@ -1385,7 +1383,10 @@
         /* ========= banners: upgrade/downgrade ========= */
         function updateSubscriptionBanners() {
           const plan = (window.PP_USER?.plan_type || 'early_bird').toLowerCase();
-          const show = (id, on) => document.getElementById(id).style.display = on ? 'block' : 'none';
+          const show = (id, on) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = on ? 'block' : 'none';
+          };
           if (plan === 'pro') {
             show('proBanner', false);
             show('downgradeBanner', true);
@@ -1397,19 +1398,21 @@
         function toggleProOptions() {
           const options = document.getElementById('proOptions');
           const banner  = document.getElementById('proBanner');
+          if (!options || !banner) return;
           const open = options.style.display !== 'block';
           options.style.display = open ? 'block' : 'none';
-          banner.querySelector('.boost-expand-hint').textContent =
-            open ? 'Click to collapse ↑' : 'Click to expand upgrade options →';
+          const hint = banner.querySelector('.boost-expand-hint');
+          if (hint) hint.textContent = open ? 'Click to collapse ↑' : 'Click to expand upgrade options →';
           if (open) calculateProration('upgrade');
         }
         function toggleDowngradeOptions() {
           const options = document.getElementById('downgradeOptions');
           const banner  = document.getElementById('downgradeBanner');
+          if (!options || !banner) return;
           const open = options.style.display !== 'block';
           options.style.display = open ? 'block' : 'none';
-          banner.querySelector('.boost-expand-hint').textContent =
-            open ? 'Click to collapse ↑' : 'Click to expand downgrade options →';
+          const hint = banner.querySelector('.boost-expand-hint');
+          if (hint) hint.textContent = open ? 'Click to collapse ↑' : 'Click to expand downgrade options →';
           if (open) calculateProration('downgrade');
         }
         function calculateProration(type) {
@@ -1423,7 +1426,8 @@
             const refund    = (currentPrice / daysInMonth) * daysRemaining;
             const newCharge = (newPrice    / daysInMonth) * daysRemaining;
             const total     = newCharge - refund;
-            document.getElementById('prorationDetails').innerHTML = `
+            const el = document.getElementById('prorationDetails');
+            if (el) el.innerHTML = `
               <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} remaining (${daysInMonth} total)</div>
               <div>💸 Refund for unused Early Bird: $${refund.toFixed(2)}</div>
               <div>💳 Charge for PRO remainder: $${newCharge.toFixed(2)}</div>
@@ -1433,7 +1437,8 @@
             const refund   = (currentPrice / daysInMonth) * daysRemaining;
             const charge   = (newPrice    / daysInMonth) * daysRemaining;
             const totalRef = refund - charge;
-            document.getElementById('downgradeProrationDetails').innerHTML = `
+            const el = document.getElementById('downgradeProrationDetails');
+            if (el) el.innerHTML = `
               <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} remaining (${daysInMonth} total)</div>
               <div>💸 Refund for unused PRO: $${refund.toFixed(2)}</div>
               <div>💳 Charge for Standard remainder: $${charge.toFixed(2)}</div>
@@ -1441,68 +1446,85 @@
           }
         }
         function toggleProSubmitButton() {
-          document.getElementById('submitProUpgrade').disabled =
-            !document.getElementById('proConsent').checked;
+          const el = document.getElementById('submitProUpgrade');
+          if (el) el.disabled = !document.getElementById('proConsent')?.checked;
         }
         function toggleDowngradeSubmitButton() {
-          document.getElementById('submitDowngrade').disabled =
-            !document.getElementById('downgradeConsent').checked;
+          const el = document.getElementById('submitDowngrade');
+          if (el) el.disabled = !document.getElementById('downgradeConsent')?.checked;
         }
 
-        /* ========= donations ========= */
+        /* ========= donations (исправлено) ========= */
         let selectedDonationAmount = 0;
-        let selectedDonationType = '';
+        let selectedDonationType   = '';
 
         function toggleBoostOptions() {
           const options = document.getElementById('boostOptions');
           const banner  = document.getElementById('boostBanner');
+          if (!options || !banner) return;
           const open = options.style.display !== 'block';
           options.style.display = open ? 'block' : 'none';
-          banner.querySelector('.boost-expand-hint').textContent =
-            open ? 'Click to collapse ↑' : 'Click to expand options →';
+          const hint = banner.querySelector('.boost-expand-hint');
+          if (hint) hint.textContent = open ? 'Click to collapse ↑' : 'Click to expand options →';
         }
-        function selectDonation(amount, type) {
-          selectedDonationAmount = amount;
-          selectedDonationType   = type;
-          document.getElementById('customAmount').value = '';
-          document.querySelectorAll('.donation-btn').forEach(btn => {
-            btn.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
-            btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
-          });
-          // подсветка нажатой
-          event.target.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 193, 7, 0.2))';
-          event.target.style.borderColor = '#ff6b35';
+
+        function markSelectedTile(el){
+          document.querySelectorAll('.donation-btn').forEach(b=>b.classList.remove('selected'));
+          if (el) el.classList.add('selected');
+        }
+
+        function selectDonation(amount, type, el){
+          selectedDonationAmount = Number(amount) || 0;
+          selectedDonationType   = type || '';
+
+          // очистить кастомную сумму и её подсветку
+          const ca = document.getElementById('customAmount');
+          if (ca){ ca.value=''; ca.classList.remove('has-value'); }
+
+          // если элемент не передали (старые inline-обработчики), найдём по data-атрибутам
+          const target = el || document.querySelector(`.donation-btn[data-amount="${amount}"][data-type="${type}"]`);
+          markSelectedTile(target);
+
           toggleSubmitButton();
         }
-        function selectCustomDonation() {
-          const v = parseInt(document.getElementById('customAmount').value, 10);
-          if (v && v > 0) {
-            selectedDonationAmount = v;
-            selectedDonationType   = 'custom';
-            document.querySelectorAll('.donation-btn').forEach(btn => {
-              btn.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
-              btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
-            });
-          }
+
+        function onCustomAmountInput(e){
+          const v  = parseInt(e.target.value, 10);
+          const ok = Number.isFinite(v) && v > 0;
+
+          selectedDonationAmount = ok ? v : 0;
+          selectedDonationType   = ok ? 'custom' : '';
+
+          e.target.classList.toggle('has-value', ok);
+          // снять выделение с пресет-кнопок
+          document.querySelectorAll('.donation-btn').forEach(b=>b.classList.remove('selected'));
+
           toggleSubmitButton();
         }
+
         function toggleSubmitButton() {
-          const consent = document.getElementById('donationConsent').checked; // <-- правильный id
+          const consent = !!document.getElementById('donationConsent')?.checked;
           const hasAmount = selectedDonationAmount > 0;
-          document.getElementById('submitDonation').disabled = !(consent && hasAmount);
+          const btn = document.getElementById('submitDonation');
+          if (btn) btn.disabled = !(consent && hasAmount);
         }
+
         async function processDonation() {
           if (selectedDonationAmount <= 0) { alert('Please select a donation amount'); return; }
-          const authorized = document.getElementById('donationConsent').checked; // <-- правильный id
+
+          const consent    = !!document.getElementById('donationConsent')?.checked;
+          const authorized = !!document.getElementById('authorizeDonation')?.checked; // если второй чек есть
+
+          if (!consent)    { alert('Please agree to the terms'); return; }
           if (!authorized) { alert('Please check "I authorize this transaction"'); return; }
 
           const btn = document.getElementById('submitDonation');
-          btn.textContent = 'Processing...'; btn.disabled = true;
+          if (btn){ btn.textContent = 'Processing...'; btn.disabled = true; }
 
           try {
             await apiPost('/api/process-donation', {
               amount: selectedDonationAmount,
-              type: selectedDonationType,
+              type:   selectedDonationType,
               authorized: true
             });
             showDonationSuccess();
@@ -1510,34 +1532,42 @@
             resetDonationForm();
           } catch (e) {
             console.error('Donation error:', e);
-            alert('Donation failed. Please try again.');
+            alert(`Donation failed. Please try again.\n${e.message || ''}`);
           } finally {
-            btn.textContent = 'BOOST NOW'; btn.disabled = false;
+            if (btn){ btn.textContent = 'BOOST NOW'; btn.disabled = false; }
           }
         }
+
         function showDonationSuccess() {
           const el = document.createElement('div');
           el.className = 'copy-success';
           let msg = '💎 Thank you for supporting ProfitPal! ';
-          if (selectedDonationType === 'coffee')  msg += 'I love black coffee, thank you! ☕';
-          else if (selectedDonationType === 'milk') msg += 'Black coffee with milk — wow! 🥛';
-          else if (selectedDonationType === 'features') msg += 'Features are coming! 🚀';
-          else msg += 'Huge thanks for recognizing my work! 💝';
+          if (selectedDonationType === 'coffee')       msg += 'I love black coffee, thank you! ☕';
+          else if (selectedDonationType === 'milk')    msg += 'Black coffee with milk — wow! 🥛';
+          else if (selectedDonationType === 'features')msg += 'Features are coming! 🚀';
+          else                                         msg += 'Huge thanks for recognizing my work! 💝';
           el.textContent = msg;
           document.body.appendChild(el);
           setTimeout(() => el.remove(), 4000);
         }
+
         function resetDonationForm() {
           selectedDonationAmount = 0;
           selectedDonationType   = '';
-          document.getElementById('customAmount').value = '';
-          document.getElementById('donationConsent').checked = false;
-          document.querySelectorAll('.donation-btn').forEach(btn => {
-            btn.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
-            btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
-          });
+
+          document.querySelectorAll('.donation-btn').forEach(b=>b.classList.remove('selected'));
+
+          const ca = document.getElementById('customAmount');
+          if (ca){ ca.value=''; ca.classList.remove('has-value'); }
+
+          const dc = document.getElementById('donationConsent');
+          if (dc) dc.checked = false;
+
+          const auth = document.getElementById('authorizeDonation');
+          if (auth) auth.checked = false;
+
           const btn = document.getElementById('submitDonation');
-          btn.textContent = 'BOOST NOW'; btn.disabled = true;
+          if (btn){ btn.textContent = 'BOOST NOW'; btn.disabled = true; }
         }
 
         /* ========= misc ========= */
@@ -1550,9 +1580,11 @@
             document.body.appendChild(div);
             setTimeout(() => div.remove(), 2000);
             const banner = document.querySelector('.referral-banner');
-            banner.style.transform = 'translateY(-3px) scale(1.02)';
-            banner.style.borderColor = '#32cd32';
-            setTimeout(() => { banner.style.transform = ''; banner.style.borderColor = ''; }, 500);
+            if (banner){
+              banner.style.transform = 'translateY(-3px) scale(1.02)';
+              banner.style.borderColor = '#32cd32';
+              setTimeout(() => { banner.style.transform = ''; banner.style.borderColor = ''; }, 500);
+            }
           } catch {
             const ta = document.createElement('textarea');
             ta.value = userData.referralLink; document.body.appendChild(ta);
@@ -1597,10 +1629,14 @@
 
         /* ========= boot ========= */
         document.addEventListener('DOMContentLoaded', () => {
-          showDemoData();           // мгновенно заполняем чем-то
-          loadUserData();           // а потом — реальными данными (если есть)
+          // demo → real
+          showDemoData();
+          loadUserData();
+
+          // анимация/баннеры
           animateFreeMonths();
           updateSubscriptionBanners();
+
           // плавное появление карточек
           document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner')
             .forEach((card, i) => {
@@ -1610,7 +1646,28 @@
                 card.style.opacity = '1'; card.style.transform = 'translateY(0)';
               }, i * 200);
             });
+
+          /* ==== привязка событий для донатов (без inline) ==== */
+          document.querySelectorAll('.donation-btn').forEach(btn=>{
+            const amount = parseInt(btn.dataset.amount, 10);
+            const type   = btn.dataset.type || '';
+            btn.addEventListener('click', () => selectDonation(amount, type, btn));
+          });
+          const ca = document.getElementById('customAmount');
+          if (ca) ca.addEventListener('input', onCustomAmountInput);
+
+          const dc = document.getElementById('donationConsent');
+          if (dc) dc.addEventListener('change', toggleSubmitButton);
+
+          const auth = document.getElementById('authorizeDonation');
+          if (auth) auth.addEventListener('change', toggleSubmitButton);
+
+          const submit = document.getElementById('submitDonation');
+          if (submit) submit.addEventListener('click', processDonation);
+
+          toggleSubmitButton();
         });
+
         // автоподгрузка раз в 5 минут
         setInterval(loadUserData, 300000);
         </script>
