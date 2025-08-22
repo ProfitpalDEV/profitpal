@@ -979,58 +979,75 @@ def _resolve_user_id_or_none(email: str, license_key: str, result: dict):
 # ===== helper: ensure admin exists and return user_id =====
 def ensure_admin_user_id(email: str, full_name: str, license_key: str) -> int:
     """
-    Гарантированно возвращает user_id для админа.
-    Пробуем разные пути, чтобы не упасть из-за различий в auth_manager.
+    Возвращает user_id админа надёжно:
+    1) пробуем найти через AUTH.get_user_by_email (он знает про шифрование);
+    2) если не нашли — ищем по license_key прямо в БД (если колонка есть);
+    3) если нет пользователя — создаём (create_new_user или AUTH.create_user);
+    4) приводим users.license_key к значению из ENV (если колонка есть).
     """
-    # 1) Есть ли уже такой пользователь?
+    # 1) поиск через менеджер (шифрованный email)
+    user_id = None
     try:
         u = AUTH.get_user_by_email(email)
         if u and u.get("id"):
-            return int(u["id"])
+            user_id = int(u["id"])
     except Exception as e:
         print(f"[admin] get_user_by_email failed: {e}")
 
-    # 2) Высокоуровневая функция (если есть)
-    try:
-        if 'create_new_user' in globals():
-            res = create_new_user(email=email,
-                                  full_name=full_name,
-                                  license_key=license_key)
-            if isinstance(res,
-                          dict) and res.get("success") and res.get("user_id"):
-                return int(res["user_id"])
-    except Exception as e:
-        print(f"[admin] create_new_user failed: {e}")
+    with _db() as con:
+        con.row_factory = sqlite3.Row
+        cols = {c[1] for c in con.execute("PRAGMA table_info(users)").fetchall()}
 
-    # 3) Метод менеджера с разными сигнатурами
-    try:
-        res = AUTH.create_user(email=email,
-                               full_name=full_name,
-                               license_key=license_key)
-        if isinstance(res, dict) and res.get("success") and res.get("user_id"):
-            return int(res["user_id"])
-    except TypeError:
-        # у кого-то create_user без license_key — пробуем так
-        try:
-            res = AUTH.create_user(email=email, full_name=full_name)
-            if isinstance(res,
-                          dict) and res.get("success") and res.get("user_id"):
-                return int(res["user_id"])
-        except Exception as e2:
-            print(f"[admin] create_user(no key) failed: {e2}")
-    except Exception as e:
-        print(f"[admin] create_user failed: {e}")
+        # 2) поиск по license_key, если колонка есть
+        if user_id is None and "license_key" in cols:
+            r = con.execute("SELECT id FROM users WHERE license_key = ? LIMIT 1", (license_key,)).fetchone()
+            if r:
+                user_id = int(r["id"])
 
-    # 4) На случай UNIQUE race — проверим ещё раз
-    try:
-        u = AUTH.get_user_by_email(email)
-        if u and u.get("id"):
-            return int(u["id"])
-    except Exception as e:
-        print(f"[admin] second get_user_by_email failed: {e}")
+        # 3) создание пользователя при отсутствии
+        if user_id is None:
+            created = None
+            # 3.1) высокая обёртка, если доступна
+            try:
+                if 'create_new_user' in globals():
+                    created = create_new_user(email=email, full_name=full_name, license_key=license_key)
+            except Exception as e:
+                print(f"[admin] create_new_user failed: {e}")
 
-    raise RuntimeError(
-        "ensure_admin_user_id: could not create/find admin user")
+            # 3.2) прямой метод менеджера (варианты сигнатур)
+            if not (created and created.get("success") and created.get("user_id")):
+                try:
+                    created = AUTH.create_user(email=email, full_name=full_name, license_key=license_key)
+                except TypeError:
+                    try:
+                        created = AUTH.create_user(email=email, full_name=full_name)
+                    except Exception as e2:
+                        print(f"[admin] create_user(no key) failed: {e2}")
+                except Exception as e:
+                    print(f"[admin] create_user failed: {e}")
+
+            if created and created.get("success") and created.get("user_id"):
+                user_id = int(created["user_id"])
+            else:
+                # 3.3) на случай гонки/UNIQUE — перечитываем
+                try:
+                    u2 = AUTH.get_user_by_email(email)
+                    if u2 and u2.get("id"):
+                        user_id = int(u2["id"])
+                except Exception as e:
+                    print(f"[admin] second get_user_by_email failed: {e}")
+
+        if not user_id:
+            raise RuntimeError("ensure_admin_user_id: could not create/find admin user")
+
+        # 4) нормализуем license_key в БД под ENV (если колонка есть)
+        if "license_key" in cols:
+            try:
+                con.execute("UPDATE users SET license_key = ? WHERE id = ?", (license_key, user_id))
+            except Exception as e:
+                print(f"[admin] license_key update skipped: {e}")
+
+    return user_id
 
 
 # ==========================================
@@ -1521,113 +1538,53 @@ async def check_admin_status(request: Request):
 @app.post("/authenticate-user")
 async def authenticate_user_ep(request: Request, response: Response):
     """
-    Админ по ENV → вход по email+license_key без оплаты.
-    Обычный пользователь → через auth_manager.authenticate_user_login.
-    Всегда: создаём server-side сессию и ставим pp_session / pp_csrf.
+    Админ по ENV → вход по email+license_key (без оплаты).
+    Остальные → через auth_manager.authenticate_user_login.
+    Всегда создаём серверную сессию и ставим pp_session / pp_csrf.
     """
     try:
         # ---- parse body ----
         try:
             body = await request.json()
         except Exception:
-            return JSONResponse({
-                "success": False,
-                "error": "Invalid JSON"
-            },
-                                status_code=400)
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
 
-        email = (body.get("email") or "").strip().lower()
+        email       = (body.get("email") or "").strip().lower()
         license_key = (body.get("license_key") or "").strip()
-        full_name = (body.get("full_name") or "").strip() or None
+        full_name   = (body.get("full_name") or "").strip() or None
 
         if not email or not license_key:
-            return JSONResponse(
-                {
-                    "success": False,
-                    "error": "Email and license key required"
-                },
-                status_code=400)
+            return JSONResponse({"success": False, "error": "Email and license key required"}, status_code=400)
 
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("user-agent", "unknown")
 
         def _norm(s: str) -> str:
-            return "".join(ch for ch in (s or "").strip().upper()
-                           if ch.isalnum())
+            return "".join(ch for ch in (s or "").strip().upper() if ch.isalnum())
 
         # =========================
         # === ADMIN BYPASS PATH ===
         # =========================
         if ADMIN_EMAIL and email == ADMIN_EMAIL:
-            if _norm(license_key) != _norm(ADMIN_LICENSE_KEY):
-                return JSONResponse(
-                    {
-                        "success": False,
-                        "error": "Invalid admin credentials"
-                    },
-                    status_code=401)
+            if _norm(license_key) != _norm(ADMIN_LICENSE_KEY):  # привязка к ключу из ENV (а не к email)
+                return JSONResponse({"success": False, "error": "Invalid admin credentials"}, status_code=401)
 
-            # гарантируем наличие админа в users
-            user = None
+            # надёжно находим/создаём и синхронизируем ключ
             try:
-                user = AUTH.get_user_by_email(email)
+                user_id = ensure_admin_user_id(
+                    email=email,
+                    full_name=(full_name or ADMIN_FULL_NAME),
+                    license_key=license_key,  # уже проверен по ENV
+                )
             except Exception as e:
-                print(f"[admin] get_user_by_email failed: {e}")
-
-            user_id: int | None = None
-            if user and user.get("id"):
-                user_id = int(user["id"])
-            else:
-                # 1) пробуем высокоуровневую функцию, если она есть
-                try:
-                    if 'create_new_user' in globals():
-                        r = create_new_user(email=email,
-                                            full_name=(full_name
-                                                       or ADMIN_FULL_NAME),
-                                            license_key=license_key)
-                        if isinstance(r, dict) and r.get("success") and r.get(
-                                "user_id"):
-                            user_id = int(r["user_id"])
-                except Exception as e:
-                    print(f"[admin] create_new_user failed: {e}")
-
-                # 2) пробуем метод менеджера с разными сигнатурами
-                if user_id is None:
-                    try:
-                        r = AUTH.create_user(email=email,
-                                             full_name=(full_name
-                                                        or ADMIN_FULL_NAME))
-                        if isinstance(r, dict) and r.get("success") and r.get(
-                                "user_id"):
-                            user_id = int(r["user_id"])
-                    except Exception as e:
-                        print(f"[admin] create_user failed: {e}")
-
-                # 3) на случай race/UNIQUE — перечитываем
-                if user_id is None:
-                    try:
-                        user = AUTH.get_user_by_email(email)
-                        if user and user.get("id"):
-                            user_id = int(user["id"])
-                    except Exception as e:
-                        print(f"[admin] second get_user_by_email failed: {e}")
-
-                if user_id is None:
-                    return JSONResponse(
-                        {
-                            "success": False,
-                            "error": "Failed to create admin"
-                        },
-                        status_code=500)
+                import traceback
+                print(f"❌ ensure_admin_user_id error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+                return JSONResponse({"success": False, "error": "Failed to create admin"}, status_code=500)
 
             # создаём сессию и ставим куки
             token, csrf, _ = create_session(user_id, ip, ua)
             set_session_cookies(response, request, token, csrf, days=30)
-            return {
-                "success": True,
-                "authenticated": True,
-                "redirect": "/dashboard"
-            }
+            return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
         # ==========================
         # === REGULAR USER PATH ===
@@ -1642,25 +1599,16 @@ async def authenticate_user_ep(request: Request, response: Response):
             )
         except Exception as e:
             print(f"[auth] authenticate_user_login call failed: {e}")
-            return JSONResponse({
-                "success": False,
-                "error": "Auth call failed"
-            },
-                                status_code=500)
+            return JSONResponse({"success": False, "error": "Auth call failed"}, status_code=500)
 
         if not auth or not auth.get("authenticated"):
             err = (auth or {}).get("error", "Invalid credentials")
-            return JSONResponse({
-                "success": False,
-                "error": err
-            },
-                                status_code=401)
+            return JSONResponse({"success": False, "error": err}, status_code=401)
 
         user = auth.get("user") or {}
         user_id = user.get("id") or auth.get("user_id")
-
         if not user_id:
-            # последний шанс — по email из БД
+            # последний шанс — перечитать по email через менеджер
             try:
                 u2 = AUTH.get_user_by_email(email)
                 if u2 and u2.get("id"):
@@ -1669,32 +1617,16 @@ async def authenticate_user_ep(request: Request, response: Response):
                 print(f"[auth] fallback get_user_by_email failed: {e}")
 
         if not user_id:
-            return JSONResponse(
-                {
-                    "success": False,
-                    "error": "Auth result missing user_id"
-                },
-                status_code=500)
+            return JSONResponse({"success": False, "error": "Auth result missing user_id"}, status_code=500)
 
         token, csrf, _ = create_session(int(user_id), ip, ua)
         set_session_cookies(response, request, token, csrf, days=30)
-        return {
-            "success": True,
-            "authenticated": True,
-            "redirect": "/dashboard"
-        }
+        return {"success": True, "authenticated": True, "redirect": "/dashboard"}
 
     except Exception as e:
         import traceback
-        print(
-            f"❌ authenticate_user_ep error: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-        )
-        return JSONResponse(
-            {
-                "success": False,
-                "error": f"{type(e).__name__}: {e}"
-            },
-            status_code=500)
+        print(f"❌ authenticate_user_ep error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        return JSONResponse({"success": False, "error": f"{type(e).__name__}: {e}"}, status_code=500)
 
 
 @app.post("/api/authenticate")
