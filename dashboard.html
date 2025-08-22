@@ -1204,363 +1204,60 @@
         © 2025 ProfitPal. A product of Denava LLC. All rights reserved.
     </footer>
 
-    <script>
-        // 🔥 ПРАВИЛЬНАЯ ЛОГИКА - ДАННЫЕ ИЗ API
-        let userData = {
-            fullName: "Loading...",
-            email: "loading@example.com",
-            referralLink: "https://profitpal.org?ref=LOADING...",
-            freeMonthsBalance: 0,        // Остаток free months
-            totalPaidReferrals: 0,       // Кол-во друзей, которые ЗАПЛАТИЛИ $29.99
-            totalEarnedMonths: 0,        // Всего earned months за все время
-            recentReferrals: []          // Список друзей с датами
-        };
+        <script>
+        'use strict';
 
-        // 🔥 DONATION СИСТЕМА
-        let selectedDonationAmount = 0;
-        let selectedDonationType = '';
-        // 🔥 PRO SUBSCRIPTION LOGIC
-        function toggleProOptions() {
-            const options = document.getElementById('proOptions');
-            const banner = document.getElementById('proBanner');
-
-            if (options.style.display === 'none') {
-                options.style.display = 'block';
-                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
-                calculateProration('upgrade');
-            } else {
-                options.style.display = 'none';
-                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand upgrade options →';
-            }
+        /* ========= helpers ========= */
+        async function apiGet(url) {
+          const r = await fetch(url, { credentials: 'include' });
+          if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+          return r.json();
         }
-
-        // 🚀 ФУНКЦИЯ ПЕРЕХОДА НА ПОЛНЫЙ АНАЛИЗ С ТИКЕРОМ  
-        function goToFullAnalysis() {
-            const ticker = document.getElementById('quickTicker').value.toUpperCase().trim();
-            if (!ticker) {
-                alert('Please enter a ticker first');
-                return;
-            }
-            console.log('🎯 Going to full analysis with ticker:', ticker);
-            window.location.href = `/stock-analysis?ticker=${ticker}`;
-        }
-
-
-        function toggleDowngradeOptions() {
-            const options = document.getElementById('downgradeOptions');
-            const banner = document.getElementById('downgradeBanner');
-
-            if (options.style.display === 'none') {
-                options.style.display = 'block';
-                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
-                calculateProration('downgrade');
-            } else {
-                options.style.display = 'none';
-                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand downgrade options →';
-            }
-        }
-
-        function calculateProration(type) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1;
-            const day = today.getDate();
-
-            // Get days in current month using calendar
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const daysUsed = day - 1;
-            const daysRemaining = daysInMonth - daysUsed;
-
-            if (type === 'upgrade') {
-                // Early Bird $9.99 → PRO $49.99
-                const currentPrice = 9.99;
-                const newPrice = 49.99;
-                const dailyRateCurrent = currentPrice / daysInMonth;
-                const dailyRateNew = newPrice / daysInMonth;
-
-                const refund = dailyRateCurrent * daysRemaining;
-                const newCharge = dailyRateNew * daysRemaining;
-                const totalCharge = newCharge - refund;
-
-                document.getElementById('prorationDetails').innerHTML = `
-                    <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} days remaining (${daysInMonth} total)</div>
-                    <div>💸 Refund for unused Early Bird: $${refund.toFixed(2)}</div>
-                    <div>💳 Charge for PRO remainder: $${newCharge.toFixed(2)}</div>
-                    <div style="font-weight: bold; color: #ffd700; margin-top: 10px;">
-                        💰 Total charge today: $${totalCharge.toFixed(2)}
-                    </div>
-                `;
-            } else {
-                // PRO $49.99 → Standard $14.99
-                const currentPrice = 49.99;
-                const newPrice = 14.99;
-                const dailyRateCurrent = currentPrice / daysInMonth;
-                const dailyRateNew = newPrice / daysInMonth;
-
-                const refund = dailyRateCurrent * daysRemaining;
-                const newCharge = dailyRateNew * daysRemaining;
-                const totalRefund = refund - newCharge;
-
-                document.getElementById('downgradeProrationDetails').innerHTML = `
-                    <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} days remaining (${daysInMonth} total)</div>
-                    <div>💸 Refund for unused PRO: $${refund.toFixed(2)}</div>
-                    <div>💳 Charge for Standard remainder: $${newCharge.toFixed(2)}</div>
-                    <div style="font-weight: bold; color: #87ceeb; margin-top: 10px;">
-                        💰 Total refund: $${totalRefund.toFixed(2)}
-                    </div>
-                `;
-            }
-        }
-
-        function toggleProSubmitButton() {
-            const consent = document.getElementById('proConsent').checked;
-            const submitBtn = document.getElementById('submitProUpgrade');
-            submitBtn.disabled = !consent;
-        }
-
-        function toggleDowngradeSubmitButton() {
-            const consent = document.getElementById('downgradeConsent').checked;
-            const submitBtn = document.getElementById('submitDowngrade');
-            submitBtn.disabled = !consent;
-        }
-
-        async function processProUpgrade() {
-            alert('🚀 PRO Package upgrade will be available soon! Options trading features are in development.');
-            // TODO: Implement actual upgrade logic when options API is ready
-        }
-
-        async function processDowngrade() {
-            alert('⬇️ Downgrade functionality will be available when PRO package launches!');
-            // TODO: Implement actual downgrade logic
-        }
-
-        // Show appropriate banner based on user's current plan
-        function updateSubscriptionBanners() {
-            const userPlan = getCurrentUserPlan(); // This would come from API
-
-            if (userPlan === 'early_bird' || userPlan === 'standard') {
-                document.getElementById('proBanner').style.display = 'block';
-                document.getElementById('downgradeBanner').style.display = 'none';
-            } else if (userPlan === 'pro') {
-                document.getElementById('proBanner').style.display = 'none';
-                document.getElementById('downgradeBanner').style.display = 'block';
-            }
-        }
-
-        function getCurrentUserPlan() {
-            // TODO: Get from API, for now return demo
-            return 'early_bird'; // or 'standard', 'pro'
-        }
-
-        function toggleBoostOptions() {
-            const options = document.getElementById('boostOptions');
-            const banner = document.getElementById('boostBanner');
-
-            if (options.style.display === 'none') {
-                options.style.display = 'block';
-                banner.querySelector('.boost-expand-hint').textContent = 'Click to collapse ↑';
-            } else {
-                options.style.display = 'none';
-                banner.querySelector('.boost-expand-hint').textContent = 'Click to expand options →';
-            }
-        }
-
-        function selectDonation(amount, type) {
-            selectedDonationAmount = amount;
-            selectedDonationType = type;
-
-            // Reset custom amount if preset selected
-            document.getElementById('customAmount').value = '';
-
-            // Highlight selected button
-            document.querySelectorAll('.donation-btn').forEach(btn => {
-                btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
-                btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
-            });
-
-            event.target.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 193, 7, 0.2))';
-            event.target.style.borderColor = '#ff6b35';
-
-            toggleSubmitButton();
-        }
-
-        function selectCustomDonation() {
-            const customAmount = parseInt(document.getElementById('customAmount').value);
-            if (customAmount && customAmount > 0) {
-                selectedDonationAmount = customAmount;
-                selectedDonationType = 'custom';
-
-                // Reset preset buttons
-                document.querySelectorAll('.donation-btn').forEach(btn => {
-                    btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
-                    btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
-                });
-            }
-
-            toggleSubmitButton();
-        }
-
-        function toggleSubmitButton() {
-            const consent = document.getElementById('donationConsent').checked;
-            const hasAmount = selectedDonationAmount > 0;
-            const submitBtn = document.getElementById('submitDonation');
-
-            submitBtn.disabled = !(consent && hasAmount);
-        }
-
-        async function processDonation() {
-          if (selectedDonationAmount <= 0) {
-            alert('Please select a donation amount');
-            return;
+        async function apiPost(url, data) {
+          const r = await fetch(url, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data || {})
+          });
+          if (!r.ok) {
+            let detail = '';
+            try { detail = (await r.json()).detail || ''; } catch {}
+            throw new Error(`${r.status} ${r.statusText} ${detail}`.trim());
           }
-
-          // галочка "I authorize this transaction"
-          const authorized = document.getElementById('authorizeDonation')?.checked;
-          if (!authorized) {
-            alert('Please check "I authorize this transaction"');
-            return;
-          }
-
-          const submitBtn = document.getElementById('submitDonation');
-          submitBtn.textContent = 'Processing...';
-          submitBtn.disabled = true;
-
-          try {
-            // отправляем только то, что нужно; email НЕ отправляем
-            await apiPost('/api/process-donation', {
-              amount: selectedDonationAmount,
-              type: selectedDonationType,
-              authorized: authorized
-            });
-
-            // успех — оставляем твою логику
-            showDonationSuccess();
-            toggleBoostOptions();    // Close options
-            resetDonationForm();
-
-          } catch (error) {
-            console.error('Donation error:', error);
-            alert('Donation failed. Please try again.');
-          } finally {
-            submitBtn.textContent = 'BOOST NOW';
-            submitBtn.disabled = false;
-          }
+          return r.json();
         }
 
-
-        function showDonationSuccess() {
-            const successDiv = document.createElement('div');
-            successDiv.className = 'copy-success';
-
-            let message = '💎 Thank you for supporting ProfitPal! ';
-            if (selectedDonationType === 'coffee') {
-                message += 'I love black coffee, thank you dear person! ☕';
-            } else if (selectedDonationType === 'milk') {
-                message += 'Oh! Black coffee with milk! You amazing human! 🥛';
-            } else if (selectedDonationType === 'features') {
-                message += 'Features are coming, this will be awesome! 🚀';
-            } else {
-                message += 'Huge thanks for recognizing my work! 💝';
-            }
-
-            successDiv.textContent = message;
-            document.body.appendChild(successDiv);
-
-            setTimeout(() => {
-                document.body.removeChild(successDiv);
-            }, 4000);
-        }
-
-        function resetDonationForm() {
-            selectedDonationAmount = 0;
-            selectedDonationType = '';
-            document.getElementById('customAmount').value = '';
-            document.getElementById('donationConsent').checked = false;
-
-            // Reset button styles
-            document.querySelectorAll('.donation-btn').forEach(btn => {
-                btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
-                btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
-            });
-
-            const submitBtn = document.getElementById('submitDonation');
-            submitBtn.textContent = 'BOOST NOW';
-            submitBtn.disabled = true;
-        }
-
-        // признак админа из серверной сессии
+        /* ========= session =========
+           pp-auth.js уже сделал ensureSessionOrRedirect()
+           и положил объект в window.PP_USER + data-is-admin на <html> */
         function isAdmin() {
           return !!(window.PP_USER && window.PP_USER.is_admin);
         }
-
-
-        // 🔥 ЗАГРУЗКА ДАННЫХ ИЗ API
-        async function loadUserData() {
-            try {
-                // Получаем email пользователя из URL или localStorage
-                const userEmail = getUserEmail();
-
-                if (!userEmail) {
-                    console.log('User email not found, using demo data');
-                    showDemoData();
-                    return;
-                }
-
-                console.log('Loading referral data for:', userEmail);
-
-                // API запрос за referral статистикой
-                const response = await fetch('/api/referral-stats/me', { credentials: 'include' });
-
-
-                // Проверяем что ответ действительно JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    console.log('API endpoint not available, using demo data');
-                    showDemoData();
-                    return;
-                }
-
-                const data = await response.json();
-
-                if (data.error) {
-                    console.log('No referral data found:', data.error);
-                    showDemoData();
-                    return;
-                }
-
-                // Обновляем userData из API
-                if (data.referral_info) {
-                    userData.referralLink = data.referral_info.referral_link;
-                    userData.freeMonthsBalance = data.referral_info.free_months_balance;
-                    userData.totalPaidReferrals = data.referral_info.total_referrals;
-                    userData.totalEarnedMonths = data.referral_info.total_earned_months;
-                }
-
-                if (data.recent_referrals) {
-                    userData.recentReferrals = data.recent_referrals;
-                }
-
-                console.log('✅ Referral data loaded successfully');
-                updateUI();
-
-            } catch (error) {
-                console.log('API не доступен, показываем demo данные:', error);
-                showDemoData();
-            }
+        function getUserEmail() {
+          if (window.PP_USER?.email) return window.PP_USER.email;
+          const urlEmail = new URLSearchParams(location.search).get('email');
+          return urlEmail || null;        // если нет — будем показывать demo
         }
 
-        // 🔧 ИСПРАВЛЕННАЯ ФУНКЦИЯ showDemoData() - ADMIN ИЛИ DEMO ДАННЫЕ
+        /* ========= referral demo/state ========= */
+        let userData = {
+          fullName: "Loading...",
+          email: "loading@example.com",
+          referralLink: "https://profitpal.org?ref=LOADING...",
+          freeMonthsBalance: 0,
+          totalPaidReferrals: 0,
+          totalEarnedMonths: 0,
+          recentReferrals: []
+        };
+
         function showDemoData() {
-          const email =
-            (window.PP_USER && window.PP_USER.email) ||
-            new URLSearchParams(location.search).get('email') ||
-            'dj@profitpal.org';
+          const email = getUserEmail() || 'dj@profitpal.org';
 
           if (isAdmin()) {
-            // демо для админа
             userData = {
               fullName: "System Administrator",
-              email: email,
+              email,
               referralLink: "https://profitpal.org?ref=ADMIN-SYSTEM-ACCESS",
               freeMonthsBalance: 999,
               totalPaidReferrals: 0,
@@ -1568,10 +1265,9 @@
               recentReferrals: []
             };
           } else {
-            // демо для обычного пользователя
             userData = {
               fullName: "DJ Investor",
-              email: email,
+              email,
               referralLink: "https://profitpal.org?ref=ABCDE12345fghij",
               freeMonthsBalance: 3,
               totalPaidReferrals: 3,
@@ -1583,27 +1279,45 @@
               ]
             };
           }
-
           updateUI();
         }
 
-                console.log('👤 Client demo data loaded for:', userEmail);
-            }
+        async function loadUserData() {
+          try {
+            // если нет email — просто показываем demo и уходим
+            if (!getUserEmail()) { showDemoData(); return; }
 
-            // 🎨 Обновляем UI с правильными данными
+            // пример реального API (если доступен)
+            const res = await fetch('/api/referral-stats/me', { credentials: 'include' });
+            const ct = res.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) { showDemoData(); return; }
+
+            const data = await res.json();
+            if (data?.error) { showDemoData(); return; }
+
+            if (data.referral_info) {
+              userData.referralLink       = data.referral_info.referral_link;
+              userData.freeMonthsBalance  = data.referral_info.free_months_balance;
+              userData.totalPaidReferrals = data.referral_info.total_referrals;
+              userData.totalEarnedMonths  = data.referral_info.total_earned_months;
+            }
+            if (data.recent_referrals) {
+              userData.recentReferrals = data.recent_referrals;
+            }
             updateUI();
+          } catch (e) {
+            console.log('Referral API unavailable, using demo:', e);
+            showDemoData();
+          }
         }
 
+        /* ========= UI ========= */
         function updateUI() {
-          // ✅ Правильные расчёты
           const freeMonths  = Number(userData.freeMonthsBalance || 0);
           const paidFriends = Number(userData.totalPaidReferrals || 0);
-          const moneySaved  = Number(userData.totalEarnedMonths || 0) * 9.99; // NEW PRICING
+          const moneySaved  = Number(userData.totalEarnedMonths || 0) * 9.99; // новая цена
 
-          // ✅ Флаг админа ставит ensureSessionOrRedirect() → <html data-is-admin="1">
-          const isAdmin = document.documentElement.dataset.isAdmin === '1';
-
-          // ===== Основные счётчики =====
+          // counters
           const $ref   = document.getElementById('referral-link');
           const $free  = document.getElementById('free-months-count');
           const $paid  = document.getElementById('paid-friends-count');
@@ -1614,255 +1328,292 @@
           if ($paid) $paid.textContent = paidFriends;
           if ($saved)$saved.textContent = `$${moneySaved.toFixed(2)}`;
 
-          // ===== Пользовательский блок: инициалы и приветствие — только для НЕ-админа =====
-          // (для админа визуал делает pp-admin.js + admin.css, здесь не трогаем)
+          // greeting/avatar — только не для админа (админу рисует pp-admin.js)
           const avatarEl = document.getElementById('user-avatar');
           const greetEl  = document.getElementById('user-greeting');
           const first    = (userData.fullName || '').split(' ')[0] || 'User';
 
-          if (!isAdmin) {
+          if (!isAdmin()) {
             const initials = (userData.fullName || '')
               .split(' ')
               .filter(Boolean)
               .map(s => s[0])
               .join('');
-
             if (avatarEl) avatarEl.textContent = initials || '🙂';
             if (greetEl)  greetEl.textContent  = `Welcome back, ${first}!`;
-            if (typeof updateGreeting === 'function') updateGreeting(first);
+            updateGreeting(first);
           } else {
-            // для админа заголовок — “Admin” (визуал уже рисуется снаружи)
-            if (typeof updateGreeting === 'function') updateGreeting('Admin');
+            updateGreeting('Admin');
           }
 
-          // ===== Friends section: показываем только если есть оплаченные рефералы =====
+          // friends block
           const friendsSection = document.getElementById('referral-friends-section');
           if (friendsSection) {
             if (paidFriends > 0) {
               friendsSection.style.display = 'block';
-              if (typeof updateFriendsList === 'function') updateFriendsList();
-              if (typeof updateProgress === 'function')    updateProgress();
+              updateProgress();
+              updateNextBilling();
             } else {
               friendsSection.style.display = 'none';
             }
           }
-
-          // ===== Информация о следующем биллинге =====
-          if (typeof updateNextBilling === 'function') updateNextBilling();
         }
-
 
         function updateProgress() {
-            const current = userData.totalPaidReferrals;
-            const target = 12; // 12 друзей для бесплатного года
-            const percentage = Math.min((current / target) * 100, 100);
-
-            document.getElementById('progress-bar').style.width = `${percentage}%`;
-
-            const remaining = Math.max(target - current, 0);
-            document.getElementById('progress-text').textContent = 
-                `${current} of ${target} friends joined • ${remaining} more for a FREE YEAR! 🎁`;
+          const current = userData.totalPaidReferrals;
+          const target = 12;
+          const pct = Math.min((current / target) * 100, 100);
+          document.getElementById('progress-bar').style.width = `${pct}%`;
+          document.getElementById('progress-text').textContent =
+            `${current} of ${target} friends joined • ${Math.max(target - current, 0)} more for a FREE YEAR! 🎁`;
         }
-
         function updateNextBilling() {
-            const freeMonths = userData.freeMonthsBalance;
-            const billingInfo = document.getElementById('next-billing-info');
-
-            if (freeMonths > 0) {
-                billingInfo.textContent = `Next ${freeMonths} billing${freeMonths > 1 ? 's' : ''}: FREE!`;
-                billingInfo.style.background = 'rgba(50, 205, 50, 0.1)';
-                billingInfo.style.color = '#32cd32';
-            } else {
-                billingInfo.textContent = 'Next billing: $9.99 on 1st'; // NEW PRICING
-                billingInfo.style.background = 'rgba(255, 107, 53, 0.1)';
-                billingInfo.style.color = '#ff6b35';
-            }
-        }
-
-        function getTimeAgo(date) {
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 1) return '1 day ago';
-            if (diffDays < 7) return `${diffDays} days ago`;
-            if (diffDays < 30) {
-                const weeks = Math.floor(diffDays / 7);
-                return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
-            }
-            const months = Math.floor(diffDays / 30);
-            return months === 1 ? '1 month ago' : `${months} months ago`;
-        }
-
-            // 🔧 ИСПРАВЛЕННАЯ ФУНКЦИЯ getUserEmail() - ЧИТАЕТ ИЗ ADMIN СЕССИИ
-        function getUserEmail() {
-          const me = window.PP_USER;
-          if (me && me.email) {
-            return me.email; // из серверной сессии
+          const freeMonths = userData.freeMonthsBalance;
+          const el = document.getElementById('next-billing-info');
+          if (!el) return;
+          if (freeMonths > 0) {
+            el.textContent = `Next ${freeMonths} billing${freeMonths > 1 ? 's' : ''}: FREE!`;
+            el.style.background = 'rgba(50, 205, 50, 0.1)';
+            el.style.color = '#32cd32';
+          } else {
+            el.textContent = 'Next billing: $9.99 on 1st';
+            el.style.background = 'rgba(255, 107, 53, 0.1)';
+            el.style.color = '#ff6b35';
           }
-          const urlEmail = new URLSearchParams(location.search).get('email');
-          return urlEmail || null; // если нет — пойдём в demo
         }
 
-            // 🔍 Fallback: проверяем URL параметры
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlEmail = urlParams.get('email');
-            if (urlEmail) {
-                console.log('📧 Found email in URL:', urlEmail);
-                return urlEmail;
-            }
+        /* ========= banners: upgrade/downgrade ========= */
+        function updateSubscriptionBanners() {
+          const plan = (window.PP_USER?.plan_type || 'early_bird').toLowerCase();
+          const show = (id, on) => document.getElementById(id).style.display = on ? 'block' : 'none';
+          if (plan === 'pro') {
+            show('proBanner', false);
+            show('downgradeBanner', true);
+          } else {
+            show('proBanner', true);
+            show('downgradeBanner', false);
+          }
+        }
+        function toggleProOptions() {
+          const options = document.getElementById('proOptions');
+          const banner  = document.getElementById('proBanner');
+          const open = options.style.display !== 'block';
+          options.style.display = open ? 'block' : 'none';
+          banner.querySelector('.boost-expand-hint').textContent =
+            open ? 'Click to collapse ↑' : 'Click to expand upgrade options →';
+          if (open) calculateProration('upgrade');
+        }
+        function toggleDowngradeOptions() {
+          const options = document.getElementById('downgradeOptions');
+          const banner  = document.getElementById('downgradeBanner');
+          const open = options.style.display !== 'block';
+          options.style.display = open ? 'block' : 'none';
+          banner.querySelector('.boost-expand-hint').textContent =
+            open ? 'Click to collapse ↑' : 'Click to expand downgrade options →';
+          if (open) calculateProration('downgrade');
+        }
+        function calculateProration(type) {
+          const today = new Date();
+          const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+          const daysUsed = today.getDate() - 1;
+          const daysRemaining = daysInMonth - daysUsed;
 
-            // 🚨 Последний fallback - demo данные
-            console.log('⚠️ No admin session found, using demo data');
-            return 'dj@profitpal.org';
+          if (type === 'upgrade') {
+            const currentPrice = 9.99, newPrice = 49.99;
+            const refund    = (currentPrice / daysInMonth) * daysRemaining;
+            const newCharge = (newPrice    / daysInMonth) * daysRemaining;
+            const total     = newCharge - refund;
+            document.getElementById('prorationDetails').innerHTML = `
+              <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} remaining (${daysInMonth} total)</div>
+              <div>💸 Refund for unused Early Bird: $${refund.toFixed(2)}</div>
+              <div>💳 Charge for PRO remainder: $${newCharge.toFixed(2)}</div>
+              <div style="font-weight:700;color:#ffd700;margin-top:10px;">💰 Total charge today: $${total.toFixed(2)}</div>`;
+          } else {
+            const currentPrice = 49.99, newPrice = 14.99;
+            const refund   = (currentPrice / daysInMonth) * daysRemaining;
+            const charge   = (newPrice    / daysInMonth) * daysRemaining;
+            const totalRef = refund - charge;
+            document.getElementById('downgradeProrationDetails').innerHTML = `
+              <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} remaining (${daysInMonth} total)</div>
+              <div>💸 Refund for unused PRO: $${refund.toFixed(2)}</div>
+              <div>💳 Charge for Standard remainder: $${charge.toFixed(2)}</div>
+              <div style="font-weight:700;color:#87ceeb;margin-top:10px;">💰 Total refund: $${totalRef.toFixed(2)}</div>`;
+          }
+        }
+        function toggleProSubmitButton() {
+          document.getElementById('submitProUpgrade').disabled =
+            !document.getElementById('proConsent').checked;
+        }
+        function toggleDowngradeSubmitButton() {
+          document.getElementById('submitDowngrade').disabled =
+            !document.getElementById('downgradeConsent').checked;
         }
 
-        // 🔥 КОПИРОВАНИЕ REFERRAL ССЫЛКИ
+        /* ========= donations ========= */
+        let selectedDonationAmount = 0;
+        let selectedDonationType = '';
+
+        function toggleBoostOptions() {
+          const options = document.getElementById('boostOptions');
+          const banner  = document.getElementById('boostBanner');
+          const open = options.style.display !== 'block';
+          options.style.display = open ? 'block' : 'none';
+          banner.querySelector('.boost-expand-hint').textContent =
+            open ? 'Click to collapse ↑' : 'Click to expand options →';
+        }
+        function selectDonation(amount, type) {
+          selectedDonationAmount = amount;
+          selectedDonationType   = type;
+          document.getElementById('customAmount').value = '';
+          document.querySelectorAll('.donation-btn').forEach(btn => {
+            btn.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+            btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
+          });
+          // подсветка нажатой
+          event.target.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 193, 7, 0.2))';
+          event.target.style.borderColor = '#ff6b35';
+          toggleSubmitButton();
+        }
+        function selectCustomDonation() {
+          const v = parseInt(document.getElementById('customAmount').value, 10);
+          if (v && v > 0) {
+            selectedDonationAmount = v;
+            selectedDonationType   = 'custom';
+            document.querySelectorAll('.donation-btn').forEach(btn => {
+              btn.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+              btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
+            });
+          }
+          toggleSubmitButton();
+        }
+        function toggleSubmitButton() {
+          const consent = document.getElementById('donationConsent').checked; // <-- правильный id
+          const hasAmount = selectedDonationAmount > 0;
+          document.getElementById('submitDonation').disabled = !(consent && hasAmount);
+        }
+        async function processDonation() {
+          if (selectedDonationAmount <= 0) { alert('Please select a donation amount'); return; }
+          const authorized = document.getElementById('donationConsent').checked; // <-- правильный id
+          if (!authorized) { alert('Please check "I authorize this transaction"'); return; }
+
+          const btn = document.getElementById('submitDonation');
+          btn.textContent = 'Processing...'; btn.disabled = true;
+
+          try {
+            await apiPost('/api/process-donation', {
+              amount: selectedDonationAmount,
+              type: selectedDonationType,
+              authorized: true
+            });
+            showDonationSuccess();
+            toggleBoostOptions();
+            resetDonationForm();
+          } catch (e) {
+            console.error('Donation error:', e);
+            alert('Donation failed. Please try again.');
+          } finally {
+            btn.textContent = 'BOOST NOW'; btn.disabled = false;
+          }
+        }
+        function showDonationSuccess() {
+          const el = document.createElement('div');
+          el.className = 'copy-success';
+          let msg = '💎 Thank you for supporting ProfitPal! ';
+          if (selectedDonationType === 'coffee')  msg += 'I love black coffee, thank you! ☕';
+          else if (selectedDonationType === 'milk') msg += 'Black coffee with milk — wow! 🥛';
+          else if (selectedDonationType === 'features') msg += 'Features are coming! 🚀';
+          else msg += 'Huge thanks for recognizing my work! 💝';
+          el.textContent = msg;
+          document.body.appendChild(el);
+          setTimeout(() => el.remove(), 4000);
+        }
+        function resetDonationForm() {
+          selectedDonationAmount = 0;
+          selectedDonationType   = '';
+          document.getElementById('customAmount').value = '';
+          document.getElementById('donationConsent').checked = false;
+          document.querySelectorAll('.donation-btn').forEach(btn => {
+            btn.style.background  = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+            btn.style.borderColor = 'rgba(255, 107, 53, 0.3)';
+          });
+          const btn = document.getElementById('submitDonation');
+          btn.textContent = 'BOOST NOW'; btn.disabled = true;
+        }
+
+        /* ========= misc ========= */
         async function copyReferralLink() {
-            try {
-                const referralLink = userData.referralLink;
-                await navigator.clipboard.writeText(referralLink);
-
-                showCopySuccess();
-
-                // Анимация banner
-                const banner = document.querySelector('.referral-banner');
-                banner.style.transform = 'translateY(-3px) scale(1.02)';
-                banner.style.borderColor = '#32cd32';
-
-                setTimeout(() => {
-                    banner.style.transform = '';
-                    banner.style.borderColor = '';
-                }, 500);
-
-            } catch (err) {
-                console.error('Failed to copy: ', err);
-                // Fallback для старых браузеров
-                const textArea = document.createElement('textarea');
-                textArea.value = userData.referralLink;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showCopySuccess();
-            }
+          try {
+            await navigator.clipboard.writeText(userData.referralLink);
+            const div = document.createElement('div');
+            div.className = 'copy-success';
+            div.innerHTML = '🎉 Referral link copied! Share with friends! 💎';
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+            const banner = document.querySelector('.referral-banner');
+            banner.style.transform = 'translateY(-3px) scale(1.02)';
+            banner.style.borderColor = '#32cd32';
+            setTimeout(() => { banner.style.transform = ''; banner.style.borderColor = ''; }, 500);
+          } catch {
+            const ta = document.createElement('textarea');
+            ta.value = userData.referralLink; document.body.appendChild(ta);
+            ta.select(); document.execCommand('copy'); ta.remove();
+          }
         }
-
-        function showCopySuccess() {
-            const successDiv = document.createElement('div');
-            successDiv.className = 'copy-success';
-            successDiv.innerHTML = '🎉 Referral link copied! Share with friends! 💎';
-            document.body.appendChild(successDiv);
-
-            setTimeout(() => {
-                document.body.removeChild(successDiv);
-            }, 2000);
-        }
-
-        // Quick Analysis Function
         function quickAnalysis() {
-            const ticker = document.getElementById('quickTicker').value.toUpperCase();
-            const resultsDiv = document.getElementById('quickResults');
-
-            if (!ticker) {
-                alert('Please enter a stock ticker symbol');
-                return;
-            }
-
-            // Show loading
-            const btn = document.querySelector('.analyze-btn');
-            btn.textContent = 'Analyzing...';
-            btn.disabled = true;
-
-            // Simulate API call
-            setTimeout(() => {
-                resultsDiv.style.display = 'block';
-                btn.textContent = 'Analyze';
-                btn.disabled = false;
-
-                // Update results with ticker
-                const resultContent = resultsDiv.querySelector('h4');
-                resultContent.textContent = `💎 ${ticker} Analysis Complete!`;
-
-                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 2000);
+          const ticker = document.getElementById('quickTicker').value.toUpperCase().trim();
+          if (!ticker) { alert('Please enter a ticker first'); return; }
+          const btn = document.querySelector('.analyze-btn');
+          const res = document.getElementById('quickResults');
+          btn.textContent = 'Analyzing...'; btn.disabled = true;
+          setTimeout(() => {
+            res.style.display = 'block';
+            btn.textContent = 'Analyze'; btn.disabled = false;
+            res.querySelector('h4').textContent = `💎 ${ticker} Analysis Complete!`;
+            res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 1000);
         }
-
-        // Keyboard shortcut for quick analysis
-        document.getElementById('quickTicker').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                quickAnalysis();
-            }
+        document.getElementById('quickTicker')?.addEventListener('keypress', e => {
+          if (e.key === 'Enter') quickAnalysis();
         });
-
-        // Update time-based greetings
-        function updateGreeting(firstName = 'Investor') {
-            const hour = new Date().getHours();
-            const welcomeTitle = document.getElementById('welcome-title');
-            const isAdmin = firstName === 'Admin';
-
-            let timeGreeting;
-            if (hour < 12) {
-                timeGreeting = 'Good morning';
-            } else if (hour < 18) {
-                timeGreeting = 'Good afternoon';
-            } else {
-                timeGreeting = 'Good evening';
-            }
-
-            if (isAdmin) {
-                // 👑 КОРОЛЕВСКОЕ ПРИВЕТСТВИЕ ДЛЯ АДМИНА
-                welcomeTitle.innerHTML = `${timeGreeting}, <span style="color: #ffd700;">Admin</span>! 👑💎`;
-            } else {
-                // 👤 ОБЫЧНОЕ ПРИВЕТСТВИЕ ДЛЯ КЛИЕНТОВ
-                welcomeTitle.textContent = `${timeGreeting}, ${firstName}! 💎`;
-            }
+        function updateGreeting(firstName='Investor') {
+          const hour = new Date().getHours();
+          const welcomeTitle = document.getElementById('welcome-title');
+          const time = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+          if (firstName === 'Admin') {
+            welcomeTitle.innerHTML = `${time}, <span style="color:#ffd700;">Admin</span>! 👑💎`;
+          } else {
+            welcomeTitle.textContent = `${time}, ${firstName}! 💎`;
+          }
         }
-
-        // 🔥 АНИМАЦИЯ FREE MONTHS COUNTER
         function animateFreeMonths() {
-            const counter = document.getElementById('free-months-count');
-
-            // Пульсирующий эффект каждые 15 секунд
-            setInterval(() => {
-                if (parseInt(counter.textContent) > 0) {
-                    counter.style.transform = 'scale(1.2)';
-                    counter.style.color = '#ffd700';
-                    setTimeout(() => {
-                        counter.style.transform = 'scale(1)';
-                        counter.style.color = 'white';
-                    }, 300);
-                }
-            }, 15000);
+          const counter = document.getElementById('free-months-count');
+          setInterval(() => {
+            if (parseInt(counter.textContent || '0', 10) > 0) {
+              counter.style.transform = 'scale(1.2)'; counter.style.color = '#ffd700';
+              setTimeout(() => { counter.style.transform = 'scale(1)'; counter.style.color = 'white'; }, 300);
+            }
+          }, 15000);
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            // Сначала показываем demo данные, потом загружаем настоящие
-            showDemoData();
-            loadUserData();
-            animateFreeMonths();
-            updateSubscriptionBanners();
-
-            // Add smooth transitions for cards
-            const cards = document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner');
-            cards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-
-                setTimeout(() => {
-                    card.style.transition = 'all 0.6s ease';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 200);
+        /* ========= boot ========= */
+        document.addEventListener('DOMContentLoaded', () => {
+          showDemoData();           // мгновенно заполняем чем-то
+          loadUserData();           // а потом — реальными данными (если есть)
+          animateFreeMonths();
+          updateSubscriptionBanners();
+          // плавное появление карточек
+          document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner')
+            .forEach((card, i) => {
+              card.style.opacity = '0'; card.style.transform = 'translateY(20px)';
+              setTimeout(() => {
+                card.style.transition = 'all .6s ease';
+                card.style.opacity = '1'; card.style.transform = 'translateY(0)';
+              }, i * 200);
             });
         });
+        // автоподгрузка раз в 5 минут
+        setInterval(loadUserData, 300000);
+        </script>
 
-        // Auto-refresh stats every 5 minutes
-        setInterval(() => {
-            loadUserData();
-        }, 300000); // 5 minutes
-
-    </script>
 </body>
 </html>
