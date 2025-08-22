@@ -252,12 +252,7 @@
       console.error('[DonationFix] Error:', error);
 
       // 🔥 ИСПРАВЛЕНО: Показываем успех ТОЛЬКО если есть amount И это тестовый режим
-      if (amount > 0 && (
-          window.location.hostname === 'localhost' || 
-          error.message.includes('No saved card') || 
-          error.message.includes('no saved payment') ||
-          error.message.includes('Please save a card')
-      )) {
+      if (amount > 0 && window.location.hostname === 'localhost') {
         console.log('[DonationFix] Test mode - simulating success for amount:', amount);
         showDonationSuccess(amount, type);
         resetDonationForm();
