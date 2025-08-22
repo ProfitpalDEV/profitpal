@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
 from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, get_auth_stats, auth_manager as AUTH
-from security import set_session_cookies, create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE
+from security import set_session_cookies, create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE, _db, _fetch_user_by_session, is_admin_user
 from referral_manager import ReferralManager
 import re
 
