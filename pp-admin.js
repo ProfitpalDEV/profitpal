@@ -1,12 +1,27 @@
-// pp-admin.js — единый мини-утилитник для admin UI (оба экрана)
+// pp-admin.js — единый admin-утилитник, без дублей бейджей
 (() => {
-  function applyAdminUI(me) {
-    if (!me || !me.is_admin) return;
+  // какой вид бейджа оставляем
+  const PREFER_RIBBON = true; // правый верхний фиксированный бейдж
 
-    // глобальный флаг для admin.css
-    document.documentElement.dataset.isAdmin = '1';
+  function cleanupDuplicates() {
+    // 1) Явные дубликаты, которые могли быть в разметке
+    const dupSelectors = [
+      '#adminChip', '.admin-chip', '.admin-pill', '.admin-badge',
+      '.nav-admin', '.header-admin-mode', '.referral-admin-badge',
+      '[data-admin-badge]', '[data-admin-dup]'
+    ];
+    document.querySelectorAll(dupSelectors.join(',')).forEach(el => el.remove());
 
-    // Бейдж ADMIN MODE (один раз)
+    // 2) Текстовые "ADMIN MODE" в произвольных блоках (оставим только наш #adminRibbon)
+    [...document.querySelectorAll('body *:not(#adminRibbon)')].forEach(el => {
+      try {
+        const t = (el.textContent || '').trim();
+        if (t === 'ADMIN MODE') el.remove();
+      } catch (_) {}
+    });
+  }
+
+  function ensureSingleRibbon() {
     if (!document.getElementById('adminRibbon')) {
       const b = document.createElement('div');
       b.id = 'adminRibbon';
@@ -14,8 +29,9 @@
       b.textContent = 'ADMIN MODE';
       document.body.appendChild(b);
     }
+  }
 
-    // Автокорона для отмеченных целей
+  function crownTargets() {
     document.querySelectorAll('[data-admin-crown], .admin-crown-target').forEach(el => {
       if (el.dataset.crowned) return;
       const span = document.createElement('span');
@@ -25,8 +41,9 @@
       el.appendChild(span);
       el.dataset.crowned = '1';
     });
+  }
 
-    // Оформляем шапку (поддерживает и dashboard, и stock-analysis)
+  function decorateHeader() {
     const avatar = document.getElementById('user-avatar') || document.getElementById('userAvatar');
     const greet  = document.getElementById('user-greeting') || document.getElementById('userGreeting');
 
@@ -42,12 +59,29 @@
     }
   }
 
+  function applyAdminUI(me) {
+    if (!me || !me.is_admin) return;
+
+    // флаг для admin.css
+    document.documentElement.dataset.isAdmin = '1';
+
+    // чистим дубли “Admin Mode”
+    cleanupDuplicates();
+
+    // оставляем один «официальный» бейдж
+    if (PREFER_RIBBON) ensureSingleRibbon();
+
+    // коронки + шапка
+    crownTargets();
+    decorateHeader();
+  }
+
   function init() {
     if (window.PP_USER) {
       applyAdminUI(window.PP_USER);
       return;
     }
-    // подстраховка: достанем сессию сами, если не успела установиться
+    // подстраховка: если глобал не успел
     fetch('/api/session/me', { credentials: 'include' })
       .then(r => (r.ok ? r.json() : null))
       .then(me => {

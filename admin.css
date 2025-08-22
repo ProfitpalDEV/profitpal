@@ -1,39 +1,97 @@
-/* ===== Admin utilities ===== */
+/* =========================================================
+   ProfitPal — ADMIN UI (single badge + utilities)
+   - Показываем один фиксированный бейдж #adminRibbon
+   - Для админа html[data-is-admin="1"] → вкл. стили
+   - Чистим любые "дубликаты" ADMIN MODE
+   ========================================================= */
 
-/* По умолчанию админские блоки скрыты */
-.admin-only { display: none !important; }
-
-/* Включаем их, если юзер админ */
-html[data-is-admin="1"] .admin-only { display: initial !important; }
-
-/* Точный контроль типа отображения (по желанию) */
-html[data-is-admin="1"] .admin-only[data-display="block"]  { display: block !important; }
-html[data-is-admin="1"] .admin-only[data-display="inline"] { display: inline !important; }
-html[data-is-admin="1"] .admin-only[data-display="flex"]   { display: flex !important; }
-html[data-is-admin="1"] .admin-only[data-display="grid"]   { display: grid !important; }
-
-/* Наоборот: скрыть для админа */
-html[data-is-admin="1"] .admin-hide { display: none !important; }
-
-/* Автокорона для целей .admin-crown-target или [data-admin-crown] */
-html[data-is-admin="1"] .admin-crown-target::after,
-html[data-is-admin="1"] [data-admin-crown]::after {
-  content: "👑";
-  margin-left: .35rem;
-  opacity: .9;
+:root {
+  --admin-gold: #ffd700;
+  --admin-gold-2: #ffef9f;
+  --admin-orange: #ff6b35;
+  --admin-dark: #0b1a2a;
+  --admin-shadow: 0 8px 20px rgba(255,215,0,.25), 0 0 12px rgba(255,107,53,.25);
 }
 
-/* Небольшой бейдж ADMIN MODE (по желанию) */
-html[data-is-admin="1"] .admin-ribbon {
+/* ---------- Гейтинг ---------- */
+/* admin-only скрыто по умолчанию, видно только админу */
+.admin-only { display: none !important; }
+html[data-is-admin="1"] .admin-only { display: initial !important; }
+
+/* Спрятать что-то именно для админа */
+html[data-is-admin="1"] .hide-for-admin { display: none !important; }
+
+/* ---------- Единственный бейдж ADMIN MODE ---------- */
+#adminRibbon.admin-ribbon {
   position: fixed;
-  top: 14px;
-  right: 18px;
+  top: 16px;
+  right: 16px;
   z-index: 9999;
-  font-weight: 600;
-  background: linear-gradient(135deg, #ffd34d, #ff9f1a);
-  color: #1e2732;
-  padding: 6px 12px;
+  padding: 9px 14px;
   border-radius: 999px;
-  box-shadow: 0 8px 18px rgba(0,0,0,.12);
-  letter-spacing: .2px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  font-size: 12px;
+  color: #10141a;
+  background: linear-gradient(135deg, var(--admin-gold), var(--admin-orange));
+  box-shadow: var(--admin-shadow);
+  border: 2px solid rgba(16,20,26,.6);
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none; /* чисто индикатор, не кнопка */
+}
+#adminRibbon.admin-ribbon::before {
+  content: "👑";
+  margin-right: 8px;
+  filter: saturate(1.2);
+}
+
+/* Дыхание бейджа */
+@keyframes adminPulse {
+  0%,100% { transform: translateZ(0) scale(1); }
+  50%     { transform: translateZ(0) scale(1.03); }
+}
+#adminRibbon.admin-ribbon { animation: adminPulse 3.5s ease-in-out infinite; }
+
+/* Ribbon показываем только админу */
+#adminRibbon { display: none; }
+html[data-is-admin="1"] #adminRibbon { display: block; }
+
+/* ---------- Хелперы для выделения элементов (по желанию) ---------- */
+.admin-outline {
+  outline: 2px dashed var(--admin-gold);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+.admin-glow {
+  box-shadow: 0 0 0 3px rgba(255,215,0,.2), 0 0 24px rgba(255,215,0,.35);
+}
+
+/* Если коронку добавляем через JS как span — базовый отступ */
+[data-admin-crown] > span { margin-left: 6px; }
+
+/* ---------- Anti-dup: прячем любые старые/случайные бейджи ---------- */
+html[data-is-admin="1"] #adminChip,
+html[data-is-admin="1"] .admin-chip,
+html[data-is-admin="1"] .admin-pill,
+html[data-is-admin="1"] .admin-badge,
+html[data-is-admin="1"] .nav-admin,
+html[data-is-admin="1"] .header-admin-mode,
+html[data-is-admin="1"] .referral-admin-badge,
+html[data-is-admin="1"] [data-admin-badge],
+html[data-is-admin="1"] [data-admin-dup] {
+  display: none !important;
+}
+
+/* ---------- Адаптив и доступность ---------- */
+@media (max-width: 640px) {
+  #adminRibbon.admin-ribbon {
+    top: 10px; right: 10px;
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #adminRibbon.admin-ribbon { animation: none; }
 }
