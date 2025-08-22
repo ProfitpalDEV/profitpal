@@ -1,300 +1,181 @@
-/* =========================================================
-   ProfitPal Official Color Palette & Global Styles
-   ========================================================= */
+/* ===============================
+   ProfitPal — base theme + dashboard add-ons
+   =============================== */
 
-:root {
-  /* Primary Colors */
-  --profitpal-bg: #0a0e27;           /* Main dark background */
-  --profitpal-primary: #32cd32;      /* Success green */
-  --profitpal-danger: #e74c3c;       /* Error red */
-  --profitpal-warning: #f39c12;      /* Warning orange */
-  --profitpal-info: #3498db;         /* Info blue */
+/* Palette */
+:root{
+  --profitpal-bg:#0a0e27;
+  --profitpal-primary:#32cd32;
+  --profitpal-danger:#e74c3c;
+  --profitpal-warning:#f39c12;
+  --profitpal-info:#3498db;
 
-  /* Secondary Colors */
-  --profitpal-light: #ffffff;        /* White text */
-  --profitpal-gray: #95a5a6;         /* Gray text */
-  --profitpal-dark: #2c3e50;         /* Dark elements */
+  --profitpal-light:#fff;
+  --profitpal-gray:#95a5a6;
+  --profitpal-dark:#2c3e50;
 
-  /* Gradients */
-  --profitpal-gradient-success: linear-gradient(135deg, #32cd32 0%, #27ae60 100%);
-  --profitpal-gradient-danger:  linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  --profitpal-gradient-bg:      linear-gradient(135deg, #0a0e27 0%, #1a1e3a 100%);
-  --profitpal-gradient-card:    linear-gradient(135deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.05) 100%);
+  --profitpal-gradient-success:linear-gradient(135deg,#32cd32 0%,#27ae60 100%);
+  --profitpal-gradient-danger:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);
+  --profitpal-gradient-bg:linear-gradient(135deg,#0a0e27 0%,#1a1e3a 100%);
+  --profitpal-gradient-card:linear-gradient(135deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,.05) 100%);
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--profitpal-gradient-bg);
-  color: var(--profitpal-light);
-  min-height: 100vh;
-  line-height: 1.6;
+/* Reset bits */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:var(--profitpal-gradient-bg);
+  color:var(--profitpal-light);
+  min-height:100vh; line-height:1.6;
 }
 
-/* =========================================================
-   Common Layout
-   ========================================================= */
+/* Generic components (cards/containers/buttons/etc.) */
+.profitpal-container{max-width:800px;width:100%;margin:0 auto;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.profitpal-card{
+  background:var(--profitpal-gradient-card);
+  backdrop-filter:blur(10px);
+  border-radius:20px; padding:60px 40px; text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,.3);
+  border:1px solid rgba(255,255,255,.1); width:100%;
+}
+.profitpal-title{
+  font-size:2.5rem; margin-bottom:20px; font-weight:700;
+  background:linear-gradient(45deg,var(--profitpal-light),var(--profitpal-gray));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.profitpal-subtitle{font-size:1.2rem;margin-bottom:15px;color:var(--profitpal-gray);opacity:.9;}
+.profitpal-description{font-size:1.1rem;margin-bottom:15px;opacity:.8;line-height:1.6;}
 
-.profitpal-container {
-  max-width: 800px; width: 100%;
-  margin: 0 auto; padding: 20px; min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
+.profitpal-btn{
+  display:inline-block;padding:15px 30px;margin:10px;font-size:1.1rem;font-weight:600;
+  border-radius:12px;transition:.3s;border:none;cursor:pointer;min-width:200px;text-decoration:none;
+}
+.profitpal-btn.success{background:var(--profitpal-gradient-success);color:var(--profitpal-light);box-shadow:0 5px 15px rgba(50,205,50,.3);}
+.profitpal-btn.success:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(50,205,50,.4);}
+.profitpal-btn.primary{background:var(--profitpal-gradient-bg);color:var(--profitpal-primary);border:2px solid var(--profitpal-primary);box-shadow:0 5px 15px rgba(52,152,219,.3);}
+.profitpal-btn.primary:hover{background:var(--profitpal-primary);color:var(--profitpal-bg);transform:translateY(-3px);box-shadow:0 8px 25px rgba(52,152,219,.4);}
+.profitpal-btn.danger{background:var(--profitpal-gradient-danger);color:var(--profitpal-light);box-shadow:0 5px 15px rgba(231,76,60,.3);}
+.profitpal-btn.danger:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(231,76,60,.4);}
+
+/* Lists / info */
+.profitpal-features{background:rgba(255,255,255,.05);border-radius:15px;padding:25px;margin:30px 0;border:1px solid rgba(255,255,255,.1);}
+.profitpal-features h3{margin-bottom:15px;font-size:1.3rem;color:var(--profitpal-primary);}
+.profitpal-features ul{list-style:none;text-align:left;}
+.profitpal-features li{padding:8px 0 8px 25px;position:relative;font-size:1rem;}
+.profitpal-features li::before{content:"✓";position:absolute;left:0;color:var(--profitpal-primary);font-weight:700;font-size:1.2rem;}
+
+.profitpal-info-box{background:rgba(255,255,255,.08);border-radius:15px;padding:20px;margin:20px 0;border-left:4px solid var(--profitpal-primary);}
+.profitpal-info-box.warning{border-left-color:var(--profitpal-warning);}
+.profitpal-info-box.danger{border-left-color:var(--profitpal-danger);}
+.profitpal-session{margin-top:30px;padding:15px;background:rgba(0,0,0,.3);border-radius:10px;font-family:'Courier New',monospace;font-size:.9rem;opacity:.7;border:1px solid rgba(255,255,255,.1);}
+
+/* Icons + animations (used on success pages, etc.) */
+.profitpal-icon{font-size:100px;margin-bottom:30px;display:block;}
+.profitpal-icon.success{animation:pp-bounce 2s infinite;}
+.profitpal-icon.error{animation:pp-shake 1s ease-in-out;}
+@keyframes pp-bounce{0%,20%,50%,80%,100%{transform:translateY(0)}40%{transform:translateY(-20px)}60%{transform:translateY(-10px)}}
+@keyframes pp-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+.profitpal-loading{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:var(--profitpal-primary);animation:pp-spin 1s ease-in-out infinite;}
+@keyframes pp-spin{to{transform:rotate(360deg)}}
+.profitpal-bg-animate{animation:pp-bg 10s ease-in-out infinite;}
+@keyframes pp-bg{
+  0%,100%{background:linear-gradient(135deg,#0a0e27 0%,#1a1e3a 100%)}
+  50%{background:linear-gradient(135deg,#0a0e27 0%,#2a2e4a 50%,#1a1e3a 100%)}
 }
 
-.profitpal-card {
-  background: var(--profitpal-gradient-card);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 60px 40px;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,.3);
-  border: 1px solid rgba(255,255,255,.1);
-  width: 100%;
+/* Responsive */
+@media (max-width:768px){
+  .profitpal-container{padding:10px;}
+  .profitpal-card{padding:40px 20px;}
+  .profitpal-title{font-size:2rem;}
+  .profitpal-btn{width:100%;max-width:300px;margin:5px 0;}
+  .profitpal-features li{font-size:.95rem;}
 }
 
-/* =========================================================
-   Typography
-   ========================================================= */
-
-.profitpal-title {
-  font-size: 2.5rem; margin-bottom: 20px; font-weight: 700;
-  background: linear-gradient(45deg, var(--profitpal-light), var(--profitpal-gray));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* ===== Dashboard add-ons ===== */
+.hidden{display:none!important;}
+.clickable{cursor:pointer;}
+.copy-success{
+  position:fixed;left:50%;top:20px;transform:translateX(-50%);
+  background:rgba(50,205,50,.12);border:1px solid rgba(50,205,50,.35);
+  color:#fff;padding:10px 14px;border-radius:10px;z-index:9999;backdrop-filter:blur(6px);
 }
 
-.profitpal-subtitle { font-size: 1.2rem; margin-bottom: 15px; color: var(--profitpal-gray); opacity: .9; }
-.profitpal-description { font-size: 1.1rem; margin-bottom: 15px; opacity: .8; line-height: 1.6; }
-
-/* =========================================================
-   Icons
-   ========================================================= */
-
-.profitpal-icon { font-size: 100px; margin-bottom: 30px; display: block; }
-.profitpal-icon.success { animation: profitpal-bounce 2s infinite; }
-.profitpal-icon.error   { animation: profitpal-shake 1s ease-in-out; }
-
-@keyframes profitpal-bounce {
-  0%,20%,50%,80%,100% { transform: translateY(0); }
-  40% { transform: translateY(-20px); }
-  60% { transform: translateY(-10px); }
-}
-@keyframes profitpal-shake {
-  0%,100% { transform: translateX(0); }
-  25% { transform: translateX(-10px); }
-  75% { transform: translateX(10px); }
+.dashboard-card{
+  background:var(--profitpal-gradient-card);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.25);
 }
 
-/* =========================================================
-   Buttons
-   ========================================================= */
-
-.profitpal-btn {
-  display: inline-block; padding: 15px 30px; margin: 10px;
-  font-size: 1.1rem; font-weight: 600; text-decoration: none;
-  border-radius: 12px; transition: all .3s ease;
-  border: none; cursor: pointer; min-width: 200px;
+.referral-banner{
+  background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:18px;padding:18px;transition:.2s;
 }
+.referral-banner:active{transform:scale(.998);}
 
-.profitpal-btn.success {
-  background: var(--profitpal-gradient-success); color: var(--profitpal-light);
-  box-shadow: 0 5px 15px rgba(50,205,50,.3);
+/* Admin badge (header) */
+html[data-is-admin="1"] .pp-admin-badge{
+  display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-weight:700;
+  background:radial-gradient(120% 120% at 30% 20%,#ffe27a,#f6b10a 60%,#cc8a00 100%);
+  color:#0a0e27;border:1px solid rgba(0,0,0,.25);box-shadow:0 4px 18px rgba(246,177,10,.35);
 }
-.profitpal-btn.success:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(50,205,50,.4); }
+html[data-is-admin="1"] .pp-admin-badge .crown{filter:drop-shadow(0 2px 0 rgba(0,0,0,.25));}
+html[data-is-admin="1"] .admin-mode-inline{display:none!important;}
 
-.profitpal-btn.primary {
-  background: var(--profitpal-gradient-bg); color: var(--profitpal-primary);
-  border: 2px solid var(--profitpal-primary);
-  box-shadow: 0 5px 15px rgba(52,152,219,.3);
+/* ===== Boost / Donations ===== */
+.boost-banner{
+  background:linear-gradient(135deg,rgba(255,107,53,.10),rgba(255,193,7,.06));
+  border:1px solid rgba(255,107,53,.28);color:#fff;border-radius:18px;padding:16px;transition:.2s;
 }
-.profitpal-btn.primary:hover {
-  background: var(--profitpal-primary); color: var(--profitpal-bg);
-  transform: translateY(-3px); box-shadow: 0 8px 25px rgba(52,152,219,.4);
+.boost-expand-hint{color:#ffc107;opacity:.85;font-size:.95rem;}
+#boostOptions{display:none;margin-top:12px;}
+
+/* Layout for tiles */
+.donation-group,
+.donation-grid{display:flex;flex-wrap:wrap;gap:10px;}
+
+/* Tile button */
+.donation-btn{
+  position:relative;z-index:1;pointer-events:auto;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:88px;padding:12px 16px;border-radius:12px;outline:0;
+  border:1px solid rgba(255,255,255,.16);
+  background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.05));
+  color:#fff;user-select:none;transition:.15s;
 }
-
-.profitpal-btn.danger {
-  background: var(--profitpal-gradient-danger); color: var(--profitpal-light);
-  box-shadow: 0 5px 15px rgba(231,76,60,.3);
-}
-.profitpal-btn.danger:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(231,76,60,.4); }
-
-/* =========================================================
-   Feature Lists / Info
-   ========================================================= */
-
-.profitpal-features {
-  background: rgba(255,255,255,.05);
-  border-radius: 15px; padding: 25px; margin: 30px 0;
-  border: 1px solid rgba(255,255,255,.1);
-}
-.profitpal-features h3 { margin-bottom: 15px; font-size: 1.3rem; color: var(--profitpal-primary); }
-.profitpal-features ul { list-style: none; text-align: left; }
-.profitpal-features li {
-  padding: 8px 0 8px 25px; position: relative; font-size: 1rem;
-}
-.profitpal-features li::before {
-  content: "✓"; position: absolute; left: 0; color: var(--profitpal-primary);
-  font-weight: bold; font-size: 1.2rem;
-}
-
-.profitpal-info-box {
-  background: rgba(255,255,255,.08);
-  border-radius: 15px; padding: 20px; margin: 20px 0;
-  border-left: 4px solid var(--profitpal-primary);
-}
-.profitpal-info-box.success  { border-left-color: var(--profitpal-primary); }
-.profitpal-info-box.warning  { border-left-color: var(--profitpal-warning); }
-.profitpal-info-box.danger   { border-left-color: var(--profitpal-danger); }
-
-.profitpal-session {
-  margin-top: 30px; padding: 15px; background: rgba(0,0,0,.3);
-  border-radius: 10px; font-family: 'Courier New', monospace; font-size: .9rem;
-  opacity: .7; border: 1px solid rgba(255,255,255,.1);
-}
-
-/* =========================================================
-   Responsive
-   ========================================================= */
-
-@media (max-width: 768px) {
-  .profitpal-container { padding: 10px; }
-  .profitpal-card { padding: 40px 20px; }
-  .profitpal-title { font-size: 2rem; }
-  .profitpal-btn { width: 100%; max-width: 300px; margin: 5px 0; }
-  .profitpal-features li { font-size: .95rem; }
-}
-
-/* =========================================================
-   Loading / Background
-   ========================================================= */
-
-.profitpal-loading {
-  display: inline-block; width: 20px; height: 20px;
-  border: 3px solid rgba(255,255,255,.3); border-radius: 50%;
-  border-top-color: var(--profitpal-primary); animation: profitpal-spin 1s ease-in-out infinite;
-}
-@keyframes profitpal-spin { to { transform: rotate(360deg); } }
-
-.profitpal-bg-animate { animation: profitpal-bg-shift 10s ease-in-out infinite; }
-@keyframes profitpal-bg-shift {
-  0%,100% { background: linear-gradient(135deg, #0a0e27 0%, #1a1e3a 100%); }
-  50% { background: linear-gradient(135deg, #0a0e27 0%, #2a2e4a 50%, #1a1e3a 100%); }
-}
-
-/* =========================================================
-   Dashboard Add-on (safe merge)
-   ========================================================= */
-
-/* Utilities */
-.hidden { display: none !important; }
-.clickable { cursor: pointer; }
-.copy-success {
-  position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
-  background: rgba(50,205,50,.12); border: 1px solid rgba(50,205,50,.35);
-  color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 9999;
-  backdrop-filter: blur(6px);
-}
-
-/* Cards / Banners */
-.dashboard-card {
-  background: var(--profitpal-gradient-card);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 18px; padding: 18px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.25);
-}
-
-.referral-banner {
-  background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px; padding: 18px; transition: .2s;
-}
-.referral-banner:active { transform: scale(.998); }
-
-/* =========================================================
-   Admin indicator
-   ========================================================= */
-
-html[data-is-admin="1"] .pp-admin-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 12px; border-radius: 999px; font-weight: 700;
-  background: radial-gradient(120% 120% at 30% 20%, #ffe27a, #f6b10a 60%, #cc8a00 100%);
-  color: #0a0e27; border: 1px solid rgba(0,0,0,.25);
-  box-shadow: 0 4px 18px rgba(246,177,10,.35);
-}
-html[data-is-admin="1"] .pp-admin-badge .crown { filter: drop-shadow(0 2px 0 rgba(0,0,0,.25)); }
-
-/* Если в шапке уже есть глобальный индикатор — скрыть вторую «корону» в теле */
-html[data-is-admin="1"] .admin-mode-inline { display: none !important; }
-
-/* =========================================================
-   BOOST DEVELOPMENT / Donations
-   ========================================================= */
-
-.boost-banner {
-  background: linear-gradient(135deg, rgba(255,107,53,.10), rgba(255,193,7,.06));
-  border: 1px solid rgba(255,107,53,.28); color: #fff;
-  border-radius: 18px; padding: 16px; transition: .2s;
-}
-.boost-expand-hint { color: #ffc107; opacity: .85; font-size: .95rem; }
-
-#boostOptions { display: none; margin-top: 12px; }
-
-.donation-group { display: flex; flex-wrap: wrap; gap: 10px; }
-
-/* кнопки — кликаются с первого раза по всей площади */
-.donation-btn {
-  position: relative; z-index: 1; pointer-events: auto; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 88px; padding: 12px 16px; border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-  color: #fff; user-select: none; transition: .15s; outline: 0;
-}
-.donation-btn * { pointer-events: none; }       /* дочерние элементы не «крадут» клик */
-.donation-btn:hover  { transform: translateY(-1px); border-color: rgba(255,255,255,.32); }
-.donation-btn:active { transform: translateY(0); }
-
-/* выбранная сумма */
+/* чтобы вложенные span/иконки не «крали» клик */
+.donation-btn *{pointer-events:none;}
+.donation-btn { cursor: pointer; }
+.donation-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.32);}
+.donation-btn:active{transform:translateY(0);}
+/* выбранная плитка */
 .donation-btn.selected{
-  border-color: #ff6b35;
-  background: linear-gradient(135deg, rgba(255,107,53,.35), rgba(255,193,7,.20));
-  box-shadow: 0 6px 18px rgba(255,107,53,.25);
+  border-color:#ff6b35;
+  background:linear-gradient(135deg,rgba(255,107,53,.35),rgba(255,193,7,.20));
+  box-shadow:0 6px 18px rgba(255,107,53,.25);
 }
 
-/* кастомная сумма */
-#customAmount {
-  appearance: textfield; -moz-appearance: textfield;
-  background: rgba(0,0,0,.35); color: #fff;
-  border: 1px solid rgba(255,255,255,.18);
-  padding: 12px 14px; border-radius: 12px; width: 140px;
+/* Custom amount input */
+#customAmount{
+  appearance:textfield;-moz-appearance:textfield;
+  background:rgba(0,0,0,.35);color:#fff;border:1px solid rgba(255,255,255,.18);
+  padding:12px 14px;border-radius:12px;width:140px;transition:.15s;
 }
-#customAmount:focus {
-  border-color: #32cd32; outline: none;
-  box-shadow: 0 0 0 3px rgba(50,205,50,.25);
+#customAmount:focus{border-color:var(--profitpal-primary);outline:none;box-shadow:0 0 0 3px rgba(50,205,50,.25);}
+#customAmount.has-value{border-color:#ff6b35;box-shadow:0 0 0 2px rgba(255,107,53,.20) inset;}
+
+/* Consent + submit */
+#donationConsent,#authorizeDonation{accent-color:var(--profitpal-primary);}
+#submitDonation{
+  padding:12px 18px;border-radius:12px;border:none;font-weight:700;
+  background:var(--profitpal-gradient-success);color:#0a0e27;
+  box-shadow:0 8px 24px rgba(50,205,50,.30);transition:.15s;
 }
-/* when JS пометит input.has-value */
-#customAmount.has-value {
-  border-color: #ff6b35;
-  box-shadow: 0 0 2px rgba(255,107,53,.2) inset;
+#submitDonation:disabled{
+  opacity:.55;filter:grayscale(.2);cursor:not-allowed;
+  box-shadow:none;background:linear-gradient(135deg,#3b3f5c,#2a2e4a);
 }
 
-/* чекбокс / сабмит */
-#donationConsent, #authorizeDonation { accent-color: #32cd32; }
-
-#submitDonation {
-  padding: 12px 18px; border-radius: 12px; border: none; font-weight: 700;
-  background: var(--profitpal-gradient-success);
-  color: #0a0e27; box-shadow: 0 8px 24px rgba(50,205,50,.30);
-  transition: .15s;
-}
-#submitDonation:disabled {
-  opacity: .55; filter: grayscale(.2); cursor: not-allowed;
-  box-shadow: none; background: linear-gradient(135deg, #3b3f5c, #2a2e4a);
-}
-
-/* =========================================================
-   PRO / Downgrade panels
-   ========================================================= */
-
-#proOptions, #downgradeOptions { display: none; margin-top: 12px; }
+/* Upgrade / Downgrade sections (hidden by default) */
+#proOptions,#downgradeOptions{display:none;margin-top:12px;}

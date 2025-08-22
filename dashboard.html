@@ -942,11 +942,11 @@
               ✨ New Features<br><span class="price">$10</span>
             </button>
 
-            <div class="donation-btn" data-type="custom">
-              ❤️ Custom Amount:
-              <input id="customAmount" inputmode="numeric" pattern="\d*" placeholder="0" />
-              <span class="currency">$</span>
-            </div>
+              <div class="custom-donation">    <!-- ← просто блок, НЕ плитка -->
+                ❤️ Custom Amount:
+                <input id="customAmount" inputmode="numeric" pattern="\d*" placeholder="0">
+                <span class="currency">$</span>
+              </div>
           </div>
 
           <div class="donation-agreement" style="margin-top:12px;">
@@ -1566,25 +1566,79 @@
           toggleSubmitButton();
         }
         function _onDonationConsentChange() { toggleSubmitButton(); }
-        function initDonationUI() {
-          // корень для делегирования: сперва #donationTiles, потом #boostOptions, иначе — document
-          const root = document.getElementById('donationTiles') ||
-                       document.getElementById('boostOptions') ||
-                       document;
-          root.addEventListener('click', _onDonationTileClick);
+            // ---- клики по тайлам (терпимы к старой верстке без data-*) ----
+            function _onDonationTileClick(e) {
+              const btn = e.target.closest('.donation-btn');
+              if (!btn || !btn.isConnected) return;
 
-          const custom = document.getElementById('customAmount');
-          if (custom) custom.addEventListener('input', _onCustomAmountInput);
+              // сумма: сначала из data-amount, иначе из текста "$3/$5/$10"
+              let amount = Number(btn.dataset.amount);
+              if (!Number.isFinite(amount) || amount <= 0) {
+                const m = (btn.textContent.match(/([0-9]+)/) || [])[1];
+                amount = Number(m);
+              }
 
-          const consent = getConsentEl();
-          if (consent) consent.addEventListener('change', _onDonationConsentChange);
+              // тип: из data-type, иначе по тексту
+              const t = (btn.dataset.type || btn.textContent || '').toLowerCase();
+              const type = t.includes('milk') ? 'milk' : t.includes('feature') ? 'features' : 'coffee';
 
-          const submit = document.getElementById('submitDonation');
-          if (submit) submit.addEventListener('click', processDonation);
+              // визуальная подсветка
+              document.querySelectorAll('.donation-btn').forEach(b => b.classList.remove('selected'));
+              btn.classList.add('selected');
 
-          // выставить корректное состояние кнопки на старте
-          toggleSubmitButton();
-        }
+              if (Number.isFinite(amount) && amount > 0) {
+                selectedDonationAmount = amount;
+                selectedDonationType   = type;
+                const custom = document.getElementById('customAmount');
+                if (custom) { custom.value = ''; custom.classList.remove('has-value'); }
+              } else {
+                selectedDonationAmount = 0;
+                selectedDonationType   = '';
+              }
+
+              toggleSubmitButton();
+            }
+
+            // ---- инициализация донатов ----
+            function initDonationUI() {
+              // корень делегирования: сперва #donationTiles, потом #boostOptions, иначе — document
+              const root =
+                document.getElementById('donationTiles') ||
+                document.getElementById('boostOptions') ||
+                document;
+
+              // 1) «гидрируем» старую разметку: добавим data-amount / data-type, если их нет
+              document.querySelectorAll('.donation-btn').forEach(btn => {
+                if (!btn.dataset.amount) {
+                  const m = (btn.textContent.match(/([0-9]+)/) || [])[1];
+                  if (m) btn.dataset.amount = m;
+                }
+                if (!btn.dataset.type) {
+                  const t = (btn.textContent || '').toLowerCase();
+                  btn.dataset.type = t.includes('milk') ? 'milk'
+                                  :  t.includes('feature') ? 'features'
+                                  :  'coffee';
+                }
+              });
+
+              // 2) делегирование кликов по тайлам
+              root.addEventListener('click', _onDonationTileClick);
+
+              // 3) кастомная сумма
+              const custom = document.getElementById('customAmount');
+              if (custom) custom.addEventListener('input', _onCustomAmountInput);
+
+              // 4) чекбокс согласия
+              const consent = getConsentEl(); // твоя функция
+              if (consent) consent.addEventListener('change', _onDonationConsentChange);
+
+              // 5) сабмит
+              const submit = document.getElementById('submitDonation');
+              if (submit) submit.addEventListener('click', processDonation);
+
+              // 6) привести кнопку в корректное состояние на старте
+              toggleSubmitButton();
+            }
 
         /* ========= misc ========= */
         async function copyReferralLink() {
