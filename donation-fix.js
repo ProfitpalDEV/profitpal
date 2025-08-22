@@ -1,51 +1,69 @@
-// donation-fix.js - Добавить в конец dashboard.html перед закрывающим </script>
-// ИЛИ подключить как отдельный файл
+// donation-fix.js - ФИНАЛЬНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Исправлены все баги с чекбоксом и состоянием кнопки
 
 (function() {
   'use strict';
 
   console.log('[DonationFix] Initializing donation system fix...');
 
-  // Глобальные переменные для состояния
+  // Глобальное состояние
   window.donationState = {
     amount: 0,
     type: '',
     selectedTile: null
   };
 
-  // Функция для обновления состояния кнопки BOOST
+  // 🔥 ИСПРАВЛЕННАЯ функция обновления кнопки BOOST
   function updateBoostButton() {
     const btn = document.getElementById('submitDonation');
-    const consent = document.getElementById('donationConsent') || document.getElementById('authorizeDonation');
+    const consent = document.getElementById('donationConsent') || 
+                   document.getElementById('authorizeDonation') ||
+                   document.getElementById('authCheck');
 
-    if (!btn) return;
+    if (!btn) {
+      console.log('[DonationFix] Button not found');
+      return;
+    }
 
     const hasAmount = window.donationState.amount > 0;
     const hasConsent = consent && consent.checked;
 
-    btn.disabled = !(hasAmount && hasConsent);
+    // КРИТИЧНО: устанавливаем состояние кнопки
+    const shouldEnable = hasAmount && hasConsent;
+    btn.disabled = !shouldEnable;
 
-    // Визуальная индикация
-    if (hasAmount && hasConsent) {
+    // Визуальное оформление
+    if (shouldEnable) {
       btn.style.background = 'linear-gradient(135deg, #32cd32, #228b22)';
       btn.style.cursor = 'pointer';
+      btn.style.opacity = '1';
       btn.textContent = `BOOST NOW - $${window.donationState.amount}`;
+      // Убираем класс disabled если был
+      btn.classList.remove('disabled');
     } else {
       btn.style.background = 'linear-gradient(135deg, #3b3f5c, #2a2e4a)';
       btn.style.cursor = 'not-allowed';
+      btn.style.opacity = '0.7';
       btn.textContent = 'BOOST NOW';
+      btn.classList.add('disabled');
     }
 
-    console.log('[DonationFix] Button state updated:', { hasAmount, hasConsent, disabled: btn.disabled });
+    console.log('[DonationFix] Button state:', {
+      hasAmount,
+      hasConsent,
+      shouldEnable,
+      disabled: btn.disabled
+    });
   }
 
-  // Функция выбора плитки
+  // Выбор плитки доната
   function selectDonationTile(element, amount, type) {
     // Снимаем выделение со всех плиток
     document.querySelectorAll('.donation-btn').forEach(btn => {
       btn.classList.remove('selected');
       btn.style.border = '2px solid rgba(255, 107, 53, 0.3)';
       btn.style.background = 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 193, 7, 0.05))';
+      btn.style.boxShadow = '';
     });
 
     // Выделяем текущую плитку
@@ -61,7 +79,7 @@
     window.donationState.type = type;
     window.donationState.selectedTile = element;
 
-    // Очищаем custom input если выбрана плитка
+    // Очищаем custom input при выборе плитки
     const customInput = document.getElementById('customAmount');
     if (customInput && element) {
       customInput.value = '';
@@ -80,7 +98,7 @@
     event.preventDefault();
     event.stopPropagation();
 
-    // Извлекаем данные из плитки
+    // Извлекаем данные
     let amount = parseFloat(tile.dataset.amount);
     let type = tile.dataset.type;
 
@@ -94,7 +112,7 @@
 
     if (!type) {
       const text = tile.textContent.toLowerCase();
-      if (text.includes('coffee')) type = 'coffee';
+      if (text.includes('coffee') && !text.includes('milk')) type = 'coffee';
       else if (text.includes('milk')) type = 'milk';
       else if (text.includes('feature')) type = 'features';
       else type = 'custom';
@@ -105,7 +123,7 @@
     }
   }
 
-  // Обработчик для custom amount
+  // Custom amount обработчик
   function handleCustomAmount() {
     const input = document.getElementById('customAmount');
     if (!input) return;
@@ -113,7 +131,6 @@
     const value = parseFloat(input.value) || 0;
 
     if (value > 0) {
-      // Снимаем выделение с плиток
       selectDonationTile(null, value, 'custom');
       input.classList.add('has-value');
       input.style.borderColor = '#ff6b35';
@@ -126,19 +143,26 @@
     }
   }
 
-  // Обработчик чекбокса
-  function handleConsentChange() {
-    updateBoostButton();
+  // 🔥 ИСПРАВЛЕННЫЙ обработчик чекбокса
+  function handleConsentChange(event) {
+    console.log('[DonationFix] Checkbox changed:', event.target.checked);
+    // Небольшая задержка чтобы избежать конфликтов
+    setTimeout(() => {
+      updateBoostButton();
+    }, 10);
   }
 
-  // Обработчик отправки доната
+  // Обработка доната
   async function processDonation() {
     if (window.donationState.amount <= 0) {
       alert('Please select a donation amount');
       return;
     }
 
-    const consent = document.getElementById('donationConsent') || document.getElementById('authorizeDonation');
+    const consent = document.getElementById('donationConsent') || 
+                   document.getElementById('authorizeDonation') ||
+                   document.getElementById('authCheck');
+
     if (!consent || !consent.checked) {
       alert('Please authorize the transaction');
       return;
@@ -151,13 +175,13 @@
     }
 
     try {
-      // Получаем CSRF токен из куки
+      // CSRF токен
       const csrfToken = document.cookie
         .split('; ')
         .find(row => row.startsWith('pp_csrf='))
         ?.split('=')[1];
 
-      console.log('[DonationFix] Sending donation:', {
+      console.log('[DonationFix] Processing donation:', {
         amount: window.donationState.amount,
         type: window.donationState.type
       });
@@ -182,7 +206,6 @@
         showDonationSuccess();
         resetDonationForm();
 
-        // Закрываем секцию через 2 секунды
         setTimeout(() => {
           const options = document.getElementById('boostOptions');
           if (options) options.style.display = 'none';
@@ -194,7 +217,7 @@
     } catch (error) {
       console.error('[DonationFix] Error:', error);
 
-      // В тестовом режиме показываем успех
+      // Тестовый режим
       if (window.location.hostname === 'localhost' || error.message.includes('No saved card')) {
         console.log('[DonationFix] Test mode - simulating success');
         showDonationSuccess();
@@ -205,20 +228,21 @@
           if (options) options.style.display = 'none';
         }, 2000);
       } else {
-        alert(`Donation failed: ${error.message}\n\nPlease make sure you have a saved payment method in Settings.`);
+        alert(`Donation failed: ${error.message}\n\nPlease save a payment method in Settings first.`);
       }
     } finally {
       if (btn) {
         btn.disabled = false;
         btn.textContent = 'BOOST NOW';
+        updateBoostButton();
       }
     }
   }
 
-  // Показ успешного сообщения
+  // Успешное сообщение
   function showDonationSuccess() {
     const successDiv = document.createElement('div');
-    successDiv.className = 'copy-success';
+    successDiv.className = 'donation-success-message';
     successDiv.style.cssText = `
       position: fixed;
       top: 50%;
@@ -233,6 +257,8 @@
       z-index: 10000;
       box-shadow: 0 10px 40px rgba(50, 205, 50, 0.4);
       animation: successPulse 0.5s ease;
+      white-space: pre-line;
+      text-align: center;
     `;
 
     let message = '💎 Thank you for supporting ProfitPal!\n\n';
@@ -296,24 +322,27 @@
     }
 
     // Снимаем галочку
-    const consent = document.getElementById('donationConsent') || document.getElementById('authorizeDonation');
+    const consent = document.getElementById('donationConsent') || 
+                   document.getElementById('authorizeDonation') ||
+                   document.getElementById('authCheck');
     if (consent) consent.checked = false;
 
     updateBoostButton();
   }
 
-  // Инициализация при загрузке
+  // 🔥 ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ
   function initDonationSystem() {
     console.log('[DonationFix] Setting up event listeners...');
 
-    // Удаляем старые обработчики
-    const oldContainer = document.getElementById('donationTiles') || document.getElementById('boostOptions');
+    // Удаляем старые обработчики через клонирование
+    const oldContainer = document.getElementById('donationTiles') || 
+                        document.getElementById('boostOptions');
     if (oldContainer) {
       const newContainer = oldContainer.cloneNode(true);
       oldContainer.parentNode.replaceChild(newContainer, oldContainer);
     }
 
-    // Устанавливаем data-атрибуты для плиток
+    // Настраиваем плитки
     document.querySelectorAll('.donation-btn').forEach(btn => {
       const text = btn.textContent;
 
@@ -333,11 +362,11 @@
         btn.dataset.type = 'features';
       }
 
-      // Убираем inline onclick если есть
+      // Убираем inline onclick
       btn.removeAttribute('onclick');
     });
 
-    // Делегирование кликов на контейнер
+    // Делегирование кликов
     const container = document.getElementById('boostOptions');
     if (container) {
       container.addEventListener('click', handleTileClick, true);
@@ -350,10 +379,22 @@
       customInput.addEventListener('change', handleCustomAmount);
     }
 
-    // Consent checkbox
-    const consent = document.getElementById('donationConsent') || document.getElementById('authorizeDonation');
-    if (consent) {
-      consent.addEventListener('change', handleConsentChange);
+    // 🔥 КРИТИЧНО: правильная привязка чекбокса
+    const checkboxIds = ['donationConsent', 'authorizeDonation', 'authCheck'];
+    let consentFound = false;
+
+    for (const id of checkboxIds) {
+      const consent = document.getElementById(id);
+      if (consent) {
+        console.log(`[DonationFix] Found checkbox with ID: ${id}`);
+        consent.addEventListener('change', handleConsentChange);
+        consentFound = true;
+        break;
+      }
+    }
+
+    if (!consentFound) {
+      console.warn('[DonationFix] No consent checkbox found!');
     }
 
     // Submit button
@@ -369,15 +410,32 @@
     console.log('[DonationFix] Donation system initialized successfully!');
   }
 
-  // Ждем загрузки DOM
+  // 🔥 ЗАЩИТА ОТ КОНФЛИКТОВ - периодическая проверка состояния
+  setInterval(() => {
+    const consent = document.getElementById('donationConsent') || 
+                   document.getElementById('authorizeDonation') ||
+                   document.getElementById('authCheck');
+    const btn = document.getElementById('submitDonation');
+
+    if (consent && btn && window.donationState.amount > 0) {
+      const shouldBeEnabled = consent.checked;
+      const isEnabled = !btn.disabled;
+
+      if (shouldBeEnabled !== isEnabled) {
+        console.log('[DonationFix] Fixing button state conflict');
+        updateBoostButton();
+      }
+    }
+  }, 100);
+
+  // Запуск инициализации
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initDonationSystem);
   } else {
-    // Небольшая задержка для гарантии
     setTimeout(initDonationSystem, 100);
   }
 
-  // Экспортируем функции в глобальную область для отладки
+  // Debug интерфейс
   window.donationDebug = {
     state: window.donationState,
     updateButton: updateBoostButton,
