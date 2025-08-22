@@ -928,32 +928,37 @@
         </div>
 
         <!-- Expanded Donation Options -->
-        <div class="boost-options" id="boostOptions" style="display: none;">
-            <div class="donation-grid">
-                <button class="donation-btn" onclick="selectDonation(3, 'coffee')">
-                    ☕ Developer's Coffee<br><span class="price">$3</span>
-                </button>
-                <button class="donation-btn" onclick="selectDonation(5, 'milk')">
-                    🥛 Coffee with Milk<br><span class="price">$5</span>
-                </button>
-                <button class="donation-btn" onclick="selectDonation(10, 'features')">
-                    🚀 New Features<br><span class="price">$10</span>
-                </button>
-                <div class="custom-donation">
-                    💝 Custom Amount: <input type="number" id="customAmount" placeholder="0" min="1" max="1000" step="1" onchange="selectCustomDonation()">
-                    <span class="currency">$</span>
-                </div>
-            </div>
-
-            <div class="donation-agreement">
-                <input type="checkbox" id="donationConsent" onchange="toggleSubmitButton()">
-                <label for="donationConsent">I authorize this transaction</label>
-            </div>
-
-            <button class="donation-submit" id="submitDonation" disabled onclick="processDonation()">
-                BOOST NOW
+        <div class="boost-options" id="boostOptions" style="display:none;">
+          <div class="donation-grid" id="donationTiles">
+            <button type="button" class="donation-btn" data-amount="3"  data-type="coffee">
+              ☕ Developer's Coffee<br><span class="price">$3</span>
             </button>
+
+            <button type="button" class="donation-btn" data-amount="5"  data-type="milk">
+              🥛 Coffee with Milk<br><span class="price">$5</span>
+            </button>
+
+            <button type="button" class="donation-btn" data-amount="10" data-type="features">
+              ✨ New Features<br><span class="price">$10</span>
+            </button>
+
+            <div class="donation-btn" data-type="custom">
+              ❤️ Custom Amount:
+              <input id="customAmount" inputmode="numeric" pattern="\d*" placeholder="0" />
+              <span class="currency">$</span>
+            </div>
+          </div>
+
+          <div class="donation-agreement" style="margin-top:12px;">
+            <input type="checkbox" id="donationConsent" />
+            <label for="donationConsent">I authorize this transaction</label>
+          </div>
+
+          <button class="donation-submit" id="submitDonation" disabled style="width:100%;margin-top:12px;">
+            BOOST NOW
+          </button>
         </div>
+
         <!-- 🔥 PRO SUBSCRIPTION BANNER -->
         <div class="pro-banner" id="proBanner" onclick="toggleProOptions()" style="display: none;">
             <div class="boost-content">
@@ -1244,7 +1249,6 @@
               }
             }
           } catch {}
-          // короткий «пуллинг» на случай, если pp-auth.js положит PP_USER с задержкой
           while (Date.now() - started < timeoutMs && !(window.PP_USER && window.PP_USER.id)) {
             await new Promise(r => setTimeout(r, 150));
           }
@@ -1307,10 +1311,7 @@
 
         async function loadUserData() {
           try {
-            // гарантируем, что сессия подтянута (и сразу поправится приветствие Admin)
             await waitForSession(1500);
-
-            // если email так и нет — показываем демо и выходим
             if (!getUserEmail()) { showDemoData(); return; }
 
             const res = await fetch('/api/referral-stats/me', { credentials: 'include' });
@@ -1339,7 +1340,7 @@
         function updateUI() {
           const freeMonths  = Number(userData.freeMonthsBalance || 0);
           const paidFriends = Number(userData.totalPaidReferrals || 0);
-          const moneySaved  = Number(userData.totalEarnedMonths || 0) * 9.99; // новая цена
+          const moneySaved  = Number(userData.totalEarnedMonths || 0) * 9.99;
 
           const $ref   = document.getElementById('referral-link');
           const $free  = document.getElementById('free-months-count');
@@ -1351,17 +1352,13 @@
           if ($paid) $paid.textContent = paidFriends;
           if ($saved)$saved.textContent = `$${moneySaved.toFixed(2)}`;
 
-          // greeting/avatar — только не для админа (админу рисует pp-admin.js)
           const avatarEl = document.getElementById('user-avatar');
           const greetEl  = document.getElementById('user-greeting');
           const first    = (userData.fullName || '').split(' ')[0] || 'User';
 
           if (!isAdmin()) {
             const initials = (userData.fullName || '')
-              .split(' ')
-              .filter(Boolean)
-              .map(s => s[0])
-              .join('');
+              .split(' ').filter(Boolean).map(s => s[0]).join('');
             if (avatarEl) avatarEl.textContent = initials || '🙂';
             if (greetEl)  greetEl.textContent  = `Welcome back, ${first}!`;
             updateGreeting(first);
@@ -1466,10 +1463,9 @@
 
         /* ========= donations ========= */
         let selectedDonationAmount = 0;
-        let selectedDonationType = '';
+        let selectedDonationType   = '';
 
         function getConsentEl() {
-          // поддерживаем и старый id, и новый
           return document.getElementById('donationConsent') || document.getElementById('authorizeDonation');
         }
         function toggleBoostOptions() {
@@ -1480,40 +1476,6 @@
           options.style.display = open ? 'block' : 'none';
           banner.querySelector('.boost-expand-hint').textContent =
             open ? 'Click to collapse ↑' : 'Click to expand options →';
-        }
-        // вызывать из инлайна: onclick="selectDonation(3,'coffee', event)"
-        function selectDonation(amount, type, ev) {
-          selectedDonationAmount = Number(amount) || 0;
-          selectedDonationType   = type || '';
-
-          // подсветка только на нажатой кнопке
-          document.querySelectorAll('.donation-btn').forEach(b => b.classList.remove('selected'));
-          const e = ev || window.event || null;
-          const btn = e && e.target ? e.target.closest('.donation-btn') : null;
-          if (btn) btn.classList.add('selected');
-
-          // сбрасываем кастомное поле
-          const input = document.getElementById('customAmount');
-          if (input) { input.value = ''; input.classList.remove('has-value'); }
-
-          toggleSubmitButton();
-        }
-        function selectCustomDonation() {
-          const input = document.getElementById('customAmount');
-          if (!input) return;
-          const v = parseInt(input.value, 10);
-          // снимаем выделение с пресетов
-          document.querySelectorAll('.donation-btn').forEach(b => b.classList.remove('selected'));
-          if (v && v > 0) {
-            selectedDonationAmount = v;
-            selectedDonationType   = 'custom';
-            input.classList.add('has-value');
-          } else {
-            selectedDonationAmount = 0;
-            selectedDonationType   = '';
-            input.classList.remove('has-value');
-          }
-          toggleSubmitButton();
         }
         function toggleSubmitButton() {
           const consent = !!getConsentEl()?.checked;
@@ -1549,7 +1511,7 @@
           const el = document.createElement('div');
           el.className = 'copy-success';
           let msg = '💎 Thank you for supporting ProfitPal! ';
-          if (selectedDonationType === 'coffee') msg += 'I love black coffee, thank you! ☕';
+          if (selectedDonationType === 'coffee')   msg += 'I love black coffee, thank you! ☕';
           else if (selectedDonationType === 'milk') msg += 'Black coffee with milk — wow! 🥛';
           else if (selectedDonationType === 'features') msg += 'Features are coming! 🚀';
           else msg += 'Huge thanks for recognizing my work! 💝';
@@ -1566,6 +1528,62 @@
           document.querySelectorAll('.donation-btn').forEach(btn => btn.classList.remove('selected'));
           const btn = document.getElementById('submitDonation');
           if (btn) { btn.textContent = 'BOOST NOW'; btn.disabled = true; }
+        }
+
+        /* ===== DONATION: без inline-обработчиков ===== */
+        function _selectDonationTile(el) {
+          document.querySelectorAll('.donation-btn').forEach(b => b.classList.remove('selected'));
+          if (el) el.classList.add('selected');
+        }
+        function _onDonationTileClick(e) {
+          const btn = e.target.closest('.donation-btn');
+          if (!btn || !btn.isConnected) return;
+          const amount = Number(btn.dataset.amount || '');
+          const type   = btn.dataset.type || 'custom';
+          if (!Number.isFinite(amount) || amount <= 0) return;
+
+          selectedDonationAmount = amount;
+          selectedDonationType   = type;
+
+          const custom = document.getElementById('customAmount');
+          if (custom) { custom.value = ''; custom.classList.remove('has-value'); }
+
+          _selectDonationTile(btn);
+          toggleSubmitButton();
+        }
+        function _onCustomAmountInput() {
+          const el = document.getElementById('customAmount');
+          const v  = parseInt(el?.value || '0', 10);
+          if (v > 0) {
+            selectedDonationAmount = v;
+            selectedDonationType   = 'custom';
+            el.classList.add('has-value');
+            _selectDonationTile(null);
+          } else {
+            selectedDonationAmount = 0;
+            el?.classList.remove('has-value');
+          }
+          toggleSubmitButton();
+        }
+        function _onDonationConsentChange() { toggleSubmitButton(); }
+        function initDonationUI() {
+          // корень для делегирования: сперва #donationTiles, потом #boostOptions, иначе — document
+          const root = document.getElementById('donationTiles') ||
+                       document.getElementById('boostOptions') ||
+                       document;
+          root.addEventListener('click', _onDonationTileClick);
+
+          const custom = document.getElementById('customAmount');
+          if (custom) custom.addEventListener('input', _onCustomAmountInput);
+
+          const consent = getConsentEl();
+          if (consent) consent.addEventListener('change', _onDonationConsentChange);
+
+          const submit = document.getElementById('submitDonation');
+          if (submit) submit.addEventListener('click', processDonation);
+
+          // выставить корректное состояние кнопки на старте
+          toggleSubmitButton();
         }
 
         /* ========= misc ========= */
@@ -1630,24 +1648,21 @@
 
         /* ========= boot ========= */
         document.addEventListener('DOMContentLoaded', async () => {
-          await waitForSession(2000); // быстро подтянуть PP_USER и поставить Admin сразу
-          showDemoData();            // мгновенно показать что-то
-          loadUserData();            // затем — реальные данные, если доступны
+          await waitForSession(2000);   // поднимем PP_USER и флаг админа до первого рисования
+          showDemoData();               // мгновенный контент (в правильном режиме Admin/User)
+          loadUserData();               // затем — реальные данные, если доступны
           animateFreeMonths();
           updateSubscriptionBanners();
+          initDonationUI();
 
-          // плавное появление
-          document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner')
-            .forEach((card, i) => {
-              card.style.opacity = '0'; card.style.transform = 'translateY(20px)';
-              setTimeout(() => {
-                card.style.transition = 'all .6s ease';
-                card.style.opacity = '1'; card.style.transform = 'translateY(0)';
-              }, i * 200);
-            });
-
-          // если есть кастомная сумма — подсветка при вводе
-          document.getElementById('customAmount')?.addEventListener('input', selectCustomDonation);
+          // плавное появление карточек
+          document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner').forEach((card, i) => {
+            card.style.opacity = '0'; card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+              card.style.transition = 'all .6s ease';
+              card.style.opacity = '1'; card.style.transform = 'translateY(0)';
+            }, i * 200);
+          });
         });
 
         // автообновление раз в 5 минут
