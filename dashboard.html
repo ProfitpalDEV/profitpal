@@ -1228,16 +1228,40 @@
           return r.json();
         }
 
-        /* ========= session =========
-           pp-auth.js уже сделал ensureSessionOrRedirect()
-           и положил объект в window.PP_USER + data-is-admin на <html> */
+        /* ========= session bootstrap =========
+           Быстро подтягиваем /api/session/me и проставляем PP_USER + data-is-admin
+        */
+        async function waitForSession(timeoutMs = 2500) {
+          const started = Date.now();
+          try {
+            const res = await fetch('/api/session/me', { credentials: 'include' });
+            if (res.ok) {
+              const me = await res.json();
+              if (me && me.id) {
+                window.PP_USER = me;
+                document.documentElement.dataset.isAdmin = me.is_admin ? '1' : '0';
+                return me;
+              }
+            }
+          } catch {}
+          // короткий «пуллинг» на случай, если pp-auth.js положит PP_USER с задержкой
+          while (Date.now() - started < timeoutMs && !(window.PP_USER && window.PP_USER.id)) {
+            await new Promise(r => setTimeout(r, 150));
+          }
+          if (window.PP_USER) {
+            document.documentElement.dataset.isAdmin = window.PP_USER.is_admin ? '1' : '0';
+          }
+          return window.PP_USER || null;
+        }
+
+        /* ========= session utils ========= */
         function isAdmin() {
           return !!(window.PP_USER && window.PP_USER.is_admin);
         }
         function getUserEmail() {
           if (window.PP_USER?.email) return window.PP_USER.email;
           const urlEmail = new URLSearchParams(location.search).get('email');
-          return urlEmail || null;        // если нет — будем показывать demo
+          return urlEmail || null;
         }
 
         /* ========= referral demo/state ========= */
@@ -1253,7 +1277,6 @@
 
         function showDemoData() {
           const email = getUserEmail() || 'dj@profitpal.org';
-
           if (isAdmin()) {
             userData = {
               fullName: "System Administrator",
@@ -1284,6 +1307,10 @@
 
         async function loadUserData() {
           try {
+            // гарантируем, что сессия подтянута (и сразу поправится приветствие Admin)
+            await waitForSession(1500);
+
+            // если email так и нет — показываем демо и выходим
             if (!getUserEmail()) { showDemoData(); return; }
 
             const res = await fetch('/api/referral-stats/me', { credentials: 'include' });
@@ -1299,9 +1326,8 @@
               userData.totalPaidReferrals = data.referral_info.total_referrals;
               userData.totalEarnedMonths  = data.referral_info.total_earned_months;
             }
-            if (data.recent_referrals) {
-              userData.recentReferrals = data.recent_referrals;
-            }
+            if (data.recent_referrals) userData.recentReferrals = data.recent_referrals;
+
             updateUI();
           } catch (e) {
             console.log('Referral API unavailable, using demo:', e);
@@ -1315,7 +1341,6 @@
           const paidFriends = Number(userData.totalPaidReferrals || 0);
           const moneySaved  = Number(userData.totalEarnedMonths || 0) * 9.99; // новая цена
 
-          // counters
           const $ref   = document.getElementById('referral-link');
           const $free  = document.getElementById('free-months-count');
           const $paid  = document.getElementById('paid-friends-count');
@@ -1344,7 +1369,6 @@
             updateGreeting('Admin');
           }
 
-          // friends block
           const friendsSection = document.getElementById('referral-friends-section');
           if (friendsSection) {
             if (paidFriends > 0) {
@@ -1361,8 +1385,10 @@
           const current = userData.totalPaidReferrals;
           const target = 12;
           const pct = Math.min((current / target) * 100, 100);
-          document.getElementById('progress-bar').style.width = `${pct}%`;
-          document.getElementById('progress-text').textContent =
+          const bar = document.getElementById('progress-bar');
+          if (bar) bar.style.width = `${pct}%`;
+          const txt = document.getElementById('progress-text');
+          if (txt) txt.textContent =
             `${current} of ${target} friends joined • ${Math.max(target - current, 0)} more for a FREE YEAR! 🎁`;
         }
         function updateNextBilling() {
@@ -1383,17 +1409,9 @@
         /* ========= banners: upgrade/downgrade ========= */
         function updateSubscriptionBanners() {
           const plan = (window.PP_USER?.plan_type || 'early_bird').toLowerCase();
-          const show = (id, on) => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = on ? 'block' : 'none';
-          };
-          if (plan === 'pro') {
-            show('proBanner', false);
-            show('downgradeBanner', true);
-          } else {
-            show('proBanner', true);
-            show('downgradeBanner', false);
-          }
+          const show = (id, on) => { const n = document.getElementById(id); if (n) n.style.display = on ? 'block' : 'none'; };
+          if (plan === 'pro') { show('proBanner', false); show('downgradeBanner', true); }
+          else { show('proBanner', true); show('downgradeBanner', false); }
         }
         function toggleProOptions() {
           const options = document.getElementById('proOptions');
@@ -1401,8 +1419,8 @@
           if (!options || !banner) return;
           const open = options.style.display !== 'block';
           options.style.display = open ? 'block' : 'none';
-          const hint = banner.querySelector('.boost-expand-hint');
-          if (hint) hint.textContent = open ? 'Click to collapse ↑' : 'Click to expand upgrade options →';
+          banner.querySelector('.boost-expand-hint').textContent =
+            open ? 'Click to collapse ↑' : 'Click to expand upgrade options →';
           if (open) calculateProration('upgrade');
         }
         function toggleDowngradeOptions() {
@@ -1411,8 +1429,8 @@
           if (!options || !banner) return;
           const open = options.style.display !== 'block';
           options.style.display = open ? 'block' : 'none';
-          const hint = banner.querySelector('.boost-expand-hint');
-          if (hint) hint.textContent = open ? 'Click to collapse ↑' : 'Click to expand downgrade options →';
+          banner.querySelector('.boost-expand-hint').textContent =
+            open ? 'Click to collapse ↑' : 'Click to expand downgrade options →';
           if (open) calculateProration('downgrade');
         }
         function calculateProration(type) {
@@ -1426,8 +1444,8 @@
             const refund    = (currentPrice / daysInMonth) * daysRemaining;
             const newCharge = (newPrice    / daysInMonth) * daysRemaining;
             const total     = newCharge - refund;
-            const el = document.getElementById('prorationDetails');
-            if (el) el.innerHTML = `
+            const box = document.getElementById('prorationDetails');
+            if (box) box.innerHTML = `
               <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} remaining (${daysInMonth} total)</div>
               <div>💸 Refund for unused Early Bird: $${refund.toFixed(2)}</div>
               <div>💳 Charge for PRO remainder: $${newCharge.toFixed(2)}</div>
@@ -1437,94 +1455,84 @@
             const refund   = (currentPrice / daysInMonth) * daysRemaining;
             const charge   = (newPrice    / daysInMonth) * daysRemaining;
             const totalRef = refund - charge;
-            const el = document.getElementById('downgradeProrationDetails');
-            if (el) el.innerHTML = `
+            const box = document.getElementById('downgradeProrationDetails');
+            if (box) box.innerHTML = `
               <div>📅 Current month: ${daysUsed} days used, ${daysRemaining} remaining (${daysInMonth} total)</div>
               <div>💸 Refund for unused PRO: $${refund.toFixed(2)}</div>
               <div>💳 Charge for Standard remainder: $${charge.toFixed(2)}</div>
               <div style="font-weight:700;color:#87ceeb;margin-top:10px;">💰 Total refund: $${totalRef.toFixed(2)}</div>`;
           }
         }
-        function toggleProSubmitButton() {
-          const el = document.getElementById('submitProUpgrade');
-          if (el) el.disabled = !document.getElementById('proConsent')?.checked;
-        }
-        function toggleDowngradeSubmitButton() {
-          const el = document.getElementById('submitDowngrade');
-          if (el) el.disabled = !document.getElementById('downgradeConsent')?.checked;
-        }
 
-        /* ========= donations (исправлено) ========= */
+        /* ========= donations ========= */
         let selectedDonationAmount = 0;
-        let selectedDonationType   = '';
+        let selectedDonationType = '';
 
+        function getConsentEl() {
+          // поддерживаем и старый id, и новый
+          return document.getElementById('donationConsent') || document.getElementById('authorizeDonation');
+        }
         function toggleBoostOptions() {
           const options = document.getElementById('boostOptions');
           const banner  = document.getElementById('boostBanner');
           if (!options || !banner) return;
           const open = options.style.display !== 'block';
           options.style.display = open ? 'block' : 'none';
-          const hint = banner.querySelector('.boost-expand-hint');
-          if (hint) hint.textContent = open ? 'Click to collapse ↑' : 'Click to expand options →';
+          banner.querySelector('.boost-expand-hint').textContent =
+            open ? 'Click to collapse ↑' : 'Click to expand options →';
         }
-
-        function markSelectedTile(el){
-          document.querySelectorAll('.donation-btn').forEach(b=>b.classList.remove('selected'));
-          if (el) el.classList.add('selected');
-        }
-
-        function selectDonation(amount, type, el){
+        // вызывать из инлайна: onclick="selectDonation(3,'coffee', event)"
+        function selectDonation(amount, type, ev) {
           selectedDonationAmount = Number(amount) || 0;
           selectedDonationType   = type || '';
 
-          // очистить кастомную сумму и её подсветку
-          const ca = document.getElementById('customAmount');
-          if (ca){ ca.value=''; ca.classList.remove('has-value'); }
+          // подсветка только на нажатой кнопке
+          document.querySelectorAll('.donation-btn').forEach(b => b.classList.remove('selected'));
+          const e = ev || window.event || null;
+          const btn = e && e.target ? e.target.closest('.donation-btn') : null;
+          if (btn) btn.classList.add('selected');
 
-          // если элемент не передали (старые inline-обработчики), найдём по data-атрибутам
-          const target = el || document.querySelector(`.donation-btn[data-amount="${amount}"][data-type="${type}"]`);
-          markSelectedTile(target);
-
-          toggleSubmitButton();
-        }
-
-        function onCustomAmountInput(e){
-          const v  = parseInt(e.target.value, 10);
-          const ok = Number.isFinite(v) && v > 0;
-
-          selectedDonationAmount = ok ? v : 0;
-          selectedDonationType   = ok ? 'custom' : '';
-
-          e.target.classList.toggle('has-value', ok);
-          // снять выделение с пресет-кнопок
-          document.querySelectorAll('.donation-btn').forEach(b=>b.classList.remove('selected'));
+          // сбрасываем кастомное поле
+          const input = document.getElementById('customAmount');
+          if (input) { input.value = ''; input.classList.remove('has-value'); }
 
           toggleSubmitButton();
         }
-
+        function selectCustomDonation() {
+          const input = document.getElementById('customAmount');
+          if (!input) return;
+          const v = parseInt(input.value, 10);
+          // снимаем выделение с пресетов
+          document.querySelectorAll('.donation-btn').forEach(b => b.classList.remove('selected'));
+          if (v && v > 0) {
+            selectedDonationAmount = v;
+            selectedDonationType   = 'custom';
+            input.classList.add('has-value');
+          } else {
+            selectedDonationAmount = 0;
+            selectedDonationType   = '';
+            input.classList.remove('has-value');
+          }
+          toggleSubmitButton();
+        }
         function toggleSubmitButton() {
-          const consent = !!document.getElementById('donationConsent')?.checked;
+          const consent = !!getConsentEl()?.checked;
           const hasAmount = selectedDonationAmount > 0;
           const btn = document.getElementById('submitDonation');
           if (btn) btn.disabled = !(consent && hasAmount);
         }
-
         async function processDonation() {
           if (selectedDonationAmount <= 0) { alert('Please select a donation amount'); return; }
-
-          const consent    = !!document.getElementById('donationConsent')?.checked;
-          const authorized = !!document.getElementById('authorizeDonation')?.checked; // если второй чек есть
-
-          if (!consent)    { alert('Please agree to the terms'); return; }
-          if (!authorized) { alert('Please check "I authorize this transaction"'); return; }
+          const consentEl = getConsentEl();
+          if (!consentEl || !consentEl.checked) { alert('Please check "I authorize this transaction"'); return; }
 
           const btn = document.getElementById('submitDonation');
-          if (btn){ btn.textContent = 'Processing...'; btn.disabled = true; }
+          if (btn) { btn.textContent = 'Processing...'; btn.disabled = true; }
 
           try {
             await apiPost('/api/process-donation', {
               amount: selectedDonationAmount,
-              type:   selectedDonationType,
+              type: selectedDonationType,
               authorized: true
             });
             showDonationSuccess();
@@ -1532,42 +1540,32 @@
             resetDonationForm();
           } catch (e) {
             console.error('Donation error:', e);
-            alert(`Donation failed. Please try again.\n${e.message || ''}`);
+            alert('Donation failed. Please try again.');
           } finally {
-            if (btn){ btn.textContent = 'BOOST NOW'; btn.disabled = false; }
+            if (btn) { btn.textContent = 'BOOST NOW'; btn.disabled = false; }
           }
         }
-
         function showDonationSuccess() {
           const el = document.createElement('div');
           el.className = 'copy-success';
           let msg = '💎 Thank you for supporting ProfitPal! ';
-          if (selectedDonationType === 'coffee')       msg += 'I love black coffee, thank you! ☕';
-          else if (selectedDonationType === 'milk')    msg += 'Black coffee with milk — wow! 🥛';
-          else if (selectedDonationType === 'features')msg += 'Features are coming! 🚀';
-          else                                         msg += 'Huge thanks for recognizing my work! 💝';
+          if (selectedDonationType === 'coffee') msg += 'I love black coffee, thank you! ☕';
+          else if (selectedDonationType === 'milk') msg += 'Black coffee with milk — wow! 🥛';
+          else if (selectedDonationType === 'features') msg += 'Features are coming! 🚀';
+          else msg += 'Huge thanks for recognizing my work! 💝';
           el.textContent = msg;
           document.body.appendChild(el);
           setTimeout(() => el.remove(), 4000);
         }
-
         function resetDonationForm() {
           selectedDonationAmount = 0;
           selectedDonationType   = '';
-
-          document.querySelectorAll('.donation-btn').forEach(b=>b.classList.remove('selected'));
-
-          const ca = document.getElementById('customAmount');
-          if (ca){ ca.value=''; ca.classList.remove('has-value'); }
-
-          const dc = document.getElementById('donationConsent');
-          if (dc) dc.checked = false;
-
-          const auth = document.getElementById('authorizeDonation');
-          if (auth) auth.checked = false;
-
+          const input = document.getElementById('customAmount');
+          if (input) { input.value = ''; input.classList.remove('has-value'); }
+          const consentEl = getConsentEl(); if (consentEl) consentEl.checked = false;
+          document.querySelectorAll('.donation-btn').forEach(btn => btn.classList.remove('selected'));
           const btn = document.getElementById('submitDonation');
-          if (btn){ btn.textContent = 'BOOST NOW'; btn.disabled = true; }
+          if (btn) { btn.textContent = 'BOOST NOW'; btn.disabled = true; }
         }
 
         /* ========= misc ========= */
@@ -1580,7 +1578,7 @@
             document.body.appendChild(div);
             setTimeout(() => div.remove(), 2000);
             const banner = document.querySelector('.referral-banner');
-            if (banner){
+            if (banner) {
               banner.style.transform = 'translateY(-3px) scale(1.02)';
               banner.style.borderColor = '#32cd32';
               setTimeout(() => { banner.style.transform = ''; banner.style.borderColor = ''; }, 500);
@@ -1592,10 +1590,11 @@
           }
         }
         function quickAnalysis() {
-          const ticker = document.getElementById('quickTicker').value.toUpperCase().trim();
+          const ticker = document.getElementById('quickTicker')?.value.toUpperCase().trim();
           if (!ticker) { alert('Please enter a ticker first'); return; }
           const btn = document.querySelector('.analyze-btn');
           const res = document.getElementById('quickResults');
+          if (!btn || !res) return;
           btn.textContent = 'Analyzing...'; btn.disabled = true;
           setTimeout(() => {
             res.style.display = 'block';
@@ -1610,6 +1609,7 @@
         function updateGreeting(firstName='Investor') {
           const hour = new Date().getHours();
           const welcomeTitle = document.getElementById('welcome-title');
+          if (!welcomeTitle) return;
           const time = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
           if (firstName === 'Admin') {
             welcomeTitle.innerHTML = `${time}, <span style="color:#ffd700;">Admin</span>! 👑💎`;
@@ -1619,6 +1619,7 @@
         }
         function animateFreeMonths() {
           const counter = document.getElementById('free-months-count');
+          if (!counter) return;
           setInterval(() => {
             if (parseInt(counter.textContent || '0', 10) > 0) {
               counter.style.transform = 'scale(1.2)'; counter.style.color = '#ffd700';
@@ -1628,16 +1629,14 @@
         }
 
         /* ========= boot ========= */
-        document.addEventListener('DOMContentLoaded', () => {
-          // demo → real
-          showDemoData();
-          loadUserData();
-
-          // анимация/баннеры
+        document.addEventListener('DOMContentLoaded', async () => {
+          await waitForSession(2000); // быстро подтянуть PP_USER и поставить Admin сразу
+          showDemoData();            // мгновенно показать что-то
+          loadUserData();            // затем — реальные данные, если доступны
           animateFreeMonths();
           updateSubscriptionBanners();
 
-          // плавное появление карточек
+          // плавное появление
           document.querySelectorAll('.dashboard-card, .referral-banner, .boost-banner')
             .forEach((card, i) => {
               card.style.opacity = '0'; card.style.transform = 'translateY(20px)';
@@ -1647,28 +1646,11 @@
               }, i * 200);
             });
 
-          /* ==== привязка событий для донатов (без inline) ==== */
-          document.querySelectorAll('.donation-btn').forEach(btn=>{
-            const amount = parseInt(btn.dataset.amount, 10);
-            const type   = btn.dataset.type || '';
-            btn.addEventListener('click', () => selectDonation(amount, type, btn));
-          });
-          const ca = document.getElementById('customAmount');
-          if (ca) ca.addEventListener('input', onCustomAmountInput);
-
-          const dc = document.getElementById('donationConsent');
-          if (dc) dc.addEventListener('change', toggleSubmitButton);
-
-          const auth = document.getElementById('authorizeDonation');
-          if (auth) auth.addEventListener('change', toggleSubmitButton);
-
-          const submit = document.getElementById('submitDonation');
-          if (submit) submit.addEventListener('click', processDonation);
-
-          toggleSubmitButton();
+          // если есть кастомная сумма — подсветка при вводе
+          document.getElementById('customAmount')?.addEventListener('input', selectCustomDonation);
         });
 
-        // автоподгрузка раз в 5 минут
+        // автообновление раз в 5 минут
         setInterval(loadUserData, 300000);
         </script>
 
