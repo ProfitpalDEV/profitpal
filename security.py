@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import sqlite3
 import secrets
 import os
+import re
 from typing import Optional, Dict
 
 # ---- cookie names ----
@@ -22,6 +23,18 @@ def _db():
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     return con
+
+
+def _norm_key(s: str) -> str:
+    return re.sub(r'[^A-Z0-9]', '', (s or '').upper())
+
+
+def is_admin_user(user) -> bool:
+    """Админ определяется ТОЛЬКО по license_key == ADMIN_LICENSE_KEY (нормализовано)."""
+    if not user:
+        return False
+    lk = (user.get("license_key") or "").strip()
+    return _norm_key(lk) == _norm_key(ADMIN_LICENSE_KEY)
 
 
 def create_session(user_id: int, ip: str, ua: str, days: int = 30):
@@ -172,34 +185,34 @@ async def require_user(request: Request):
 
 
 def require_plan(required: Optional[str] = None):
+    """
+    Валидируем сессию. Админ проходит ВСЕГДА по license_key == ADMIN_LICENSE_KEY.
+    Для остальных: проверяем план/подписку.
+    """
     async def _inner(request: Request):
+        # 1) валидная сессия (401, если нет)
         user = await require_user(request)
 
-        email = (user.get("email") or "").strip().lower()
-        is_admin = bool(ADMIN_EMAIL and email == ADMIN_EMAIL)
-
-        if not is_admin and ADMIN_EMAIL:
-            try:
-                from auth_manager import auth_manager as AUTH
-                admin_row = AUTH.get_user_by_email(ADMIN_EMAIL)
-                if admin_row and int(admin_row.get("id", 0)) == int(user.get("id", 0)):
-                    is_admin = True
-            except Exception as e:
-                print(f"[security] admin id fallback error: {e}")
-
-        if is_admin:
+        # 2) admin-бypass по ключу из ENV
+        user_key = (user.get("license_key") or "")
+        if ADMIN_LICENSE_KEY and _norm_key(user_key) == _norm_key(ADMIN_LICENSE_KEY):
             return user
 
+        # 3) если конкретный план не требуется — пропускаем
         if not required:
             return user
 
+        # 4) обычная проверка доступа по плану/подписке
         need = _plan_rank(required)
         have = _plan_rank(user.get("plan_type"))
         subs = (user.get("subscription_status") or "").lower()
 
         if (have >= need) or (subs in ("active", "trialing")):
             return user
+
+        # 5) иначе — просим оплату
         raise HTTPException(status_code=402, detail="Payment required")
+
     return _inner
     
 
