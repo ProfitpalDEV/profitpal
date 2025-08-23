@@ -1336,36 +1336,56 @@
           }
         }
 
-            // ========== ФУНКЦИИ НАВИГАЦИИ И ПОРТФОЛИО ========== //
-            function goToFullAnalysis() {
-                // Получаем тикер из поля быстрого анализа
-                const tickerInput = document.getElementById('quickTicker');
-                if (!tickerInput) {
-                    console.error('[Navigation] Quick ticker input not found');
+            // ========== ФУНКЦИИ АНАЛИЗА И НАВИГАЦИИ ========== //
+
+            // Быстрый анализ
+            function quickAnalysis() {
+                const ticker = document.getElementById('quickTicker')?.value.toUpperCase().trim();
+                if (!ticker) {
+                    alert('Please enter a ticker symbol');
                     return;
                 }
 
-                const ticker = tickerInput.value.trim().toUpperCase();
+                const btn = document.querySelector('.analyze-btn');
+                const res = document.getElementById('quickResults');
 
-                // Проверяем что тикер введен
+                if (!btn || !res) return;
+
+                btn.textContent = 'Analyzing...';
+                btn.disabled = true;
+
+                setTimeout(() => {
+                    res.style.display = 'block';
+                    btn.textContent = 'Analyze';
+                    btn.disabled = false;
+                    res.querySelector('h4').textContent = `💎 ${ticker} Analysis Complete!`;
+                    res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                    // Показываем кнопки после анализа
+                    const actionButtons = document.querySelector('.action-buttons');
+                    if (actionButtons) actionButtons.style.display = 'flex';
+                }, 1000);
+            }
+
+            // Переход на полный анализ
+            function goToFullAnalysis() {
+                const ticker = document.getElementById('quickTicker')?.value.toUpperCase().trim();
                 if (!ticker) {
                     alert('Please enter a ticker symbol first');
                     return;
                 }
 
-                // Валидация тикера (1-5 символов, только буквы)
+                // Валидация тикера
                 if (!/^[A-Z]{1,5}$/.test(ticker)) {
                     alert('Invalid ticker symbol. Please enter 1-5 letters only.');
                     return;
                 }
 
                 console.log(`[Navigation] Redirecting to full analysis for: ${ticker}`);
-
-                // Переход на страницу stock-analysis с параметром ticker
                 window.location.href = `/stock-analysis?ticker=${ticker}`;
             }
 
-            // ========== ПЕРЕХОД В ПОРТФОЛИО (ЗАГЛУШКА) ========== //
+            // Добавить в портфолио
             function addToPortfolio(ticker) {
                 if (!ticker) {
                     const tickerInput = document.getElementById('quickTicker');
@@ -1377,18 +1397,14 @@
                     return;
                 }
 
-                // Пока портфолио не готово - сохраняем в localStorage
-                console.log(`[Portfolio] Adding ${ticker} to portfolio (feature coming soon)`);
-
+                // Сохраняем в localStorage
                 let portfolio = JSON.parse(localStorage.getItem('pp_portfolio') || '[]');
 
-                // Проверяем что акция еще не добавлена
                 if (portfolio.some(item => item.ticker === ticker)) {
                     alert(`${ticker} is already in your portfolio!`);
                     return;
                 }
 
-                // Добавляем в портфолио
                 portfolio.push({
                     ticker: ticker,
                     dateAdded: new Date().toISOString(),
@@ -1396,30 +1412,21 @@
                 });
 
                 localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
+                alert(`✅ ${ticker} added to portfolio!`);
 
-                alert(`✅ ${ticker} added to portfolio!\n\nPortfolio page coming soon.`);
-
-                // Когда будет готова страница portfolio.html - раскомментируй:
-                window.location.href = `/portfolio?ticker=${ticker}`;
+                // Переход на портфолио
+                setTimeout(() => {
+                    window.location.href = `/portfolio?ticker=${ticker}`;
+                }, 500);
             }
 
-                // Добавляем в портфолио
-                portfolio.push({
-                    ticker: ticker,
-                    dateAdded: new Date().toISOString(),
-                    lastPrice: document.getElementById('currentPrice')?.textContent || 'N/A'
-                });
+            // Enter key support для быстрого анализа
+            document.getElementById('quickTicker')?.addEventListener('keypress', e => {
+                if (e.key === 'Enter') quickAnalysis();
+            });
 
-                localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
-
-                alert(`✅ ${ticker} added to portfolio!\n\nPortfolio page coming soon.`);
-             }
-
-                // Когда будет готова страница portfolio.html:
-                window.location.href = `/portfolio?ticker=${ticker}`;
-           
-
-        /* ========= UI ========= */
+            
+           /* ========= UI ========= */
         function updateUI() {
           const freeMonths  = Number(userData.freeMonthsBalance || 0);
           const paidFriends = Number(userData.totalPaidReferrals || 0);
@@ -1744,23 +1751,7 @@
             ta.select(); document.execCommand('copy'); ta.remove();
           }
         }
-        function quickAnalysis() {
-          const ticker = document.getElementById('quickTicker')?.value.toUpperCase().trim();
-          if (!ticker) { alert('Please enter a ticker first'); return; }
-          const btn = document.querySelector('.analyze-btn');
-          const res = document.getElementById('quickResults');
-          if (!btn || !res) return;
-          btn.textContent = 'Analyzing...'; btn.disabled = true;
-          setTimeout(() => {
-            res.style.display = 'block';
-            btn.textContent = 'Analyze'; btn.disabled = false;
-            res.querySelector('h4').textContent = `💎 ${ticker} Analysis Complete!`;
-            res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 1000);
-        }
-        document.getElementById('quickTicker')?.addEventListener('keypress', e => {
-          if (e.key === 'Enter') quickAnalysis();
-        });
+        
         function updateGreeting(firstName='Investor') {
           const hour = new Date().getHours();
           const welcomeTitle = document.getElementById('welcome-title');
