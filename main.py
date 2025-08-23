@@ -1178,6 +1178,11 @@ def serve_footer_js():
     return serve_static("footer.js", "application/javascript")
 
 
+@app.get("/brand.js")
+def serve_brand_js():
+    return serve_static("brand.js", "application/javascript")
+
+
 @app.get("/donation-fix.js")
 def serve_donation_fix_js():
     return serve_static("donation-fix.js", "application/javascript")

@@ -435,9 +435,6 @@
     <!-- Header -->
     <header class="portfolio-header">
         <div class="header-container">
-            <div class="logo">
-                💎 ProfitPal
-            </div>
             <nav class="nav-links">
                 <a href="/dashboard" class="back-to-dashboard">← Back to Dashboard</a>
                 <a href="/stock-analysis">Analysis</a>
@@ -833,42 +830,85 @@
             const type = document.getElementById('txType').value;
             const action = document.getElementById('txAction').value;
             const symbol = document.getElementById('txSymbol').value;
-            const quantity = document.getElementById('txQuantity').value;
-            const price = document.getElementById('txPrice').value;
-            const commission = document.getElementById('txCommission').value || 0;
+            const quantity = parseInt(document.getElementById('txQuantity').value);
+            const price = parseFloat(document.getElementById('txPrice').value);
+            const commission = parseFloat(document.getElementById('txCommission').value || 0);
             const date = document.getElementById('txDate').value;
             const notes = document.getElementById('txNotes').value;
 
             // Форматируем action для отображения
             let actionDisplay = action.toUpperCase();
             let actionClass = 'action-buy';
-            let totalClass = 'loss';
 
             if (action.includes('call')) {
                 actionDisplay = action.includes('buy') ? 'BUY CALL ☎️' : 'SELL CALL ☎️';
                 actionClass = action.includes('buy') ? 'action-buy' : 'action-sell';
-                totalClass = action.includes('buy') ? 'loss' : 'profit';
             } else if (action.includes('put')) {
                 actionDisplay = action.includes('buy') ? 'BUY PUT 📉' : 'SELL PUT 📉';
                 actionClass = action.includes('buy') ? 'action-buy' : 'action-sell';
-                totalClass = action.includes('buy') ? 'loss' : 'profit';
             } else if (action === 'long') {
                 actionDisplay = 'LONG 📈';
                 actionClass = 'action-buy';
-                totalClass = 'loss';
             } else if (action === 'short') {
                 actionDisplay = 'SHORT 📉';
                 actionClass = 'action-sell';
-                totalClass = 'profit';
             } else {
                 actionDisplay = action.toUpperCase();
                 actionClass = action === 'buy' ? 'action-buy' : 'action-sell';
-                totalClass = action === 'buy' ? 'loss' : 'profit';
             }
 
-            // Calculate total
-            const total = (quantity * price) + parseFloat(commission);
-            const totalWithSign = (action === 'buy' || action.includes('buy') || action === 'long') ? -total : total;
+            // Calculate total для опционов по-другому!
+            let total, totalWithSign, totalClass;
+
+            if (type === 'option') {
+                // Для опционов: цена * 100 * количество контрактов
+                const optionValue = price * 100 * quantity;
+                total = optionValue + commission;
+
+                // Для SELL PUT получаем премию (плюс)
+                if (action === 'sell_put' || action === 'sell_call') {
+                    totalWithSign = optionValue - commission; // Получаем деньги минус комиссия
+                    totalClass = 'profit';
+                } else {
+                    totalWithSign = -(optionValue + commission); // Платим деньги
+                    totalClass = 'loss';
+                }
+            } else {
+                // Для акций и остального
+                total = (quantity * price) + commission;
+                totalWithSign = (action === 'buy' || action === 'long') ? -total : total;
+                totalClass = totalWithSign > 0 ? 'profit' : 'loss';
+            }
+
+            // Проверяем дату экспирации для опционов
+            let currentStatus = 'Pending...';
+            if (type === 'option' && symbol.includes('/')) {
+                // Извлекаем дату из символа (например, "07/18" из "OSCR 15.5 PUT 07/18")
+                const expMatch = symbol.match(/(\d{2}\/\d{2})/);
+                if (expMatch) {
+                    const expDate = new Date(`2025-${expMatch[1].replace('/', '-')}`);
+                    const today = new Date();
+                    if (expDate < today) {
+                        currentStatus = '<span style="color: #e74c3c;">EXPIRED</span>';
+                    }
+                }
+            }
+
+            // Расчет P&L для опционов
+            let plDisplay = '-';
+            let plPercentDisplay = '-';
+
+            if (type === 'option' && currentStatus.includes('EXPIRED')) {
+                // Для SELL PUT если expired - мы заработали премию
+                if (action === 'sell_put' || action === 'sell_call') {
+                    plDisplay = `<span class="profit">+$${Math.abs(totalWithSign).toFixed(2)}</span>`;
+                    plPercentDisplay = '<span class="profit">+100%</span>';
+                } else {
+                    // Для BUY опционов если expired - потеряли премию
+                    plDisplay = `<span class="loss">${totalWithSign.toFixed(2)}</span>`;
+                    plPercentDisplay = '<span class="loss">-100%</span>';
+                }
+            }
 
             // Add to journal table
             const tbody = document.getElementById('journalBody');
@@ -882,12 +922,12 @@
                 <td><strong>${symbol.toUpperCase()}</strong></td>
                 <td class="${actionClass}">${actionDisplay}</td>
                 <td>${quantity}</td>
-                <td>$${parseFloat(price).toFixed(2)}</td>
-                <td>$${parseFloat(commission).toFixed(2)}</td>
+                <td>$${price.toFixed(2)}</td>
+                <td>$${commission.toFixed(2)}</td>
                 <td class="${totalClass}">${totalWithSign > 0 ? '+' : ''}$${Math.abs(totalWithSign).toFixed(2)}</td>
-                <td>Pending...</td>
-                <td>-</td>
-                <td>-</td>
+                <td>${currentStatus}</td>
+                <td>${plDisplay}</td>
+                <td>${plPercentDisplay}</td>
                 <td>${notes}</td>
             `;
 
@@ -969,6 +1009,7 @@
         }
     </script>
 
+    <script src="/brand.js"></script>
     <script src="/footer.js"></script>
     
 </body>
