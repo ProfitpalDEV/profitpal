@@ -694,11 +694,6 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="portfolio-footer">
-        <p>© 2025 <span style="color: #32cd32; font-weight: 700;">Denava LLC</span>. All rights reserved. | Built with 💎 by ProfitPal</p>
-    </footer>
-
     <!-- Add Transaction Modal -->
     <div id="transactionModal" class="modal">
         <div class="modal-content">
@@ -844,23 +839,48 @@
             const date = document.getElementById('txDate').value;
             const notes = document.getElementById('txNotes').value;
 
+            // Форматируем action для отображения
+            let actionDisplay = action.toUpperCase();
+            let actionClass = 'action-buy';
+            let totalClass = 'loss';
+
+            if (action.includes('call')) {
+                actionDisplay = action.includes('buy') ? 'BUY CALL ☎️' : 'SELL CALL ☎️';
+                actionClass = action.includes('buy') ? 'action-buy' : 'action-sell';
+                totalClass = action.includes('buy') ? 'loss' : 'profit';
+            } else if (action.includes('put')) {
+                actionDisplay = action.includes('buy') ? 'BUY PUT 📉' : 'SELL PUT 📉';
+                actionClass = action.includes('buy') ? 'action-buy' : 'action-sell';
+                totalClass = action.includes('buy') ? 'loss' : 'profit';
+            } else if (action === 'long') {
+                actionDisplay = 'LONG 📈';
+                actionClass = 'action-buy';
+                totalClass = 'loss';
+            } else if (action === 'short') {
+                actionDisplay = 'SHORT 📉';
+                actionClass = 'action-sell';
+                totalClass = 'profit';
+            } else {
+                actionDisplay = action.toUpperCase();
+                actionClass = action === 'buy' ? 'action-buy' : 'action-sell';
+                totalClass = action === 'buy' ? 'loss' : 'profit';
+            }
+
             // Calculate total
             const total = (quantity * price) + parseFloat(commission);
-            const totalWithSign = action === 'buy' ? -total : total;
+            const totalWithSign = (action === 'buy' || action.includes('buy') || action === 'long') ? -total : total;
 
             // Add to journal table
             const tbody = document.getElementById('journalBody');
             const newRow = tbody.insertRow(0);
 
             const typeBadgeClass = `type-${type}`;
-            const actionClass = action === 'buy' ? 'action-buy' : 'action-sell';
-            const totalClass = action === 'buy' ? 'loss' : 'profit';
 
             newRow.innerHTML = `
                 <td>${date}</td>
                 <td><span class="type-badge ${typeBadgeClass}">${type.toUpperCase()}</span></td>
                 <td><strong>${symbol.toUpperCase()}</strong></td>
-                <td class="${actionClass}">${action.toUpperCase()}</td>
+                <td class="${actionClass}">${actionDisplay}</td>
                 <td>${quantity}</td>
                 <td>$${parseFloat(price).toFixed(2)}</td>
                 <td>$${parseFloat(commission).toFixed(2)}</td>
@@ -881,14 +901,36 @@
         function updateFormFields() {
             const type = document.getElementById('txType').value;
             const symbolInput = document.getElementById('txSymbol');
+            const actionSelect = document.getElementById('txAction');
 
             if (type === 'option') {
-                symbolInput.placeholder = 'e.g., SPY 480C or AAPL 150P';
+                // Для опционов - выбор CALL/PUT
+                actionSelect.innerHTML = `
+                    <option value="buy_call">Buy CALL ☎️</option>
+                    <option value="sell_call">Sell CALL ☎️</option>
+                    <option value="buy_put">Buy PUT 📉</option>
+                    <option value="sell_put">Sell PUT 📉</option>
+                `;
+                symbolInput.placeholder = 'e.g., SPY 480C 12/20 or AAPL 150P 01/15';
             } else if (type === 'future') {
+                // Для фьючерсов - Long/Short
+                actionSelect.innerHTML = `
+                    <option value="long">Go Long 📈</option>
+                    <option value="short">Go Short 📉</option>
+                `;
                 symbolInput.placeholder = 'e.g., ES, NQ, CL';
             } else if (type === 'bond') {
+                actionSelect.innerHTML = `
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                `;
                 symbolInput.placeholder = 'e.g., TLT, AGG, BND';
             } else {
+                // Для акций
+                actionSelect.innerHTML = `
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                `;
                 symbolInput.placeholder = 'e.g., AAPL, MSFT, GOOGL';
             }
         }
@@ -926,5 +968,8 @@
             // Implementation would go here
         }
     </script>
+
+    <script src="/footer.js"></script>
+    
 </body>
 </html>
