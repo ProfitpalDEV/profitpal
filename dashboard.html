@@ -1385,48 +1385,45 @@
                 window.location.href = `/stock-analysis?ticker=${ticker}`;
             }
 
-            // Добавить в портфолио
+            // ========== ДОБАВЛЕНИЕ В ПОРТФОЛИО (ПРОСТОЕ) ========== //
             function addToPortfolio(ticker) {
+                // Если тикер не передан, берем из поля ввода
                 if (!ticker) {
                     const tickerInput = document.getElementById('quickTicker');
                     ticker = tickerInput ? tickerInput.value.trim().toUpperCase() : '';
                 }
 
+                // Проверка что тикер введен
                 if (!ticker) {
                     alert('Please enter a ticker symbol first');
                     return;
                 }
 
-                // Сохраняем в localStorage
+                // Загружаем простой список портфолио (НЕ advanced!)
                 let portfolio = JSON.parse(localStorage.getItem('pp_portfolio') || '[]');
 
+                // Проверяем есть ли уже эта акция
                 if (portfolio.some(item => item.ticker === ticker)) {
                     alert(`${ticker} is already in your portfolio!`);
-                    return;
+                } else {
+                    // Добавляем просто тикер для отслеживания
+                    portfolio.push({
+                        ticker: ticker,
+                        dateAdded: new Date().toISOString()
+                    });
+
+                    // Сохраняем
+                    localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
+
+                    console.log(`[Portfolio] Added ${ticker} to watchlist`);
                 }
 
-                portfolio.push({
-                    ticker: ticker,
-                    dateAdded: new Date().toISOString(),
-                    lastPrice: document.getElementById('currentPrice')?.textContent || 'N/A'
-                });
-
-                localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
-                alert(`✅ ${ticker} added to portfolio!`);
-
-                // Переход на портфолио
-                setTimeout(() => {
-                    window.location.href = `/portfolio?ticker=${ticker}`;
-                }, 500);
+                // ПЕРЕХОД НА СТРАНИЦУ ПОРТФОЛИО
+                window.location.href = '/portfolio';
             }
 
-            // Enter key support для быстрого анализа
-            document.getElementById('quickTicker')?.addEventListener('keypress', e => {
-                if (e.key === 'Enter') quickAnalysis();
-            });
-
             
-           /* ========= UI ========= */
+            /* ========= UI ========= */
         function updateUI() {
           const freeMonths  = Number(userData.freeMonthsBalance || 0);
           const paidFriends = Number(userData.totalPaidReferrals || 0);
