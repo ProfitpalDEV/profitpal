@@ -1336,11 +1336,10 @@
           }
         }
 
-            // ========== ПЕРЕХОД НА СТРАНИЦУ ПОЛНОГО АНАЛИЗА ========== //
+            // ========== ФУНКЦИИ НАВИГАЦИИ И ПОРТФОЛИО ========== //
             function goToFullAnalysis() {
                 // Получаем тикер из поля быстрого анализа
                 const tickerInput = document.getElementById('quickTicker');
-
                 if (!tickerInput) {
                     console.error('[Navigation] Quick ticker input not found');
                     return;
@@ -1388,6 +1387,21 @@
                     alert(`${ticker} is already in your portfolio!`);
                     return;
                 }
+
+                // Добавляем в портфолио
+                portfolio.push({
+                    ticker: ticker,
+                    dateAdded: new Date().toISOString(),
+                    lastPrice: document.getElementById('currentPrice')?.textContent || 'N/A'
+                });
+
+                localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
+
+                alert(`✅ ${ticker} added to portfolio!\n\nPortfolio page coming soon.`);
+
+                // Когда будет готова страница portfolio.html - раскомментируй:
+                // window.location.href = `/portfolio?ticker=${ticker}`;
+            }
 
                 // Добавляем в портфолио
                 portfolio.push({

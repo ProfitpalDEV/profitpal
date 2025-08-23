@@ -1093,6 +1093,11 @@ def serve_stock_analysis(user=Depends(require_plan("lifetime"))):
     return serve_html("stock-analysis.html")
 
 
+@app.get("/portfolio")
+def serve_portfolio(user=Depends(require_plan("lifetime"))):
+    return serve_html("portfolio.html")
+
+
 @app.get("/dashboard")
 def serve_dashboard(user=Depends(require_plan("lifetime"))):
     try:
