@@ -1336,6 +1336,74 @@
           }
         }
 
+            // ========== ПЕРЕХОД НА СТРАНИЦУ ПОЛНОГО АНАЛИЗА ========== //
+            function goToFullAnalysis() {
+                // Получаем тикер из поля быстрого анализа
+                const tickerInput = document.getElementById('quickTicker');
+
+                if (!tickerInput) {
+                    console.error('[Navigation] Quick ticker input not found');
+                    return;
+                }
+
+                const ticker = tickerInput.value.trim().toUpperCase();
+
+                // Проверяем что тикер введен
+                if (!ticker) {
+                    alert('Please enter a ticker symbol first');
+                    return;
+                }
+
+                // Валидация тикера (1-5 символов, только буквы)
+                if (!/^[A-Z]{1,5}$/.test(ticker)) {
+                    alert('Invalid ticker symbol. Please enter 1-5 letters only.');
+                    return;
+                }
+
+                console.log(`[Navigation] Redirecting to full analysis for: ${ticker}`);
+
+                // Переход на страницу stock-analysis с параметром ticker
+                window.location.href = `/stock-analysis?ticker=${ticker}`;
+            }
+
+            // ========== ПЕРЕХОД В ПОРТФОЛИО (ЗАГЛУШКА) ========== //
+            function addToPortfolio(ticker) {
+                if (!ticker) {
+                    const tickerInput = document.getElementById('quickTicker');
+                    ticker = tickerInput ? tickerInput.value.trim().toUpperCase() : '';
+                }
+
+                if (!ticker) {
+                    alert('Please enter a ticker symbol first');
+                    return;
+                }
+
+                // Пока портфолио не готово - сохраняем в localStorage
+                console.log(`[Portfolio] Adding ${ticker} to portfolio (feature coming soon)`);
+
+                let portfolio = JSON.parse(localStorage.getItem('pp_portfolio') || '[]');
+
+                // Проверяем что акция еще не добавлена
+                if (portfolio.some(item => item.ticker === ticker)) {
+                    alert(`${ticker} is already in your portfolio!`);
+                    return;
+                }
+
+                // Добавляем в портфолио
+                portfolio.push({
+                    ticker: ticker,
+                    dateAdded: new Date().toISOString(),
+                    lastPrice: document.getElementById('currentPrice')?.textContent || 'N/A'
+                });
+
+                localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
+
+                alert(`✅ ${ticker} added to portfolio!\n\nPortfolio page coming soon.`);
+
+                // Когда будет готова страница portfolio.html:
+                // window.location.href = `/portfolio?ticker=${ticker}`;
+            }
+
         /* ========= UI ========= */
         function updateUI() {
           const freeMonths  = Number(userData.freeMonthsBalance || 0);
