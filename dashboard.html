@@ -1079,7 +1079,7 @@
                 </div>
 
                 <div class="analysis-input">
-                    <input type="text" class="ticker-input" placeholder="Enter ticker (e.g., AAPL)" id="quickTicker">
+                    <input type="text" class="ticker-input" placeholder="Enter ticker (e.g., AAPL)" id="quickTicker" />
                     <button class="analyze-btn" onclick="quickAnalysis()">Analyze</button>
                 </div>
 
@@ -1413,10 +1413,11 @@
                 localStorage.setItem('pp_portfolio', JSON.stringify(portfolio));
 
                 alert(`✅ ${ticker} added to portfolio!\n\nPortfolio page coming soon.`);
+             }
 
                 // Когда будет готова страница portfolio.html:
-                // window.location.href = `/portfolio?ticker=${ticker}`;
-            }
+                window.location.href = `/portfolio?ticker=${ticker}`;
+           
 
         /* ========= UI ========= */
         function updateUI() {
