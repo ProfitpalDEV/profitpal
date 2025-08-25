@@ -14,12 +14,19 @@ from fastapi import FastAPI, HTTPException, Request, Form, BackgroundTasks, Depe
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from database import init_db, add_transaction, get_transactions, delete_transaction
 from pydantic import BaseModel
 from pathlib import Path
 from auth_manager import authenticate_user_login, validate_user_credentials, create_new_user, get_auth_stats, auth_manager as AUTH
 from security import set_session_cookies, create_session, require_user, require_plan, verify_csrf, SESSION_COOKIE, CSRF_COOKIE, _db, _fetch_user_by_session, is_admin_user
 from referral_manager import ReferralManager
 import re
+
+# ==========================================
+# Инициализация базы данных при старте
+# ==========================================
+
+init_db()
 
 # ==========================================
 # ROOT DIRECTORY CONFIGURATION
@@ -1372,6 +1379,48 @@ def referral_stats_me(user=Depends(require_user)):
         pass
 
     return stats
+
+
+# ==========================================
+# API FOR TRADING JOURNAL
+#============================================
+
+
+@app.post("/api/transactions")
+async def create_transaction(transaction: dict, current_user = Depends(get_current_user)):
+    transaction_id = add_transaction(current_user['id'], transaction)
+    return {"success": True, "id": transaction_id}
+
+@app.get("/api/transactions")
+async def read_transactions(current_user = Depends(get_current_user)):
+    transactions = get_transactions(current_user['id'])
+    return {"transactions": transactions}
+
+@app.delete("/api/transactions/{transaction_id}")
+async def remove_transaction(transaction_id: int, current_user = Depends(get_current_user)):
+    delete_transaction(current_user['id'], transaction_id)
+    return {"success": True}
+
+# API для Watchlist
+@app.post("/api/watchlist")
+async def add_to_watchlist(data: dict, current_user = Depends(get_current_user)):
+    # Добавляем в watchlist
+    conn = sqlite3.connect('profitpal.db')
+    c = conn.cursor()
+    c.execute('INSERT OR IGNORE INTO watchlist (user_id, symbol) VALUES (?, ?)',
+              (current_user['id'], data['symbol']))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.get("/api/watchlist")
+async def get_watchlist(current_user = Depends(get_current_user)):
+    conn = sqlite3.connect('profitpal.db')
+    c = conn.cursor()
+    c.execute('SELECT symbol FROM watchlist WHERE user_id = ?', (current_user['id'],))
+    symbols = [row[0] for row in c.fetchall()]
+    conn.close()
+    return {"symbols": symbols}
 
 
 # ==========================================

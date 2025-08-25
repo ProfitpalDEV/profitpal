@@ -53,17 +53,6 @@
             align-items: center;
         }
 
-        .logo {
-            font-size: 28px;
-            font-weight: 800;
-            background: linear-gradient(45deg, #32cd32, #27ae60);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .nav-links {
             display: flex;
             gap: 20px;
@@ -173,6 +162,39 @@
             letter-spacing: 1px;
         }
 
+        /* Metrics Toggle */
+        .metrics-toggle {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .metrics-selector {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .metrics-selector.active {
+            display: flex;
+        }
+
+        .metrics-selector label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            color: #95a5a6;
+        }
+
+        .metrics-selector input[type="checkbox"] {
+            cursor: pointer;
+        }
+
         /* Portfolio Table */
         .table-container {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
@@ -226,6 +248,10 @@
             padding: 15px;
             color: #fff;
             white-space: nowrap;
+        }
+
+        .metric-column {
+            display: none;
         }
 
         /* Trading Journal Specific */
@@ -349,6 +375,22 @@
             border: 1px solid rgba(231, 76, 60, 0.3);
         }
 
+        /* Signal Badges */
+        .signal-buy {
+            color: #32cd32;
+            font-weight: 700;
+        }
+
+        .signal-sell {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
+        .signal-hold {
+            color: #f39c12;
+            font-weight: 700;
+        }
+
         /* Add Transaction Modal */
         .modal {
             display: none;
@@ -456,87 +498,124 @@
             </button>
         </div>
 
-        <!-- Portfolio Tab -->
+        <!-- Portfolio Tab (WATCHLIST) -->
         <div id="portfolio-tab" class="tab-content active">
             <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalValue">$125,430</div>
-                    <div class="stat-label">Portfolio Value</div>
+                    <div class="stat-value" id="totalWatching">12</div>
+                    <div class="stat-label">Watching</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value profit" id="totalGain">+$23,450</div>
-                    <div class="stat-label">Total Gain (+23.0%)</div>
+                    <div class="stat-value profit" id="highDiamond">8</div>
+                    <div class="stat-label">High Diamond (40+)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="dayChange">+$1,245</div>
-                    <div class="stat-label">Day Change (+1.0%)</div>
+                    <div class="stat-value" id="mediumDiamond">3</div>
+                    <div class="stat-label">Medium Diamond (20-39)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="holdings">12</div>
-                    <div class="stat-label">Holdings</div>
+                    <div class="stat-value loss" id="lowDiamond">1</div>
+                    <div class="stat-label">Low Diamond (<20)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="avgDiamond">38.5</div>
+                    <div class="stat-value" id="avgDiamond">42.5</div>
                     <div class="stat-label">Avg Diamond</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="winRate">67%</div>
-                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value" id="avgUpside">18%</div>
+                    <div class="stat-label">Avg Upside</div>
                 </div>
             </div>
 
-            <!-- Portfolio Table -->
+            <!-- Metrics Toggle -->
+            <div class="metrics-toggle">
+                <button class="btn btn-secondary" onclick="toggleMetrics()">
+                    📊 Show/Hide Metrics
+                </button>
+                <div class="metrics-selector" id="metricsSelector">
+                    <label><input type="checkbox" value="pe" onchange="toggleMetricColumn('pe')"> P/E Ratio</label>
+                    <label><input type="checkbox" value="roe" onchange="toggleMetricColumn('roe')"> ROE</label>
+                    <label><input type="checkbox" value="debt" onchange="toggleMetricColumn('debt')"> Debt/Equity</label>
+                    <label><input type="checkbox" value="growth" onchange="toggleMetricColumn('growth')"> Revenue Growth</label>
+                    <label><input type="checkbox" value="margin" onchange="toggleMetricColumn('margin')"> Profit Margin</label>
+                </div>
+            </div>
+
+            <!-- Portfolio Watchlist Table -->
             <div class="table-container">
                 <table class="portfolio-table" id="portfolioTable">
                     <thead>
                         <tr>
                             <th class="sortable" onclick="sortTable('ticker', 'portfolio')">Ticker</th>
                             <th class="sortable" onclick="sortTable('name', 'portfolio')">Name</th>
-                            <th class="sortable" onclick="sortTable('shares', 'portfolio')">Shares</th>
-                            <th class="sortable" onclick="sortTable('avgCost', 'portfolio')">Avg Cost</th>
                             <th class="sortable" onclick="sortTable('current', 'portfolio')">Current</th>
-                            <th class="sortable" onclick="sortTable('value', 'portfolio')">Value</th>
-                            <th class="sortable" onclick="sortTable('gain', 'portfolio')">Gain/Loss</th>
-                            <th class="sortable" onclick="sortTable('gainPercent', 'portfolio')">Gain %</th>
                             <th class="sortable" onclick="sortTable('dayChange', 'portfolio')">Day Change</th>
                             <th class="sortable" onclick="sortTable('diamond', 'portfolio')">Diamond</th>
                             <th class="sortable" onclick="sortTable('intrinsic', 'portfolio')">Intrinsic</th>
+                            <th class="sortable" onclick="sortTable('upside', 'portfolio')">Upside %</th>
+                            <th class="metric-column metric-pe">P/E</th>
+                            <th class="metric-column metric-roe">ROE</th>
+                            <th class="metric-column metric-debt">Debt/Eq</th>
+                            <th class="metric-column metric-growth">Growth</th>
+                            <th class="metric-column metric-margin">Margin</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="portfolioBody">
-                        <!-- Sample Data -->
+                        <!-- Sample Watchlist Data -->
                         <tr>
                             <td><strong>AAPL</strong></td>
                             <td>Apple Inc.</td>
-                            <td>100</td>
-                            <td>$150.00</td>
                             <td>$175.43</td>
-                            <td>$17,543</td>
-                            <td class="profit">+$2,543</td>
-                            <td class="profit">+16.95%</td>
-                            <td class="profit">+$125</td>
+                            <td class="profit">+2.43%</td>
                             <td><span class="diamond-badge diamond-high">💎 42</span></td>
                             <td>$190.20</td>
+                            <td class="profit">+8.4%</td>
+                            <td class="metric-column metric-pe">28.5</td>
+                            <td class="metric-column metric-roe">147%</td>
+                            <td class="metric-column metric-debt">1.95</td>
+                            <td class="metric-column metric-growth">+8.1%</td>
+                            <td class="metric-column metric-margin">25.3%</td>
                             <td>
                                 <button class="btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="analyzeStock('AAPL')">Analyze</button>
+                                <button class="btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="removeFromWatchlist('AAPL')">Remove</button>
                             </td>
                         </tr>
                         <tr>
                             <td><strong>MSFT</strong></td>
                             <td>Microsoft Corp.</td>
-                            <td>50</td>
-                            <td>$280.00</td>
                             <td>$310.25</td>
-                            <td>$15,512</td>
-                            <td class="profit">+$1,512</td>
-                            <td class="profit">+10.80%</td>
-                            <td class="loss">-$85</td>
+                            <td class="loss">-0.85%</td>
                             <td><span class="diamond-badge diamond-high">💎 45</span></td>
                             <td>$320.00</td>
+                            <td class="profit">+3.1%</td>
+                            <td class="metric-column metric-pe">31.2</td>
+                            <td class="metric-column metric-roe">43%</td>
+                            <td class="metric-column metric-debt">0.58</td>
+                            <td class="metric-column metric-growth">+12.3%</td>
+                            <td class="metric-column metric-margin">41.5%</td>
                             <td>
                                 <button class="btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="analyzeStock('MSFT')">Analyze</button>
+                                <button class="btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="removeFromWatchlist('MSFT')">Remove</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>GOOGL</strong></td>
+                            <td>Alphabet Inc.</td>
+                            <td>$142.58</td>
+                            <td class="profit">+1.25%</td>
+                            <td><span class="diamond-badge diamond-medium">💎 38</span></td>
+                            <td>$145.00</td>
+                            <td class="profit">+1.7%</td>
+                            <td class="metric-column metric-pe">24.8</td>
+                            <td class="metric-column metric-roe">29%</td>
+                            <td class="metric-column metric-debt">0.12</td>
+                            <td class="metric-column metric-growth">+15.2%</td>
+                            <td class="metric-column metric-margin">27.8%</td>
+                            <td>
+                                <button class="btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="analyzeStock('GOOGL')">Analyze</button>
+                                <button class="btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="removeFromWatchlist('GOOGL')">Remove</button>
                             </td>
                         </tr>
                     </tbody>
@@ -545,8 +624,11 @@
 
             <!-- Action Buttons -->
             <div class="journal-controls">
-                <button class="btn btn-primary" onclick="exportPortfolio()">
-                    📥 Export Portfolio
+                <button class="btn btn-primary" onclick="showAddToWatchlist()">
+                    ➕ Add Stock to Watchlist
+                </button>
+                <button class="btn btn-secondary" onclick="exportWatchlist()">
+                    📥 Export Watchlist
                 </button>
                 <button class="btn btn-secondary" onclick="refreshPrices()">
                     🔄 Refresh Prices
@@ -559,29 +641,38 @@
             <!-- Journal Stats -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalTrades">247</div>
+                    <div class="stat-value" id="totalTrades">0</div>
                     <div class="stat-label">Total Trades</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value profit" id="realizedPL">+$45,320</div>
+                    <div class="stat-value" id="realizedPL">$0</div>
                     <div class="stat-label">Realized P&L</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="unrealizedPL">+$12,450</div>
+                    <div class="stat-value" id="unrealizedPL">$0</div>
                     <div class="stat-label">Unrealized P&L</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="winningTrades">165</div>
+                    <div class="stat-value" id="winningTrades">0</div>
                     <div class="stat-label">Winning Trades</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="losingTrades">82</div>
+                    <div class="stat-value" id="losingTrades">0</div>
                     <div class="stat-label">Losing Trades</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="avgWin">+$425</div>
+                    <div class="stat-value" id="avgWin">$0</div>
                     <div class="stat-label">Avg Win</div>
                 </div>
+            </div>
+
+            <!-- Explanation Box -->
+            <div style="background: rgba(50, 205, 50, 0.1); border: 1px solid rgba(50, 205, 50, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                <p style="color: #32cd32; margin: 0;">
+                    💡 <strong>Total Explanation:</strong> 
+                    <span style="color: #e74c3c;">Red/Minus (-)</span> = Money LEFT your wallet (bought stocks, paid for options) | 
+                    <span style="color: #32cd32;">Green/Plus (+)</span> = Money ENTERED your wallet (sold stocks, received premiums)
+                </p>
             </div>
 
             <!-- Journal Controls -->
@@ -591,6 +682,9 @@
                 </button>
                 <button class="btn btn-secondary" onclick="exportJournal()">
                     📥 Export Journal
+                </button>
+                <button class="btn btn-secondary" onclick="toggleGroupByTicker()">
+                    📊 Group by Ticker
                 </button>
                 <select class="form-select" style="width: auto;" onchange="filterByType(this.value)">
                     <option value="all">All Types</option>
@@ -625,11 +719,30 @@
                             <th class="sortable" onclick="sortTable('pl', 'journal')">P&L</th>
                             <th class="sortable" onclick="sortTable('plPercent', 'journal')">P&L %</th>
                             <th>Notes</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="journalBody">
-                        <!-- Sample Transactions -->
-                        <tr>
+                        <!-- ПРАВИЛЬНЫЕ РАСЧЕТЫ! -->
+                        <tr data-ticker="OSCR">
+                            <td>2025-08-25</td>
+                            <td><span class="type-badge type-option">Option</span></td>
+                            <td><strong>OSCR 13.5P 07/21</strong></td>
+                            <td class="action-sell">SELL PUT 📉</td>
+                            <td>1</td>
+                            <td>$1.75</td>
+                            <td>$1.00</td>
+                            <td class="profit">+$174.00</td>
+                            <td>EXPIRED</td>
+                            <td class="profit">+$174.00</td>
+                            <td class="profit">+100%</td>
+                            <td></td>
+                            <td>
+                                <button onclick="editTransaction(this)" style="padding: 3px 8px; font-size: 11px;">✏️</button>
+                                <button onclick="deleteTransaction(this)" style="padding: 3px 8px; font-size: 11px;">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr data-ticker="AAPL">
                             <td>2024-12-15</td>
                             <td><span class="type-badge type-stock">Stock</span></td>
                             <td><strong>AAPL</strong></td>
@@ -642,8 +755,12 @@
                             <td class="profit">+$2,541.50</td>
                             <td class="profit">+16.94%</td>
                             <td>Long term hold</td>
+                            <td>
+                                <button onclick="editTransaction(this)" style="padding: 3px 8px; font-size: 11px;">✏️</button>
+                                <button onclick="deleteTransaction(this)" style="padding: 3px 8px; font-size: 11px;">🗑️</button>
+                            </td>
                         </tr>
-                        <tr>
+                        <tr data-ticker="SPY">
                             <td>2024-12-18</td>
                             <td><span class="type-badge type-option">Option</span></td>
                             <td><strong>SPY 480C</strong></td>
@@ -656,8 +773,12 @@
                             <td class="profit">+$1,249.35</td>
                             <td class="profit">+31.23%</td>
                             <td>Hit target</td>
+                            <td>
+                                <button onclick="editTransaction(this)" style="padding: 3px 8px; font-size: 11px;">✏️</button>
+                                <button onclick="deleteTransaction(this)" style="padding: 3px 8px; font-size: 11px;">🗑️</button>
+                            </td>
                         </tr>
-                        <tr>
+                        <tr data-ticker="ES">
                             <td>2024-12-20</td>
                             <td><span class="type-badge type-future">Future</span></td>
                             <td><strong>ES</strong></td>
@@ -670,8 +791,12 @@
                             <td class="profit">+$47.50</td>
                             <td class="profit">+0.49%</td>
                             <td>Scalp trade</td>
+                            <td>
+                                <button onclick="editTransaction(this)" style="padding: 3px 8px; font-size: 11px;">✏️</button>
+                                <button onclick="deleteTransaction(this)" style="padding: 3px 8px; font-size: 11px;">🗑️</button>
+                            </td>
                         </tr>
-                        <tr>
+                        <tr data-ticker="TLT">
                             <td>2024-12-22</td>
                             <td><span class="type-badge type-bond">Bond</span></td>
                             <td><strong>TLT</strong></td>
@@ -684,6 +809,10 @@
                             <td class="loss">-$251.00</td>
                             <td class="loss">-1.31%</td>
                             <td>Hedge position</td>
+                            <td>
+                                <button onclick="editTransaction(this)" style="padding: 3px 8px; font-size: 11px;">✏️</button>
+                                <button onclick="deleteTransaction(this)" style="padding: 3px 8px; font-size: 11px;">🗑️</button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -767,6 +896,20 @@
             document.getElementById(`${tab}-tab`).classList.add('active');
         }
 
+        // Toggle metrics visibility
+        function toggleMetrics() {
+            const selector = document.getElementById('metricsSelector');
+            selector.classList.toggle('active');
+        }
+
+        // Toggle individual metric columns
+        function toggleMetricColumn(metric) {
+            const columns = document.querySelectorAll(`.metric-${metric}`);
+            columns.forEach(col => {
+                col.style.display = col.style.display === 'none' ? 'table-cell' : 'none';
+            });
+        }
+
         // Sort table
         let sortDirection = {};
         function sortTable(column, tableId) {
@@ -804,8 +947,8 @@
         function getColumnIndex(column, tableId) {
             const columns = {
                 portfolio: {
-                    ticker: 1, name: 2, shares: 3, avgCost: 4, current: 5,
-                    value: 6, gain: 7, gainPercent: 8, dayChange: 9, diamond: 10, intrinsic: 11
+                    ticker: 1, name: 2, current: 3, dayChange: 4, 
+                    diamond: 5, intrinsic: 6, upside: 7
                 },
                 journal: {
                     date: 1, type: 2, ticker: 3, action: 4, quantity: 5,
@@ -836,77 +979,45 @@
             const date = document.getElementById('txDate').value;
             const notes = document.getElementById('txNotes').value;
 
-            // Форматируем action для отображения
+            // ПРАВИЛЬНЫЕ РАСЧЕТЫ!
+            let total, totalDisplay, totalClass;
             let actionDisplay = action.toUpperCase();
-            let actionClass = 'action-buy';
-
-            if (action.includes('call')) {
-                actionDisplay = action.includes('buy') ? 'BUY CALL ☎️' : 'SELL CALL ☎️';
-                actionClass = action.includes('buy') ? 'action-buy' : 'action-sell';
-            } else if (action.includes('put')) {
-                actionDisplay = action.includes('buy') ? 'BUY PUT 📉' : 'SELL PUT 📉';
-                actionClass = action.includes('buy') ? 'action-buy' : 'action-sell';
-            } else if (action === 'long') {
-                actionDisplay = 'LONG 📈';
-                actionClass = 'action-buy';
-            } else if (action === 'short') {
-                actionDisplay = 'SHORT 📉';
-                actionClass = 'action-sell';
-            } else {
-                actionDisplay = action.toUpperCase();
-                actionClass = action === 'buy' ? 'action-buy' : 'action-sell';
-            }
-
-            // Calculate total для опционов по-другому!
-            let total, totalWithSign, totalClass;
+            let actionClass = action === 'buy' ? 'action-buy' : 'action-sell';
 
             if (type === 'option') {
-                // Для опционов: цена * 100 * количество контрактов
+                // Для опционов: цена × 100 × количество контрактов
                 const optionValue = price * 100 * quantity;
-                total = optionValue + commission;
 
-                // Для SELL PUT получаем премию (плюс)
-                if (action === 'sell_put' || action === 'sell_call') {
-                    totalWithSign = optionValue - commission; // Получаем деньги минус комиссия
+                if (action.includes('sell')) {
+                    // SELL опционов = получаем премию
+                    total = optionValue - commission;
+                    totalDisplay = `+$${total.toFixed(2)}`;
                     totalClass = 'profit';
                 } else {
-                    totalWithSign = -(optionValue + commission); // Платим деньги
+                    // BUY опционов = платим премию
+                    total = optionValue + commission;
+                    totalDisplay = `-$${total.toFixed(2)}`;
                     totalClass = 'loss';
                 }
-            } else {
-                // Для акций и остального
-                total = (quantity * price) + commission;
-                totalWithSign = (action === 'buy' || action === 'long') ? -total : total;
-                totalClass = totalWithSign > 0 ? 'profit' : 'loss';
-            }
 
-            // Проверяем дату экспирации для опционов
-            let currentStatus = 'Pending...';
-            if (type === 'option' && symbol.includes('/')) {
-                // Извлекаем дату из символа (например, "07/18" из "OSCR 15.5 PUT 07/18")
-                const expMatch = symbol.match(/(\d{2}\/\d{2})/);
-                if (expMatch) {
-                    const expDate = new Date(`2025-${expMatch[1].replace('/', '-')}`);
-                    const today = new Date();
-                    if (expDate < today) {
-                        currentStatus = '<span style="color: #e74c3c;">EXPIRED</span>';
-                    }
+                // Обновляем display для опционов
+                if (action.includes('call')) {
+                    actionDisplay = action.includes('buy') ? 'BUY CALL ☎️' : 'SELL CALL ☎️';
+                } else if (action.includes('put')) {
+                    actionDisplay = action.includes('buy') ? 'BUY PUT 📉' : 'SELL PUT 📉';
                 }
-            }
+            } else {
+                // Для акций и остального: цена × количество + комиссия
+                const stockValue = price * quantity;
 
-            // Расчет P&L для опционов
-            let plDisplay = '-';
-            let plPercentDisplay = '-';
-
-            if (type === 'option' && currentStatus.includes('EXPIRED')) {
-                // Для SELL PUT если expired - мы заработали премию
-                if (action === 'sell_put' || action === 'sell_call') {
-                    plDisplay = `<span class="profit">+$${Math.abs(totalWithSign).toFixed(2)}</span>`;
-                    plPercentDisplay = '<span class="profit">+100%</span>';
+                if (action === 'sell') {
+                    total = stockValue - commission;
+                    totalDisplay = `+$${total.toFixed(2)}`;
+                    totalClass = 'profit';
                 } else {
-                    // Для BUY опционов если expired - потеряли премию
-                    plDisplay = `<span class="loss">${totalWithSign.toFixed(2)}</span>`;
-                    plPercentDisplay = '<span class="loss">-100%</span>';
+                    total = stockValue + commission;
+                    totalDisplay = `-$${total.toFixed(2)}`;
+                    totalClass = 'loss';
                 }
             }
 
@@ -924,10 +1035,10 @@
                 <td>${quantity}</td>
                 <td>$${price.toFixed(2)}</td>
                 <td>$${commission.toFixed(2)}</td>
-                <td class="${totalClass}">${totalWithSign > 0 ? '+' : ''}$${Math.abs(totalWithSign).toFixed(2)}</td>
-                <td>${currentStatus}</td>
-                <td>${plDisplay}</td>
-                <td>${plPercentDisplay}</td>
+                <td class="${totalClass}">${totalDisplay}</td>
+                <td>Pending...</td>
+                <td>-</td>
+                <td>-</td>
                 <td>${notes}</td>
             `;
 
@@ -975,9 +1086,25 @@
             }
         }
 
+        // Watchlist functions
+        function showAddToWatchlist() {
+            const ticker = prompt('Enter ticker symbol to add to watchlist:');
+            if (ticker) {
+                alert(`${ticker.toUpperCase()} added to watchlist!`);
+                // Here would be the API call to add to watchlist
+            }
+        }
+
+        function removeFromWatchlist(ticker) {
+            if (confirm(`Remove ${ticker} from watchlist?`)) {
+                alert(`${ticker} removed from watchlist!`);
+                // Here would be the API call to remove from watchlist
+            }
+        }
+
         // Export functions
-        function exportPortfolio() {
-            alert('Exporting portfolio to CSV...');
+        function exportWatchlist() {
+            alert('Exporting watchlist to CSV...');
             // Implementation would go here
         }
 
@@ -1005,12 +1132,347 @@
         // Refresh prices
         function refreshPrices() {
             alert('Refreshing prices...');
-            // Implementation would go here
+            // Here would be the API call to refresh prices
         }
+
+        // Update statistics automatically
+        function updateJournalStats() {
+            const tbody = document.getElementById('journalBody');
+            const rows = tbody.querySelectorAll('tr');
+
+            let totalTrades = 0;
+            let winningTrades = 0;
+            let losingTrades = 0;
+            let totalPL = 0;
+            let totalWins = 0;
+
+            rows.forEach(row => {
+                if (!row.classList.contains('ticker-summary')) {
+                    totalTrades++;
+                    const plCell = row.cells[9];
+                    if (plCell && plCell.textContent !== '-') {
+                        const plValue = parseFloat(plCell.textContent.replace(/[^0-9.-]/g, ''));
+                        if (plValue > 0) {
+                            winningTrades++;
+                            totalWins += plValue;
+                        } else if (plValue < 0) {
+                            losingTrades++;
+                        }
+                        totalPL += plValue;
+                    }
+                }
+            });
+
+            // Update the stats cards
+            document.getElementById('totalTrades').textContent = totalTrades;
+            document.getElementById('winningTrades').textContent = winningTrades;
+            document.getElementById('losingTrades').textContent = losingTrades;
+            document.getElementById('realizedPL').textContent = totalPL >= 0 ? `+${totalPL.toFixed(2)}` : `-${Math.abs(totalPL).toFixed(2)}`;
+            document.getElementById('realizedPL').className = totalPL >= 0 ? 'stat-value profit' : 'stat-value loss';
+
+            const avgWin = winningTrades > 0 ? totalWins / winningTrades : 0;
+            document.getElementById('avgWin').textContent = `+${avgWin.toFixed(2)}`;
+        }
+
+        // Edit transaction
+        function editTransaction(btn) {
+            const row = btn.closest('tr');
+            const cells = row.cells;
+
+            // Fill the form with current values
+            document.getElementById('txDate').value = cells[0].textContent;
+            document.getElementById('txSymbol').value = cells[2].textContent;
+            document.getElementById('txQuantity').value = cells[4].textContent;
+            document.getElementById('txPrice').value = cells[5].textContent.replace('
     </script>
 
     <script src="/brand.js"></script>
     <script src="/footer.js"></script>
-    
+
+</body>
+</html>, '');
+            document.getElementById('txCommission').value = cells[6].textContent.replace('
+    </script>
+
+    <script src="/brand.js"></script>
+    <script src="/footer.js"></script>
+
+</body>
+</html>, '');
+            document.getElementById('txNotes').value = cells[11].textContent;
+
+            // Remove the old row
+            row.remove();
+
+            // Show the modal
+            showAddTransaction();
+
+            // Update stats
+            updateJournalStats();
+        }
+
+        // Delete transaction
+        function deleteTransaction(btn) {
+            if (confirm('Delete this transaction?')) {
+                btn.closest('tr').remove();
+                updateJournalStats();
+            }
+        }
+
+        // Group by ticker functionality
+        let groupedByTicker = false;
+        function toggleGroupByTicker() {
+            const tbody = document.getElementById('journalBody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            if (!groupedByTicker) {
+                // Group rows by ticker
+                const groups = {};
+                rows.forEach(row => {
+                    const ticker = row.dataset.ticker || row.cells[2].textContent.split(' ')[0];
+                    if (!groups[ticker]) groups[ticker] = [];
+                    groups[ticker].push(row);
+                });
+
+                // Clear tbody
+                tbody.innerHTML = '';
+
+                // Add grouped rows with summaries
+                Object.keys(groups).forEach(ticker => {
+                    // Add ticker summary row
+                    const summaryRow = document.createElement('tr');
+                    summaryRow.className = 'ticker-summary';
+                    summaryRow.style.background = 'rgba(50, 205, 50, 0.1)';
+                    summaryRow.style.fontWeight = 'bold';
+
+                    let totalPL = 0;
+                    let totalTrades = groups[ticker].length;
+
+                    groups[ticker].forEach(row => {
+                        const plCell = row.cells[9];
+                        if (plCell && plCell.textContent !== '-') {
+                            totalPL += parseFloat(plCell.textContent.replace(/[^0-9.-]/g, ''));
+                        }
+                    });
+
+                    summaryRow.innerHTML = `
+                        <td colspan="2">
+                            <span style="cursor: pointer;" onclick="toggleTickerGroup('${ticker}')">
+                                ▼ ${ticker}
+                            </span>
+                        </td>
+                        <td colspan="2">Total Trades: ${totalTrades}</td>
+                        <td colspan="4">Total P&L: <span class="${totalPL >= 0 ? 'profit' : 'loss'}">
+                            ${totalPL >= 0 ? '+' : ''}${Math.abs(totalPL).toFixed(2)}
+                        </span></td>
+                        <td colspan="5"></td>
+                    `;
+                    tbody.appendChild(summaryRow);
+
+                    // Add individual trades
+                    groups[ticker].forEach(row => {
+                        row.dataset.tickerGroup = ticker;
+                        tbody.appendChild(row);
+                    });
+                });
+
+                groupedByTicker = true;
+            } else {
+                // Restore original order
+                location.reload(); // Simple reload for now
+            }
+        }
+
+        // Toggle ticker group visibility
+        function toggleTickerGroup(ticker) {
+            const rows = document.querySelectorAll(`[data-ticker-group="${ticker}"]`);
+            rows.forEach(row => {
+                row.style.display = row.style.display === 'none' ? '' : 'none';
+            });
+        }
+
+        // Initialize stats on load
+        window.addEventListener('load', updateJournalStats);
+    </script>
+
+    <script src="/brand.js"></script>
+    <script src="/footer.js"></script>
+
+<!-- Admin Mode Scripts -->
+<script src="/pp-auth.js"></script>
+<script>
+    ensureSessionOrRedirect().then(me => {
+        document.body.classList.toggle('admin-mode', !me.is_admin);
+        window.PP_USER = me;
+        document.documentElement.dataset.isAdmin = me.is_admin ? '1' : '0';
+    });
+</script>
+
+<link rel="stylesheet" href="/admin.css">
+<script src="/pp-admin.js"></script>
+
+<script>
+
+// ========================================
+// РАБОТА С БАЗОЙ ДАННЫХ
+// ========================================
+
+// При загрузке страницы - загружаем данные с сервера
+async function loadTransactions() {
+    try {
+        const response = await fetch('/api/transactions');
+        const data = await response.json();
+
+        const tbody = document.getElementById('journalBody');
+        tbody.innerHTML = ''; // Очищаем демо данные
+
+        // Добавляем реальные транзакции
+        data.transactions.forEach(tx => {
+            const row = tbody.insertRow();
+            row.dataset.transactionId = tx[0]; // ID транзакции
+            row.dataset.ticker = tx[4]; // Symbol
+
+            // Форматируем данные для отображения
+            const type = tx[3];
+            const action = tx[5];
+            const quantity = tx[6];
+            const price = tx[7];
+            const commission = tx[8] || 0;
+
+            // Расчет total
+            let totalDisplay, totalClass;
+            if (type === 'option') {
+                const optionValue = price * 100 * quantity;
+                if (action.includes('sell')) {
+                    const total = optionValue - commission;
+                    totalDisplay = `+$${total.toFixed(2)}`;
+                    totalClass = 'profit';
+                } else {
+                    const total = optionValue + commission;
+                    totalDisplay = `-$${total.toFixed(2)}`;
+                    totalClass = 'loss';
+                }
+            } else {
+                const stockValue = price * quantity;
+                if (action === 'sell') {
+                    const total = stockValue - commission;
+                    totalDisplay = `+$${total.toFixed(2)}`;
+                    totalClass = 'profit';
+                } else {
+                    const total = stockValue + commission;
+                    totalDisplay = `-$${total.toFixed(2)}`;
+                    totalClass = 'loss';
+                }
+            }
+
+            row.innerHTML = `
+                <td>${tx[2]}</td>
+                <td><span class="type-badge type-${type}">${type.toUpperCase()}</span></td>
+                <td><strong>${tx[4]}</strong></td>
+                <td class="${action === 'buy' ? 'action-buy' : 'action-sell'}">${action.toUpperCase()}</td>
+                <td>${quantity}</td>
+                <td>$${price.toFixed(2)}</td>
+                <td>$${commission.toFixed(2)}</td>
+                <td class="${totalClass}">${totalDisplay}</td>
+                <td>Pending...</td>
+                <td>-</td>
+                <td>-</td>
+                <td>${tx[9] || ''}</td>
+                <td>
+                    <button onclick="editTransaction(this)" style="padding: 3px 8px; font-size: 11px;">✏️</button>
+                    <button onclick="deleteTransactionFromDB(${tx[0]})" style="padding: 3px 8px; font-size: 11px;">🗑️</button>
+                </td>
+            `;
+        });
+
+        updateJournalStats();
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+    }
+}
+
+// При загрузке watchlist
+async function loadWatchlist() {
+    try {
+        const response = await fetch('/api/watchlist');
+        const data = await response.json();
+
+        // Обновляем таблицу watchlist
+        // ... код для обновления watchlist ...
+    } catch (error) {
+        console.error('Error loading watchlist:', error);
+    }
+}
+
+// Сохранение транзакции в БД
+async function saveTransactionToDB() {
+    const type = document.getElementById('txType').value;
+    const action = document.getElementById('txAction').value;
+    const symbol = document.getElementById('txSymbol').value;
+    const quantity = parseInt(document.getElementById('txQuantity').value);
+    const price = parseFloat(document.getElementById('txPrice').value);
+    const commission = parseFloat(document.getElementById('txCommission').value || 0);
+    const date = document.getElementById('txDate').value;
+    const notes = document.getElementById('txNotes').value;
+
+    try {
+        const response = await fetch('/api/transactions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                date: date,
+                type: type,
+                symbol: symbol,
+                action: action,
+                quantity: quantity,
+                price: price,
+                commission: commission,
+                notes: notes
+            })
+        });
+
+        if (response.ok) {
+            // Перезагружаем таблицу
+            await loadTransactions();
+            closeModal();
+            alert('Transaction saved!');
+        }
+    } catch (error) {
+        console.error('Error saving transaction:', error);
+        alert('Error saving transaction!');
+    }
+}
+
+// Удаление транзакции из БД
+async function deleteTransactionFromDB(transactionId) {
+    if (confirm('Delete this transaction?')) {
+        try {
+            const response = await fetch(`/api/transactions/${transactionId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await loadTransactions();
+                alert('Transaction deleted!');
+            }
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+        }
+    }
+}
+
+// Переопределяем функцию saveTransaction чтобы она сохраняла в БД
+const originalSaveTransaction = saveTransaction;
+saveTransaction = saveTransactionToDB;
+
+// Загружаем данные при старте
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        loadTransactions();
+        loadWatchlist();
+    }, 500); // Небольшая задержка чтобы auth успел загрузиться
+});
+    </script>
+
 </body>
 </html>
