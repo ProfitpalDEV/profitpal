@@ -28,6 +28,23 @@ import re
 
 init_db()
 
+# ========================================
+# ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ТЕКУЩЕГО ЮЗЕРА
+# ========================================
+async def get_current_user(request: Request):
+    """Получаем текущего юзера из сессии"""
+    try:
+        # Используем _fetch_user_by_session С ПОДЧЕРКИВАНИЕМ!
+        user = await _fetch_user_by_session(request)
+        if not user:
+            # Для тестирования возвращаем тестового юзера
+            return {'id': 'test_user', 'email': 'test@profitpal.org'}
+        return user
+    except Exception as e:
+        print(f"Error getting current user: {e}")
+        # Возвращаем тестового юзера для разработки
+        return {'id': 'test_user', 'email': 'test@profitpal.org'}
+
 # ==========================================
 # ROOT DIRECTORY CONFIGURATION
 # ==========================================
